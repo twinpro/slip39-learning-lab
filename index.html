@@ -1,1 +1,343 @@
-<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'><title>SLIP-39 Learning Lab</title><style>body{font-family:Arial;margin:0;background:#0f172a;color:#fff}main{max-width:1000px;margin:auto;padding:16px}.card{background:#111827;border:1px solid #334155;border-radius:14px;padding:14px;margin:12px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.group{border:2px solid #334155;border-radius:12px;padding:10px}.ok{border-color:#22c55e}.bad{border-color:#ef4444}.member{padding:12px;border-radius:9px;margin:7px 0;cursor:pointer}.on{background:#14532d}.off{background:#7f1d1d;text-decoration:line-through}button,select{padding:10px;border-radius:9px;border:1px solid #475569;background:#1e293b;color:white;margin:4px}.status{font-size:22px;font-weight:700}.success{color:#22c55e}.failure{color:#ef4444}.note{color:#94a3b8;line-height:1.4}nav{display:flex;gap:6px;overflow:auto;position:sticky;top:0;background:#0f172a;padding:8px 0}section{display:none}.show{display:block}nav button.active{background:#38bdf8;color:#082f49}</style></head><body><main><h1>SLIP-39 Learning Lab</h1><p class='note'>Educational only. It creates no wallet, seed, or real SLIP-39 shares.</p><nav><button class='active' data-p='basics'>Basics</button><button data-p='simple'>Simple Threshold</button><button data-p='llc'>21 Investors</button><button data-p='compare'>SLIP-39 vs Multisig</button></nav><section id='basics' class='show'><div class='card'><h2>What SLIP-39 does</h2><p>It splits one wallet recovery secret into several mnemonic shares.</p><p><b>3-of-5</b> means any 3 valid shares can recover it; 2 cannot.</p></div><div class='card'><h2>Key point</h2><p>SLIP-39 protects a backup. It does not require several people to approve every Bitcoin transaction.</p></div></section><section id='simple'><div class='card'><h2>Simple 3-of-5 test</h2><label>Need <select id='need'><option>2</option><option selected>3</option><option>4</option><option>5</option></select> of 5</label><button onclick='allS(true)'>All available</button><button onclick='allS(false)'>Remove all</button><div id='shares'></div><div id='sstatus' class='status'></div></div></section><section id='llc'><div class='card'><h2>21-investor simulator</h2><label>Need <select id='gneed'><option>4</option><option selected>5</option><option>6</option><option>7</option></select> of 7 groups</label><label>Each group needs <select id='mneed'><option>1</option><option selected>2</option><option>3</option></select> of 3 people</label><br><button onclick='setAll(true)'>Activate all</button><button onclick='oneEach()'>Lose one per group</button><button onclick='loseGroups(2)'>Lose 2 groups</button><button onclick='loseGroups(3)'>Lose 3 groups</button><button onclick='randomize()'>Random</button></div><div class='card'><div id='status' class='status'></div><div id='details' class='note'></div></div><div id='groups' class='grid'></div></section><section id='compare'><div class='card'><h2>SLIP-39 vs multisig</h2><p><b>SLIP-39:</b> splits one recovery secret.</p><p><b>Multisig:</b> uses independent keys and requires multiple signatures to spend.</p><p class='note'>For an LLC, SLIP-39 can be a backup layer. Multisig is usually stronger for transaction control.</p></div></section><p class='note'>Never enter a real seed phrase into this website or any shared device.</p></main><script>document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('section').forEach(s=>s.classList.remove('show'));document.getElementById(b.dataset.p).classList.add('show')});let s=Array(5).fill(true);function rs(){let w=document.getElementById('shares');w.innerHTML='';s.forEach((v,i)=>{let d=document.createElement('div');d.className='member '+(v?'on':'off');d.textContent='Share '+(i+1)+(v?' available':' unavailable');d.onclick=()=>{s[i]=!s[i];rs()};w.appendChild(d)});let n=+need.value,h=s.filter(Boolean).length,o=document.getElementById('sstatus');o.className='status '+(h>=n?'success':'failure');o.textContent=h>=n?'Recovery possible':'Recovery fails'}function allS(v){s=Array(5).fill(v);rs()}need.onchange=rs;let a=Array(21).fill(true);function r(){let gn=+gneed.value,mn=+mneed.value,v=0,w=document.getElementById('groups');w.innerHTML='';for(let g=0;g<7;g++){let st=g*3,c=a.slice(st,st+3).filter(Boolean).length,ok=c>=mn;if(ok)v++;let box=document.createElement('div');box.className='group '+(ok?'ok':'bad');box.innerHTML='<h3>Group '+String.fromCharCode(65+g)+' — '+c+'/3 available</h3>';for(let i=st;i<st+3;i++){let d=document.createElement('div');d.className='member '+(a[i]?'on':'off');d.textContent='Investor '+(i+1);d.onclick=()=>{a[i]=!a[i];r()};box.appendChild(d)}w.appendChild(box)}let ok=v>=gn,status=document.getElementById('status');status.className='status '+(ok?'success':'failure');status.textContent=ok?'RECOVERY POSSIBLE':'RECOVERY NOT POSSIBLE';details.textContent=v+' of 7 groups qualify. Need '+gn+'. Each group needs '+mn+' of 3 people.'}function setAll(v){a=Array(21).fill(v);r()}function oneEach(){a=Array(21).fill(true);for(let g=0;g<7;g++)a[g*3]=false;r()}function loseGroups(n){a=Array(21).fill(true);for(let i=0;i<n*3;i++)a[i]=false;r()}function randomize(){a=a.map(()=>Math.random()>.35);r()}gneed.onchange=r;mneed.onchange=r;rs();r();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111f">
+<title>SLIP-39 Learning Lab V2</title>
+<style>
+:root{
+  --bg:#07111f;--panel:#0d1726;--panel2:#111f32;--line:#26364d;
+  --text:#f8fafc;--muted:#9fb0c6;--cyan:#38bdf8;--green:#22c55e;
+  --red:#ef4444;--amber:#f59e0b;--purple:#a78bfa
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;font-family:Inter,Arial,Helvetica,sans-serif;color:var(--text);
+  background:
+    radial-gradient(circle at 10% 0%,rgba(56,189,248,.12),transparent 30%),
+    radial-gradient(circle at 90% 10%,rgba(167,139,250,.10),transparent 28%),
+    var(--bg)
+}
+button,select{font:inherit}
+.shell{max-width:1180px;margin:auto;padding:20px}
+.hero{
+  padding:28px;border:1px solid var(--line);border-radius:24px;
+  background:linear-gradient(135deg,rgba(17,31,50,.96),rgba(8,20,35,.96));
+  box-shadow:0 18px 50px rgba(0,0,0,.28)
+}
+.badge{display:inline-block;padding:7px 10px;border-radius:999px;background:#0b2940;color:#7dd3fc;font-size:12px;font-weight:800;letter-spacing:.08em}
+h1{font-size:clamp(34px,6vw,64px);line-height:1;margin:16px 0 12px}
+.hero p{color:var(--muted);max-width:760px;font-size:18px;line-height:1.55}
+.warning{margin-top:18px;padding:13px 15px;border-left:4px solid var(--amber);background:rgba(245,158,11,.08);border-radius:10px;color:#fde68a}
+.tabs{
+  position:sticky;top:0;z-index:20;display:flex;gap:8px;overflow:auto;
+  padding:12px 0;margin:14px 0;background:rgba(7,17,31,.94);backdrop-filter:blur(12px)
+}
+.tab{
+  border:1px solid var(--line);background:var(--panel);color:var(--text);
+  border-radius:12px;padding:11px 14px;white-space:nowrap;cursor:pointer
+}
+.tab.active{background:var(--cyan);color:#04263a;border-color:var(--cyan);font-weight:800}
+.page{display:none}.page.show{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{
+  background:linear-gradient(180deg,rgba(13,23,38,.98),rgba(10,20,34,.98));
+  border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0
+}
+.card h2,.card h3{margin-top:0}
+.kpi{font-size:34px;font-weight:900}
+.muted{color:var(--muted);line-height:1.55}
+.step{display:flex;gap:12px;align-items:flex-start}
+.stepnum{
+  min-width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:#103149;color:#7dd3fc;font-weight:900
+}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+select,.action{
+  background:#0a1422;color:white;border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px
+}
+.action{cursor:pointer}.action:hover{border-color:var(--cyan)}
+.status{
+  font-size:26px;font-weight:900;padding:18px;border-radius:16px;border:1px solid var(--line)
+}
+.status.ok{color:#86efac;background:rgba(34,197,94,.08)}
+.status.bad{color:#fca5a5;background:rgba(239,68,68,.08)}
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.group{border:2px solid var(--line);border-radius:16px;padding:14px;background:var(--panel)}
+.group.ok{border-color:var(--green)}.group.bad{border-color:var(--red)}
+.member{
+  padding:12px;border-radius:10px;margin:8px 0;cursor:pointer;border:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center
+}
+.member.on{background:#173f28}.member.off{background:#4a1d22;text-decoration:line-through}
+.pill{font-size:12px;padding:4px 7px;border-radius:999px;background:#17263b;color:#cbd5e1}
+.progress{height:12px;border-radius:999px;background:#111827;overflow:hidden;border:1px solid var(--line)}
+.progress span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));width:0}
+.quiz label{display:block;padding:12px;border:1px solid var(--line);border-radius:10px;margin:8px 0;cursor:pointer}
+.quiz-result{margin-top:12px;font-weight:800}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:#7dd3fc}
+.timeline{display:grid;gap:12px}
+.timeline .item{padding:14px;border-left:4px solid var(--cyan);background:var(--panel);border-radius:10px}
+footer{padding:28px 4px 50px;color:var(--muted);font-size:13px}
+@media(max-width:640px){
+  .shell{padding:12px}.hero{padding:20px}.status{font-size:21px}
+  h1{font-size:38px}.hero p{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="hero">
+    <span class="badge">VERSION 2 · EDUCATIONAL SIMULATOR</span>
+    <h1>SLIP-39 Learning Lab</h1>
+    <p>Learn how threshold recovery works, test a 21-investor structure, stress-test failures, and understand where SLIP-39 ends and multisig begins.</p>
+    <div class="warning"><strong>Never enter a real seed phrase here.</strong> This site creates no wallet, no seed and no real SLIP-39 shares.</div>
+  </section>
+
+  <nav class="tabs">
+    <button class="tab active" data-page="learn">Learn</button>
+    <button class="tab" data-page="simple">Simple Threshold</button>
+    <button class="tab" data-page="llc">21 Investors</button>
+    <button class="tab" data-page="stress">Stress Test</button>
+    <button class="tab" data-page="compare">SLIP-39 vs Multisig</button>
+    <button class="tab" data-page="quiz">Quiz</button>
+  </nav>
+
+  <section id="learn" class="page show">
+    <div class="grid">
+      <div class="card">
+        <div class="kpi">1 secret</div>
+        <p class="muted">SLIP-39 starts with one recovery secret and splits it into multiple human-readable shares.</p>
+      </div>
+      <div class="card">
+        <div class="kpi">Threshold</div>
+        <p class="muted">A rule such as 3-of-5 means any 3 valid shares can recover the secret. Two cannot.</p>
+      </div>
+      <div class="card">
+        <div class="kpi">Groups</div>
+        <p class="muted">You can require enough people inside enough groups. This is useful for families, companies and committees.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>How recovery works</h2>
+      <div class="timeline">
+        <div class="item"><strong>1. Create shares.</strong><br><span class="muted">A wallet generates SLIP-39 recovery shares.</span></div>
+        <div class="item"><strong>2. Distribute shares.</strong><br><span class="muted">Each holder stores one share independently.</span></div>
+        <div class="item"><strong>3. Meet thresholds.</strong><br><span class="muted">Enough people and groups cooperate.</span></div>
+        <div class="item"><strong>4. Recover the wallet.</strong><br><span class="muted">The underlying secret is reconstructed on a trusted recovery device.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="simple" class="page">
+    <div class="card">
+      <h2>Simple 3-of-5 experiment</h2>
+      <div class="controls">
+        <label>Need
+          <select id="simpleNeed"><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+          of 5 shares
+        </label>
+        <button class="action" onclick="setSimple(true)">Activate all</button>
+        <button class="action" onclick="setSimple(false)">Remove all</button>
+      </div>
+    </div>
+    <div id="simpleStatus" class="status"></div>
+    <div id="simpleGrid" class="grid"></div>
+  </section>
+
+  <section id="llc" class="page">
+    <div class="card">
+      <h2>21-investor grouped simulator</h2>
+      <div class="controls">
+        <label>Overall:
+          <select id="groupNeed"><option>4</option><option selected>5</option><option>6</option><option>7</option></select>
+          of 7 groups
+        </label>
+        <label>Inside each group:
+          <select id="memberNeed"><option>1</option><option selected>2</option><option>3</option></select>
+          of 3 people
+        </label>
+      </div>
+      <div class="controls" style="margin-top:10px">
+        <button class="action" onclick="setAll(true)">Activate all</button>
+        <button class="action" onclick="loseOnePerGroup()">Lose 1 per group</button>
+        <button class="action" onclick="loseTwoGroups()">Lose 2 groups</button>
+        <button class="action" onclick="loseThreeGroups()">Lose 3 groups</button>
+        <button class="action" onclick="randomize()">Random</button>
+      </div>
+    </div>
+    <div id="llcStatus" class="status"></div>
+    <div class="card">
+      <div class="progress"><span id="groupProgress"></span></div>
+      <p id="llcDetail" class="muted"></p>
+    </div>
+    <div id="groupsGrid" class="groups"></div>
+  </section>
+
+  <section id="stress" class="page">
+    <div class="grid">
+      <div class="card">
+        <h3>Scenario A</h3>
+        <p class="muted">One unavailable investor in every group.</p>
+        <button class="action" onclick="openScenario('one')">Run scenario</button>
+      </div>
+      <div class="card">
+        <h3>Scenario B</h3>
+        <p class="muted">Two complete groups unavailable.</p>
+        <button class="action" onclick="openScenario('two')">Run scenario</button>
+      </div>
+      <div class="card">
+        <h3>Scenario C</h3>
+        <p class="muted">Three complete groups unavailable.</p>
+        <button class="action" onclick="openScenario('three')">Run scenario</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>What to test before real deployment</h2>
+      <ul class="muted">
+        <li>What happens when members leave the LLC?</li>
+        <li>How are shares replaced or rotated?</li>
+        <li>Who supervises recovery?</li>
+        <li>Where is recovery performed?</li>
+        <li>What prevents one recovered wallet from becoming a single point of control?</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="compare" class="page">
+    <div class="card">
+      <h2>SLIP-39 versus Bitcoin multisig</h2>
+      <table>
+        <tr><th>Question</th><th>SLIP-39</th><th>Multisig</th></tr>
+        <tr><td>What is distributed?</td><td>Shares of one recovery secret</td><td>Independent signing keys</td></tr>
+        <tr><td>Required for each spend?</td><td>Usually no</td><td>Yes</td></tr>
+        <tr><td>Main purpose</td><td>Backup and recovery</td><td>Ongoing transaction control</td></tr>
+        <tr><td>Single-point risk</td><td>Reconstructed secret can become one</td><td>Reduced if keys remain separate</td></tr>
+        <tr><td>Operational complexity</td><td>Moderate</td><td>Higher</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Practical takeaway</h2>
+      <p class="muted">SLIP-39 can be a strong recovery layer. It is not automatically a replacement for institutional multisignature custody.</p>
+    </div>
+  </section>
+
+  <section id="quiz" class="page">
+    <div class="card quiz">
+      <h2>Knowledge check</h2>
+      <p><strong>1. What does 3-of-5 mean?</strong></p>
+      <label><input type="radio" name="q1" value="0"> All 5 shares are required.</label>
+      <label><input type="radio" name="q1" value="1"> Any 3 valid shares can recover.</label>
+
+      <p><strong>2. Is SLIP-39 the same as multisig?</strong></p>
+      <label><input type="radio" name="q2" value="0"> Yes.</label>
+      <label><input type="radio" name="q2" value="1"> No. They solve different problems.</label>
+
+      <p><strong>3. Should a real seed ever be entered into this website?</strong></p>
+      <label><input type="radio" name="q3" value="0"> Yes, for testing.</label>
+      <label><input type="radio" name="q3" value="1"> No.</label>
+
+      <button class="action" onclick="gradeQuiz()">Check score</button>
+      <div id="quizResult" class="quiz-result"></div>
+    </div>
+  </section>
+
+  <footer>SLIP-39 Learning Lab V2 · Educational use only · No cryptographic functions included.</footer>
+</div>
+
+<script>
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(x=>x.classList.remove("show"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.page).classList.add("show");
+  });
+});
+
+let simple=Array(5).fill(true);
+function renderSimple(){
+  const need=+document.getElementById("simpleNeed").value;
+  const have=simple.filter(Boolean).length;
+  const ok=have>=need;
+  const status=document.getElementById("simpleStatus");
+  status.className="status "+(ok?"ok":"bad");
+  status.textContent=ok?`RECOVERY POSSIBLE — ${have} available, ${need} needed`:`RECOVERY FAILS — ${have} available, ${need} needed`;
+  const grid=document.getElementById("simpleGrid");grid.innerHTML="";
+  simple.forEach((v,i)=>{
+    const d=document.createElement("div");
+    d.className="member "+(v?"on":"off");
+    d.innerHTML=`<span>Share ${i+1}</span><span class="pill">${v?"available":"missing"}</span>`;
+    d.onclick=()=>{simple[i]=!simple[i];renderSimple()};
+    grid.appendChild(d);
+  });
+}
+function setSimple(v){simple=Array(5).fill(v);renderSimple()}
+document.getElementById("simpleNeed").onchange=renderSimple;
+
+let active=Array(21).fill(true);
+function render21(){
+  const gneed=+document.getElementById("groupNeed").value;
+  const mneed=+document.getElementById("memberNeed").value;
+  let valid=0;
+  const grid=document.getElementById("groupsGrid");grid.innerHTML="";
+  for(let g=0;g<7;g++){
+    const start=g*3;
+    const count=active.slice(start,start+3).filter(Boolean).length;
+    const ok=count>=mneed;
+    if(ok)valid++;
+    const box=document.createElement("div");
+    box.className="group "+(ok?"ok":"bad");
+    box.innerHTML=`<h3>Group ${String.fromCharCode(65+g)}</h3><p class="muted">${count}/3 available · ${ok?"qualifies":"does not qualify"}</p>`;
+    for(let i=start;i<start+3;i++){
+      const d=document.createElement("div");
+      d.className="member "+(active[i]?"on":"off");
+      d.innerHTML=`<span>Investor ${i+1}</span><span class="pill">${active[i]?"available":"unavailable"}</span>`;
+      d.onclick=()=>{active[i]=!active[i];render21()};
+      box.appendChild(d);
+    }
+    grid.appendChild(box);
+  }
+  const ok=valid>=gneed;
+  const status=document.getElementById("llcStatus");
+  status.className="status "+(ok?"ok":"bad");
+  status.textContent=ok?"RECOVERY POSSIBLE":"RECOVERY NOT POSSIBLE";
+  document.getElementById("llcDetail").textContent=`${valid} of 7 groups qualify. Need ${gneed}. Each qualifying group needs ${mneed} of 3 people.`;
+  document.getElementById("groupProgress").style.width=(valid/7*100)+"%";
+}
+function setAll(v){active=Array(21).fill(v);render21()}
+function loseOnePerGroup(){active=Array(21).fill(true);for(let g=0;g<7;g++)active[g*3]=false;render21()}
+function loseTwoGroups(){active=Array(21).fill(true);for(let i=0;i<6;i++)active[i]=false;render21()}
+function loseThreeGroups(){active=Array(21).fill(true);for(let i=0;i<9;i++)active[i]=false;render21()}
+function randomize(){active=active.map(()=>Math.random()>.35);render21()}
+function openScenario(type){
+  document.querySelector('[data-page="llc"]').click();
+  if(type==="one") loseOnePerGroup();
+  if(type==="two") loseTwoGroups();
+  if(type==="three") loseThreeGroups();
+}
+document.getElementById("groupNeed").onchange=render21;
+document.getElementById("memberNeed").onchange=render21;
+
+function gradeQuiz(){
+  let score=0;
+  ["q1","q2","q3"].forEach(q=>{
+    const v=document.querySelector(`input[name="${q}"]:checked`);
+    if(v && v.value==="1") score++;
+  });
+  const out=document.getElementById("quizResult");
+  out.textContent=`Score: ${score}/3`+(score===3?" — You understand the core concepts.":" — Review the lessons and try again.");
+  out.style.color=score===3?"#86efac":"#fde68a";
+}
+
+renderSimple();
+render21();
+</script>
+</body>
+</html>
