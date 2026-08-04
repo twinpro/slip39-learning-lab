@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07111f"><title>Custody Design Lab · SLIP-39 Learning Lab</title><link rel="stylesheet" href="../assets/css/style.css"></head>
+<body data-base="../"><div class="site">
+<header class="header"><div class="header-inner">
+<button class="menu-btn mobile-only" data-menu-toggle>Menu</button><a class="brand" href="../index.html">SLIP-39 Learning Lab</a>
+<div class="search-wrap"><input data-search placeholder="Search the course..."><div class="search-results" data-search-results></div></div>
+<button class="theme-btn" data-theme-toggle>Light / Dark</button>
+</div></header>
+<div class="layout"><aside class="sidebar"><h4>FOUNDATIONS</h4><a href="../index.html">Home</a><a href="../pages/bitcoin-wallets.html">Bitcoin Wallet Basics</a><h4>STANDARDS</h4><a href="../pages/bip.html">What is a BIP?</a><a href="../pages/bip39.html">BIP-39</a><a href="../pages/slip.html">What is a SLIP?</a><a href="../pages/slip39.html">SLIP-39</a><a href="../pages/bip39-vs-slip39.html">BIP-39 vs SLIP-39</a><h4>SECRET SHARING</h4><a href="../pages/shamir.html">Shamir’s Secret Sharing</a><a href="../pages/groups.html">Grouped Recovery</a><h4>INTERACTIVE</h4><a href="../pages/visual-learning.html">Visual Learning</a><a class="active" href="../simulators/design-lab.html">Custody Design Lab</a><a href="../simulators/failure-lab.html">Failure Simulator</a><a href="../simulators/simple.html">Threshold Simulator</a><a href="../simulators/participants.html">21-Participant Simulator</a><h4>CUSTODY</h4><a href="../pages/multisig.html">Multisig</a><a href="../pages/slip39-vs-multisig.html">SLIP-39 vs Multisig</a><a href="../pages/operations.html">Operational Planning</a><h4>REFERENCE</h4><a href="../pages/compatibility.html">Wallet Compatibility</a><a href="../pages/print-guide.html">Printable Guide</a><a href="../pages/sources.html">Sources</a><a href="../pages/timeline.html">Timeline</a><a href=""../pages/glossary.html"">Glossary</a><a href="../pages/quiz.html">Quiz</a></aside><main class="content">
+<section class="hero"><span class="badge">VERSION 6 · DESIGN LAB</span><h1>Custody Design Lab</h1>
+<p class="lead">Build a hypothetical grouped recovery structure and immediately test its availability tradeoffs.</p>
+<div class="warning">This is an educational availability model, not a security recommendation or cryptographic implementation.</div></section>
+
+<div class="card"><h2>1. Choose a structure</h2><div class="builder-grid">
+<label>Total participants<input id="designPeople" type="number" min="2" max="100" value="21"></label>
+<label>People per group<input id="designPerGroup" type="number" min="1" max="16" value="3"></label>
+<label>Members needed per group<input id="designMemberNeed" type="number" min="1" max="16" value="2"></label>
+<label>Groups needed<input id="designGroupNeed" type="number" min="1" max="16" value="5"></label>
+</div><div class="controls" style="margin-top:14px"><button class="action" id="generateDesign">Generate structure</button><button class="action" id="resetDesign">Reset</button></div></div>
+
+<div id="designWarning"></div><div id="designMetrics" class="metric-grid"></div>
+<div class="card"><h2>2. Click participants to make them unavailable</h2><div class="controls"><button class="action" id="designAll">Activate all</button><button class="action" id="designRandom">Random availability</button></div></div>
+<div id="designStatus" class="status"></div><div id="designGroups" class="groups"></div>
+<div class="card"><h2>How to interpret this</h2><p class="muted">A green result means the selected thresholds can be met with the currently available participants. It does not prove the design is secure against collusion, coercion, theft, software defects, or an unsafe recovery ceremony.</p></div>
+</main></div>
+<footer class="footer">Educational only. No wallet generation, cryptography, or storage of secrets.</footer>
+</div><script src="../assets/js/search-index.js"></script><script src="../assets/js/app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+ let state=[];
+ const people=document.getElementById("designPeople"),per=document.getElementById("designPerGroup"),memberNeed=document.getElementById("designMemberNeed"),groupNeed=document.getElementById("designGroupNeed");
+ const groupsEl=document.getElementById("designGroups"),status=document.getElementById("designStatus"),metrics=document.getElementById("designMetrics"),warn=document.getElementById("designWarning");
+ function values(){return {n:+people.value,p:+per.value,m:+memberNeed.value,g:+groupNeed.value,groups:Math.ceil(+people.value/+per.value)}}
+ function generate(){
+   const v=values();warn.innerHTML="";
+   if(v.m>v.p){warn.innerHTML='<div class="warning">Members needed cannot exceed people per group.</div>';return}
+   if(v.g>v.groups){warn.innerHTML='<div class="warning">Groups needed cannot exceed total groups.</div>';return}
+   state=Array(v.n).fill(true);render();
+ }
+ function render(){
+   const v=values();groupsEl.innerHTML="";let valid=0;
+   for(let gi=0;gi<v.groups;gi++){
+     const start=gi*v.p,end=Math.min(start+v.p,v.n),slice=state.slice(start,end),count=slice.filter(Boolean).length,ok=count>=v.m;if(ok)valid++;
+     const box=document.createElement("div");box.className="group "+(ok?"ok":"bad");box.innerHTML=`<h3>Group ${gi+1}</h3><p class="muted">${count}/${end-start} available · ${ok?"qualifies":"does not qualify"}</p>`;
+     for(let i=start;i<end;i++){const d=document.createElement("div");d.className="member "+(state[i]?"on":"off");d.innerHTML=`<span>Participant ${i+1}</span><span class="pill">${state[i]?"available":"unavailable"}</span>`;d.onclick=()=>{state[i]=!state[i];render()};box.appendChild(d)}
+     groupsEl.appendChild(box);
+   }
+   const ok=valid>=v.g;status.className="status "+(ok?"ok":"bad");status.textContent=ok?`RECOVERY AVAILABLE — ${valid} qualifying groups`:`RECOVERY UNAVAILABLE — ${valid} qualifying groups, ${v.g} needed`;
+   const minimum=v.g*v.m,wholeGroups=v.groups-v.g;
+   metrics.innerHTML=`<div class="metric"><strong>${v.groups}</strong>Total groups</div><div class="metric"><strong>${minimum}</strong>Minimum cooperating participants*</div><div class="metric"><strong>${wholeGroups}</strong>Whole groups potentially unavailable</div><div class="metric"><strong>${v.m} of ${v.p}</strong>Internal threshold</div>`;
+ }
+ document.getElementById("generateDesign").onclick=generate;
+ document.getElementById("resetDesign").onclick=()=>{people.value=21;per.value=3;memberNeed.value=2;groupNeed.value=5;generate()};
+ document.getElementById("designAll").onclick=()=>{state=Array(+people.value).fill(true);render()};
+ document.getElementById("designRandom").onclick=()=>{state=state.map(()=>Math.random()>.3);render()};
+ generate();
+});
+</script>
+</body></html>

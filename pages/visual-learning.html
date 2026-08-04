@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07111f"><title>Visual Learning · SLIP-39 Learning Lab</title><link rel="stylesheet" href="../assets/css/style.css"></head>
+<body data-base="../"><div class="site">
+<header class="header"><div class="header-inner">
+<button class="menu-btn mobile-only" data-menu-toggle>Menu</button><a class="brand" href="../index.html">SLIP-39 Learning Lab</a>
+<div class="search-wrap"><input data-search placeholder="Search the course..."><div class="search-results" data-search-results></div></div>
+<button class="theme-btn" data-theme-toggle>Light / Dark</button>
+</div></header>
+<div class="layout"><aside class="sidebar"><h4>FOUNDATIONS</h4><a href="../index.html">Home</a><a href="../pages/bitcoin-wallets.html">Bitcoin Wallet Basics</a><h4>STANDARDS</h4><a href="../pages/bip.html">What is a BIP?</a><a href="../pages/bip39.html">BIP-39</a><a href="../pages/slip.html">What is a SLIP?</a><a href="../pages/slip39.html">SLIP-39</a><a href="../pages/bip39-vs-slip39.html">BIP-39 vs SLIP-39</a><h4>SECRET SHARING</h4><a href="../pages/shamir.html">Shamir’s Secret Sharing</a><a href="../pages/groups.html">Grouped Recovery</a><h4>INTERACTIVE</h4><a class="active" href="../pages/visual-learning.html">Visual Learning</a><a href="../simulators/design-lab.html">Custody Design Lab</a><a href="../simulators/failure-lab.html">Failure Simulator</a><a href="../simulators/simple.html">Threshold Simulator</a><a href="../simulators/participants.html">21-Participant Simulator</a><h4>CUSTODY</h4><a href="../pages/multisig.html">Multisig</a><a href="../pages/slip39-vs-multisig.html">SLIP-39 vs Multisig</a><a href="../pages/operations.html">Operational Planning</a><h4>REFERENCE</h4><a href="../pages/compatibility.html">Wallet Compatibility</a><a href="../pages/print-guide.html">Printable Guide</a><a href="../pages/sources.html">Sources</a><a href="../pages/timeline.html">Timeline</a><a href=""../pages/glossary.html"">Glossary</a><a href="../pages/quiz.html">Quiz</a></aside><main class="content">
+<section class="hero"><span class="badge">VERSION 5 · VISUAL LEARNING</span><h1>See the Difference</h1>
+<p class="lead">Watch how a single mnemonic backup, threshold recovery shares, and multisig differ.</p></section>
+
+<div class="card"><h2>BIP-39: one complete mnemonic backup</h2>
+<div class="svg-stage"><svg viewBox="0 0 900 260" role="img" aria-label="BIP-39 recovery flow">
+<rect class="svg-node fade-step" x="55" y="85" rx="16" width="210" height="90"/><text class="svg-text" x="160" y="125">Wallet entropy</text><text class="svg-small" x="160" y="150">random source material</text>
+<line class="svg-line" x1="275" y1="130" x2="380" y2="130"/>
+<rect class="svg-node fade-step" x="390" y="65" rx="16" width="230" height="130"/><text class="svg-text" x="505" y="115">BIP-39 mnemonic</text><text class="svg-small" x="505" y="142">typically 12 or 24 words</text><text class="svg-small" x="505" y="165">one complete backup</text>
+<line class="svg-line" x1="630" y1="130" x2="735" y2="130"/>
+<rect class="svg-node fade-step" x="745" y="85" rx="16" width="120" height="90"/><text class="svg-text" x="805" y="125">Recover</text><text class="svg-small" x="805" y="150">wallet</text>
+</svg></div></div>
+
+<div class="card"><h2>SLIP-39: threshold recovery shares</h2>
+<div class="svg-stage"><svg viewBox="0 0 900 360" role="img" aria-label="SLIP-39 share flow">
+<rect class="svg-node" x="335" y="20" rx="16" width="230" height="75"/><text class="svg-text" x="450" y="57">Master secret</text><text class="svg-small" x="450" y="78">protected recovery material</text>
+<line class="svg-line" x1="450" y1="98" x2="450" y2="145"/>
+<g class="fade-step"><rect class="svg-node-muted" x="40" y="155" rx="12" width="140" height="65"/><text class="svg-text" x="110" y="194">Share A</text></g>
+<g class="fade-step"><rect class="svg-node-muted" x="210" y="155" rx="12" width="140" height="65"/><text class="svg-text" x="280" y="194">Share B</text></g>
+<g class="fade-step"><rect class="svg-node-muted" x="380" y="155" rx="12" width="140" height="65"/><text class="svg-text" x="450" y="194">Share C</text></g>
+<g class="fade-step"><rect class="svg-node-muted" x="550" y="155" rx="12" width="140" height="65"/><text class="svg-text" x="620" y="194">Share D</text></g>
+<g class="fade-step"><rect class="svg-node-muted" x="720" y="155" rx="12" width="140" height="65"/><text class="svg-text" x="790" y="194">Share E</text></g>
+<line class="svg-line" x1="280" y1="230" x2="410" y2="285"/><line class="svg-line" x1="450" y1="230" x2="450" y2="285"/><line class="svg-line" x1="620" y1="230" x2="490" y2="285"/>
+<rect class="svg-node" x="340" y="285" rx="16" width="220" height="60"/><text class="svg-text" x="450" y="318">Any 3 recover</text>
+</svg></div></div>
+
+<div class="card"><h2>Multisig: independent keys approve spending</h2>
+<div class="svg-stage"><svg viewBox="0 0 900 310" role="img" aria-label="Multisig signing flow">
+<rect class="svg-node-muted" x="80" y="55" rx="15" width="170" height="70"/><text class="svg-text" x="165" y="95">Independent Key A</text>
+<rect class="svg-node-muted" x="365" y="55" rx="15" width="170" height="70"/><text class="svg-text" x="450" y="95">Independent Key B</text>
+<rect class="svg-node-muted" x="650" y="55" rx="15" width="170" height="70"/><text class="svg-text" x="735" y="95">Independent Key C</text>
+<line class="svg-line" x1="165" y1="130" x2="400" y2="215"/><line class="svg-line" x1="450" y1="130" x2="450" y2="215"/>
+<rect class="svg-node" x="330" y="215" rx="16" width="240" height="70"/><text class="svg-text" x="450" y="248">2 signatures authorize</text><text class="svg-small" x="450" y="270">a transaction</text>
+</svg></div>
+<div class="callout"><strong>Core distinction:</strong> SLIP-39 protects recovery. Multisig controls spending.</div></div>
+</main></div>
+<footer class="footer">Educational only. No wallet generation, cryptography, or storage of secrets.</footer>
+</div><script src="../assets/js/search-index.js"></script><script src="../assets/js/app.js"></script></body></html>

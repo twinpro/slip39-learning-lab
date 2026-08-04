@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07111f"><title>Wallet Compatibility · SLIP-39 Learning Lab</title><link rel="stylesheet" href="../assets/css/style.css"></head>
+<body data-base="../"><div class="site">
+<header class="header"><div class="header-inner">
+<button class="menu-btn mobile-only" data-menu-toggle>Menu</button><a class="brand" href="../index.html">SLIP-39 Learning Lab</a>
+<div class="search-wrap"><input data-search placeholder="Search the course..."><div class="search-results" data-search-results></div></div>
+<button class="theme-btn" data-theme-toggle>Light / Dark</button>
+</div></header>
+<div class="layout"><aside class="sidebar"><h4>FOUNDATIONS</h4><a href="../index.html">Home</a><a href="../pages/bitcoin-wallets.html">Bitcoin Wallet Basics</a><h4>STANDARDS</h4><a href="../pages/bip.html">What is a BIP?</a><a href="../pages/bip39.html">BIP-39</a><a href="../pages/slip.html">What is a SLIP?</a><a href="../pages/slip39.html">SLIP-39</a><a href="../pages/bip39-vs-slip39.html">BIP-39 vs SLIP-39</a><h4>SECRET SHARING</h4><a href="../pages/shamir.html">Shamir’s Secret Sharing</a><a href="../pages/groups.html">Grouped Recovery</a><h4>INTERACTIVE</h4><a href="../pages/visual-learning.html">Visual Learning</a><a href="../simulators/design-lab.html">Custody Design Lab</a><a href="../simulators/failure-lab.html">Failure Simulator</a><a href="../simulators/simple.html">Threshold Simulator</a><a href="../simulators/participants.html">21-Participant Simulator</a><h4>CUSTODY</h4><a href="../pages/multisig.html">Multisig</a><a href="../pages/slip39-vs-multisig.html">SLIP-39 vs Multisig</a><a href="../pages/operations.html">Operational Planning</a><h4>REFERENCE</h4><a class="active" href="../pages/compatibility.html">Wallet Compatibility</a><a href="../pages/print-guide.html">Printable Guide</a><a href="../pages/sources.html">Sources</a><a href="../pages/timeline.html">Timeline</a><a href=""../pages/glossary.html"">Glossary</a><a href="../pages/quiz.html">Quiz</a></aside><main class="content">
+<section class="hero"><span class="badge">VERSION 8 · VERIFIED COMPATIBILITY</span><h1>SLIP-39 Compatibility</h1>
+<p class="lead">This table reports only support that was found in official or vendor-controlled documentation. Last reviewed: August 4, 2026.</p></section>
+
+<div class="warning"><strong>Compatibility changes.</strong> Verify support again before creating or recovering a real wallet. “Not confirmed” does not mean “unsupported.”</div>
+
+<div class="card table-wrap"><table>
+<tr><th>Product</th><th>Category</th><th>SLIP-39 status</th><th>Evidence used</th></tr>
+<tr><td>Trezor devices / ecosystem</td><td>Hardware wallet</td><td><span class="compat-status compat-yes">Confirmed</span></td><td>Official Trezor SLIP-39 and backup documentation</td></tr>
+<tr><td>Keystone</td><td>Hardware wallet</td><td><span class="compat-status compat-yes">Confirmed by Trezor documentation</span></td><td>Trezor lists Keystone as compatible</td></tr>
+<tr><td>Electrum</td><td>Software wallet</td><td><span class="compat-status compat-yes">Confirmed by Trezor documentation</span></td><td>Trezor compatibility FAQ</td></tr>
+<tr><td>Sparrow Wallet</td><td>Software wallet</td><td><span class="compat-status compat-yes">Confirmed by Trezor documentation</span></td><td>Trezor compatibility FAQ</td></tr>
+<tr><td>BlueWallet</td><td>Software wallet</td><td><span class="compat-status compat-yes">Confirmed by Trezor documentation</span></td><td>Trezor compatibility FAQ</td></tr>
+<tr><td>Wasabi Wallet</td><td>Software wallet</td><td><span class="compat-status compat-yes">Confirmed by Trezor documentation</span></td><td>Trezor multi-share backup guide</td></tr>
+<tr><td>Rabby</td><td>Software wallet</td><td><span class="compat-status compat-yes">Confirmed by Trezor documentation</span></td><td>Trezor compatibility FAQ</td></tr>
+<tr><td>Ledger</td><td>Hardware wallet</td><td><span class="compat-status compat-unknown">Direct support not confirmed here</span></td><td>Verification needed from current official product documentation</td></tr>
+<tr><td>Coldcard</td><td>Hardware wallet</td><td><span class="compat-status compat-unknown">Not confirmed here</span></td><td>Verification needed</td></tr>
+<tr><td>Passport</td><td>Hardware wallet</td><td><span class="compat-status compat-unknown">Not confirmed here</span></td><td>Verification needed</td></tr>
+<tr><td>SeedSigner</td><td>Signing device</td><td><span class="compat-status compat-unknown">Not confirmed here</span></td><td>Verification needed</td></tr>
+</table></div>
+
+<div class="card"><h2>Compatibility is more than recognizing words</h2><ul class="muted">
+<li>Confirm creation and recovery support, not merely import or conversion.</li>
+<li>Confirm basic versus grouped SLIP-39 support.</li>
+<li>Confirm supported share lengths and passphrase behavior.</li>
+<li>Perform a full recovery test with an empty test wallet before funding.</li>
+</ul></div>
+</main></div>
+<footer class="footer">Educational only. No wallet generation, cryptography, or storage of secrets.</footer>
+</div><script src="../assets/js/search-index.js"></script><script src="../assets/js/app.js"></script></body></html>

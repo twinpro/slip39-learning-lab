@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07111f"><title>Failure Simulator · SLIP-39 Learning Lab</title><link rel="stylesheet" href="../assets/css/style.css"></head>
+<body data-base="../"><div class="site">
+<header class="header"><div class="header-inner">
+<button class="menu-btn mobile-only" data-menu-toggle>Menu</button><a class="brand" href="../index.html">SLIP-39 Learning Lab</a>
+<div class="search-wrap"><input data-search placeholder="Search the course..."><div class="search-results" data-search-results></div></div>
+<button class="theme-btn" data-theme-toggle>Light / Dark</button>
+</div></header>
+<div class="layout"><aside class="sidebar"><h4>FOUNDATIONS</h4><a href="../index.html">Home</a><a href="../pages/bitcoin-wallets.html">Bitcoin Wallet Basics</a><h4>STANDARDS</h4><a href="../pages/bip.html">What is a BIP?</a><a href="../pages/bip39.html">BIP-39</a><a href="../pages/slip.html">What is a SLIP?</a><a href="../pages/slip39.html">SLIP-39</a><a href="../pages/bip39-vs-slip39.html">BIP-39 vs SLIP-39</a><h4>SECRET SHARING</h4><a href="../pages/shamir.html">Shamir’s Secret Sharing</a><a href="../pages/groups.html">Grouped Recovery</a><h4>INTERACTIVE</h4><a href="../pages/visual-learning.html">Visual Learning</a><a href="../simulators/design-lab.html">Custody Design Lab</a><a class="active" href="../simulators/failure-lab.html">Failure Simulator</a><a href="../simulators/simple.html">Threshold Simulator</a><a href="../simulators/participants.html">21-Participant Simulator</a><h4>CUSTODY</h4><a href="../pages/multisig.html">Multisig</a><a href="../pages/slip39-vs-multisig.html">SLIP-39 vs Multisig</a><a href="../pages/operations.html">Operational Planning</a><h4>REFERENCE</h4><a href="../pages/compatibility.html">Wallet Compatibility</a><a href="../pages/print-guide.html">Printable Guide</a><a href="../pages/sources.html">Sources</a><a href="../pages/timeline.html">Timeline</a><a href=""../pages/glossary.html"">Glossary</a><a href="../pages/quiz.html">Quiz</a></aside><main class="content">
+<section class="hero"><span class="badge">VERSION 7 · FAILURE LAB</span><h1>Failure Simulator</h1>
+<p class="lead">Apply common availability and governance failures to the default 7-group, 2-of-3 / 5-of-7 model.</p></section>
+
+<div class="scenario-grid">
+<div class="scenario-card"><h3>One missing per group</h3><p class="muted">Seven participants are unavailable, distributed one per group.</p><button class="action failure-run" data-case="oneeach">Run</button></div>
+<div class="scenario-card"><h3>Two groups inaccessible</h3><p class="muted">Six participants across two complete groups are unavailable.</p><button class="action failure-run" data-case="twogroups">Run</button></div>
+<div class="scenario-card"><h3>Three groups inaccessible</h3><p class="muted">Nine participants across three complete groups are unavailable.</p><button class="action failure-run" data-case="threegroups">Run</button></div>
+<div class="scenario-card"><h3>Random 35% unavailable</h3><p class="muted">Availability is randomized independently.</p><button class="action failure-run" data-case="random">Run</button></div>
+<div class="scenario-card"><h3>Collusion test</h3><p class="muted">Shows the minimum cooperating participants under this structure.</p><button class="action failure-run" data-case="collusion">Analyze</button></div>
+<div class="scenario-card"><h3>Recovery-device compromise</h3><p class="muted">Threshold is met, but reconstruction occurs on an untrusted device.</p><button class="action failure-run" data-case="device">Analyze</button></div>
+</div>
+
+<div id="failureResult" class="status"></div><div id="failureExplanation" class="card"></div><div id="failureGroups" class="groups"></div>
+</main></div>
+<footer class="footer">Educational only. No wallet generation, cryptography, or storage of secrets.</footer>
+</div><script src="../assets/js/search-index.js"></script><script src="../assets/js/app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+ const result=document.getElementById("failureResult"),explain=document.getElementById("failureExplanation"),grid=document.getElementById("failureGroups");
+ function evaluate(active,label){
+   let valid=0;grid.innerHTML="";
+   for(let g=0;g<7;g++){const start=g*3,count=active.slice(start,start+3).filter(Boolean).length,ok=count>=2;if(ok)valid++;
+     const box=document.createElement("div");box.className="group "+(ok?"ok":"bad");box.innerHTML=`<h3>Group ${String.fromCharCode(65+g)}</h3><p class="muted">${count}/3 available</p>`;grid.appendChild(box)}
+   const ok=valid>=5;result.className="status "+(ok?"ok":"bad");result.textContent=ok?"RECOVERY AVAILABLE":"RECOVERY UNAVAILABLE";
+   explain.innerHTML=`<h2>${label}</h2><p class="muted">${valid} of 7 groups qualify. Five are required. This result measures availability only.</p>`;
+ }
+ document.querySelectorAll(".failure-run").forEach(btn=>btn.onclick=()=>{
+   const c=btn.dataset.case,active=Array(21).fill(true);
+   if(c==="oneeach"){for(let g=0;g<7;g++)active[g*3]=false;evaluate(active,"One participant missing from every group")}
+   if(c==="twogroups"){for(let i=0;i<6;i++)active[i]=false;evaluate(active,"Two complete groups inaccessible")}
+   if(c==="threegroups"){for(let i=0;i<9;i++)active[i]=false;evaluate(active,"Three complete groups inaccessible")}
+   if(c==="random"){for(let i=0;i<21;i++)active[i]=Math.random()>.35;evaluate(active,"Random availability test")}
+   if(c==="collusion"){grid.innerHTML="";result.className="status bad";result.textContent="COLLUSION THRESHOLD: 10 PARTICIPANTS";explain.innerHTML='<h2>Minimum theoretical cooperation</h2><p class="muted">Five groups are required, with two people in each qualifying group. Therefore, the minimum is 5 × 2 = 10 participants, provided they are distributed correctly across five groups. Ten people concentrated in fewer than five groups would not meet the group threshold.</p>'}
+   if(c==="device"){grid.innerHTML="";result.className="status bad";result.textContent="RECOVERY POSSIBLE, SECURITY NOT PROVEN";explain.innerHTML='<h2>Untrusted recovery device</h2><p class="muted">Even when the threshold is met, entering shares into a compromised computer or wallet could expose the reconstructed secret. Recovery should occur on verified, compatible hardware using a documented ceremony.</p>'}
+ });
+ document.querySelector('[data-case="oneeach"]').click();
+});
+</script>
+</body></html>

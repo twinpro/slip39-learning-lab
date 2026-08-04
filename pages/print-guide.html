@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07111f"><title>Printable Recovery Guide · SLIP-39 Learning Lab</title><link rel="stylesheet" href="../assets/css/style.css"></head>
+<body data-base="../"><div class="site">
+<header class="header"><div class="header-inner">
+<button class="menu-btn mobile-only" data-menu-toggle>Menu</button><a class="brand" href="../index.html">SLIP-39 Learning Lab</a>
+<div class="search-wrap"><input data-search placeholder="Search the course..."><div class="search-results" data-search-results></div></div>
+<button class="theme-btn" data-theme-toggle>Light / Dark</button>
+</div></header>
+<div class="layout"><aside class="sidebar"><h4>FOUNDATIONS</h4><a href="../index.html">Home</a><a href="../pages/bitcoin-wallets.html">Bitcoin Wallet Basics</a><h4>STANDARDS</h4><a href="../pages/bip.html">What is a BIP?</a><a href="../pages/bip39.html">BIP-39</a><a href="../pages/slip.html">What is a SLIP?</a><a href="../pages/slip39.html">SLIP-39</a><a href="../pages/bip39-vs-slip39.html">BIP-39 vs SLIP-39</a><h4>SECRET SHARING</h4><a href="../pages/shamir.html">Shamir’s Secret Sharing</a><a href="../pages/groups.html">Grouped Recovery</a><h4>INTERACTIVE</h4><a href="../pages/visual-learning.html">Visual Learning</a><a href="../simulators/design-lab.html">Custody Design Lab</a><a href="../simulators/failure-lab.html">Failure Simulator</a><a href="../simulators/simple.html">Threshold Simulator</a><a href="../simulators/participants.html">21-Participant Simulator</a><h4>CUSTODY</h4><a href="../pages/multisig.html">Multisig</a><a href="../pages/slip39-vs-multisig.html">SLIP-39 vs Multisig</a><a href="../pages/operations.html">Operational Planning</a><h4>REFERENCE</h4><a href="../pages/compatibility.html">Wallet Compatibility</a><a class="active" href="../pages/print-guide.html">Printable Guide</a><a href="../pages/sources.html">Sources</a><a href="../pages/timeline.html">Timeline</a><a href=""../pages/glossary.html"">Glossary</a><a href="../pages/quiz.html">Quiz</a></aside><main class="content">
+<section class="hero no-print"><span class="badge">PRINTABLE GUIDE</span><h1>Recovery Learning Sheet</h1>
+<p class="lead">Use your browser’s Print command to print or save this page as a PDF.</p>
+<div class="hero-actions"><button class="action" onclick="window.print()">Print / Save PDF</button></div></section>
+<h1 class="print-only">SLIP-39 Recovery Learning Sheet</h1>
+<div class="card"><h2>1. Full names</h2><table>
+<tr><th>Term</th><th>Full name</th><th>Purpose</th></tr>
+<tr><td>BIP-39</td><td>Bitcoin Improvement Proposal 39</td><td>Mnemonic wallet backup standard</td></tr>
+<tr><td>SLIP-39</td><td>SatoshiLabs Improvement Proposal 39</td><td>Mnemonic threshold recovery shares</td></tr>
+<tr><td>SSS</td><td>Shamir’s Secret Sharing</td><td>Split a secret into threshold shares</td></tr>
+<tr><td>Multisig</td><td>Multiple signatures</td><td>Require independent keys to authorize spending</td></tr>
+</table></div>
+<div class="card"><h2>2. The essential distinction</h2><p><strong>BIP-39:</strong> typically one complete mnemonic backup.</p><p><strong>SLIP-39:</strong> multiple mnemonic recovery shares with a threshold.</p><p><strong>Multisig:</strong> multiple independent keys required for transactions.</p></div>
+<div class="card"><h2>3. Example structure</h2><p>Twenty-one participants can be modeled as seven groups of three. A hypothetical rule could require two of three participants in each qualifying group and five of seven qualifying groups.</p><p><strong>Minimum correctly distributed cooperation:</strong> 5 × 2 = 10 participants.</p></div>
+<div class="card"><h2>4. Warnings</h2><ul>
+<li>Never manually split a BIP-39 phrase by distributing individual words.</li>
+<li>Never enter real recovery shares into this educational website.</li>
+<li>Green “recovery available” results measure availability, not complete security.</li>
+<li>Verify wallet compatibility and perform a test recovery before funding.</li>
+<li>Use legal, tax, and professional custody review for an group.</li>
+</ul></div>
+</main></div>
+<footer class="footer">Educational only. No wallet generation, cryptography, or storage of secrets.</footer>
+</div><script src="../assets/js/search-index.js"></script><script src="../assets/js/app.js"></script></body></html>
