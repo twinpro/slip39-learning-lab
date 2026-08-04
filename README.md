@@ -1,37 +1,31 @@
-# SLIP-39 Learning Lab
+# SLIP-39 Learning Lab — Full Course
 
-Interactive educational simulator for learning:
+A static, multi-page educational website ready for GitHub Pages.
 
-- Simple threshold recovery
-- Group thresholds
-- A 21-investor, 7-group model
-- Failure scenarios
-- SLIP-39 versus Bitcoin multisig
-- Basic knowledge testing
+## Included
+
+- Professional responsive navigation
+- Search across the course
+- Dark/light mode
+- Mobile sidebar
+- Animated diagrams
+- BIP-39 and SLIP-39 lessons
+- Shamir's Secret Sharing lesson
+- Grouped recovery lesson
+- Simple threshold simulator
+- 21-investor simulator
+- Multisig comparison
+- Operational planning
+- Timeline
+- Glossary
+- Quiz
+
+## Deploy
+
+Copy all files and folders into the root of your GitHub repository, commit, and push.
+
+GitHub Pages should serve `index.html` automatically.
 
 ## Safety
 
-This project is educational only.
-
-It does not:
-
-- Generate wallets
-- Generate seed phrases
-- Generate real SLIP-39 shares
-- Store or transmit secrets
-
-Never enter a real seed phrase into this website or any shared device.
-
-## GitHub Pages
-
-The site is designed to run directly from GitHub Pages with no build process.
-
-Files:
-
-```text
-index.html
-css/style.css
-js/app.js
-js/simulator.js
-js/quiz.js
-```
+Educational only. The project has no cryptographic functionality and must never receive real seed phrases or recovery shares.

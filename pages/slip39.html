@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07111f"><title>SLIP-39 · SLIP-39 Learning Lab</title><link rel="stylesheet" href="../assets/css/style.css"></head>
+<body data-base="../"><div class="site">
+<header class="header"><div class="header-inner">
+<button class="menu-btn mobile-only" data-menu-toggle>Menu</button><a class="brand" href="../index.html">SLIP-39 Learning Lab</a>
+<div class="search-wrap"><input data-search placeholder="Search the course..."><div class="search-results" data-search-results></div></div>
+<button class="theme-btn" data-theme-toggle>Light / Dark</button>
+</div></header>
+<div class="layout"><aside class="sidebar"><h4>FOUNDATIONS</h4><a href="../index.html">Home</a><a href="../pages/bitcoin-wallets.html">Bitcoin Wallet Basics</a><h4>STANDARDS</h4><a href="../pages/bip.html">What is a BIP?</a><a href="../pages/bip39.html">BIP-39</a><a href="../pages/slip.html">What is a SLIP?</a><a class="active" href="../pages/slip39.html">SLIP-39</a><a href="../pages/bip39-vs-slip39.html">BIP-39 vs SLIP-39</a><h4>SECRET SHARING</h4><a href="../pages/shamir.html">Shamir’s Secret Sharing</a><a href="../pages/groups.html">Grouped Recovery</a><h4>INTERACTIVE</h4><a href="../simulators/simple.html">Threshold Simulator</a><a href="../simulators/llc.html">21-Investor Simulator</a><h4>CUSTODY</h4><a href="../pages/multisig.html">Multisig</a><a href="../pages/slip39-vs-multisig.html">SLIP-39 vs Multisig</a><a href="../pages/operations.html">Operational Planning</a><h4>REFERENCE</h4><a href="../pages/timeline.html">Timeline</a><a href="../pages/glossary.html">Glossary</a><a href="../pages/quiz.html">Quiz</a></aside><main class="content">
+<section class="hero"><span class="badge">STANDARD</span><h1>SLIP-39</h1><p class="lead"><strong>SatoshiLabs Improvement Proposal 39</strong> defines mnemonic recovery shares using threshold secret sharing.</p></section>
+<div class="grid">
+<div class="card"><h2>Share threshold</h2><p class="muted">Example: 3-of-5 means any three valid shares can meet the recovery threshold.</p></div>
+<div class="card"><h2>Group threshold</h2><p class="muted">Groups can each have an internal threshold, plus an overall threshold across groups.</p></div>
+<div class="card"><h2>Resilience</h2><p class="muted">A lost share need not destroy recovery, and one stolen share need not reveal the secret.</p></div>
+</div>
+<div class="card"><h2>Visual model</h2><div class="diagram"><div class="node accent">One recovery secret</div><div class="arrow">↓ split</div><div class="flow"><div class="node">Share A</div><div class="node">Share B</div><div class="node">Share C</div><div class="node">Share D</div><div class="node">Share E</div></div><div class="arrow">↓ any 3</div><div class="node accent">Recovery possible</div></div></div>
+<div class="warning">SLIP-39 is its own recovery standard. It is not simply a BIP-39 phrase cut into word fragments.</div>
+</main></div>
+<footer class="footer">Educational only. No wallet generation, cryptography, or storage of secrets.</footer>
+</div><script src="../assets/js/search-index.js"></script><script src="../assets/js/app.js"></script></body></html>
