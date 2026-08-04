@@ -9,8 +9,38 @@
 <div class="layout"><aside class="sidebar"><h4>FOUNDATIONS</h4><a href="../index.html">Home</a><a href="../pages/bitcoin-wallets.html">Bitcoin Wallet Basics</a><h4>STANDARDS</h4><a href="../pages/bip.html">What is a BIP?</a><a href="../pages/bip39.html">BIP-39</a><a href="../pages/slip.html">What is a SLIP?</a><a href="../pages/slip39.html">SLIP-39</a><a href="../pages/bip39-vs-slip39.html">BIP-39 vs SLIP-39</a><h4>SECRET SHARING</h4><a href="../pages/shamir.html">Shamir’s Secret Sharing</a><a href="../pages/groups.html">Grouped Recovery</a><h4>INTERACTIVE</h4><a href="../simulators/simple.html">Threshold Simulator</a><a class="active" href="../simulators/llc.html">21-Investor Simulator</a><h4>CUSTODY</h4><a href="../pages/multisig.html">Multisig</a><a href="../pages/slip39-vs-multisig.html">SLIP-39 vs Multisig</a><a href="../pages/operations.html">Operational Planning</a><h4>REFERENCE</h4><a href="../pages/timeline.html">Timeline</a><a href="../pages/glossary.html">Glossary</a><a href="../pages/quiz.html">Quiz</a></aside><main class="content">
 <section class="hero"><span class="badge">INTERACTIVE</span><h1>21-Investor Simulator</h1><p class="lead">Model seven groups of three investors and test loss, absence, or non-cooperation scenarios.</p></section>
 <div class="card"><div class="controls"><label>Need <select id="groupNeed"><option>4</option><option selected>5</option><option>6</option><option>7</option></select> of 7 groups</label><label>Each group needs <select id="memberNeed"><option>1</option><option selected>2</option><option>3</option></select> of 3 people</label></div>
-<div class="controls" style="margin-top:10px"><button class="action" id="all21">Activate all</button><button class="action" id="oneEach">Lose one per group</button><button class="action" id="twoGroups">Lose two groups</button><button class="action" id="threeGroups">Lose three groups</button><button class="action" id="random21">Random</button></div></div>
+<div class="controls" style="margin-top:10px"><button class="action" id="all21">Activate all</button><button class="action" id="oneEach">Lose one per group</button><button class="action" id="twoGroups">Lose two groups</button><button class="action" id="threeGroups">Lose three groups</button><button class="action" id="random21">Random</button><button class="action" id="openAdmin">Admin Mode</button></div><p class="muted" style="margin-top:12px">Admin names are stored only in this browser using local storage. They are not uploaded to GitHub or shared with other visitors.</p></div>
 <div id="llcStatus" class="status"></div><div class="card"><p id="llcDetail" class="muted"></p></div><div id="groupsGrid" class="groups"></div>
 </main></div>
 <footer class="footer">Educational only. No wallet generation, cryptography, or storage of secrets.</footer>
-</div><script src="../assets/js/search-index.js"></script><script src="../assets/js/app.js"></script><script src="../assets/js/simulators.js"></script></body></html>
+</div>
+<div id="adminModal" class="admin-modal" aria-hidden="true">
+  <div class="admin-panel">
+    <div class="admin-head">
+      <div>
+        <h2>Admin Mode</h2>
+        <p class="muted">Edit labels for this browser only.</p>
+      </div>
+      <button class="action" id="closeAdmin">Close</button>
+    </div>
+
+    <div class="warning">
+      This is not a secure login system. GitHub Pages is a public static website.
+      Names saved here remain only in this browser's local storage.
+    </div>
+
+    <div id="adminNames" class="admin-grid"></div>
+
+    <div class="controls" style="margin-top:14px">
+      <button class="action" id="saveAdminNames">Save names locally</button>
+      <button class="action" id="exportAdminNames">Export JSON</button>
+      <label class="action file-label">Import JSON
+        <input type="file" id="importAdminNames" accept=".json,application/json" hidden>
+      </label>
+      <button class="action danger" id="resetAdminNames">Reset names</button>
+    </div>
+    <p id="adminMessage" class="muted"></p>
+  </div>
+</div>
+
+<script src="../assets/js/search-index.js"></script><script src="../assets/js/app.js"></script><script src="../assets/js/simulators.js"></script></body></html>

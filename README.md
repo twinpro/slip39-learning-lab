@@ -29,3 +29,18 @@ GitHub Pages should serve `index.html` automatically.
 ## Safety
 
 Educational only. The project has no cryptographic functionality and must never receive real seed phrases or recovery shares.
+
+
+## Admin Mode
+
+The 21-investor simulator includes a browser-only Admin Mode.
+
+It can:
+
+- Rename Investor 1–21 locally
+- Save labels in browser localStorage
+- Export labels as JSON
+- Import labels from JSON
+- Reset to generic labels
+
+No names are uploaded to GitHub. This is not secure authentication and should not be used to hide sensitive data.

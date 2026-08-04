@@ -100,3 +100,23 @@ button,select{font:inherit}
   .header-inner{padding:10px 12px}
   .brand{font-size:14px}
 }
+
+
+.admin-modal{
+  display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);
+  padding:18px;overflow:auto
+}
+.admin-modal.open{display:block}
+.admin-panel{
+  max-width:900px;margin:30px auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:20px;padding:20px;box-shadow:var(--shadow)
+}
+.admin-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:16px}
+.admin-field label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.admin-field input{
+  width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--text)
+}
+.file-label{display:inline-block}
+.danger{border-color:var(--bad);color:var(--bad)}
