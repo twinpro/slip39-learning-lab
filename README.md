@@ -72,3 +72,22 @@ All examples use neutral terms such as:
 - Threshold
 
 The Local Labels feature stores custom labels only in the current browser. Nothing is uploaded to GitHub.
+
+## V7 Final
+
+Final public release includes:
+
+- Neutral participant terminology
+- No entity-specific or private operational references
+- Visual learning diagrams
+- Threshold, participant, design, and failure simulators
+- Browser-only Local Labels
+- Course search and dark/light mode
+- Mobile navigation
+- Previous/next lesson navigation and progress
+- Printable guide
+- Primary-source references
+- Conservative compatibility wording
+- Custom 404 page
+
+QA checks are documented in `QA_REPORT.txt`.

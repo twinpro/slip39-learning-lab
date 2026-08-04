@@ -170,3 +170,23 @@ button,select{font:inherit}
   body{background:white;color:black}.card,.hero{box-shadow:none;border:1px solid #999;break-inside:avoid}
   .muted{color:#333}.print-only{display:block}
 }
+
+
+/* V7 final polish */
+.course-progress{
+  height:8px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:999px;overflow:hidden;margin-top:22px
+}
+.course-progress span{
+  display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))
+}
+.lesson-count{font-size:12px;margin:8px 0}
+.lesson-nav{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.lesson-footer{margin:28px 0 8px}
+.card,.hero,.group,.status{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.card:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:2px}
+@media(max-width:600px){
+  .lesson-nav{display:grid;grid-template-columns:1fr}
+  .lesson-nav a{text-align:center}
+}
