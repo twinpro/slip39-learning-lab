@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 const OUT = new URL("../data/btc-market.json", import.meta.url);
 const NOW = new Date();
 const ISO = NOW.toISOString();
-const MAX_ETF_AGE_DAYS = 5;
+const MAX_ETF_CALENDAR_AGE_DAYS = 10;
 
 const out = {
   schema: 9,
@@ -49,15 +49,36 @@ function parseDate(s){
 function ageDays(ts){return (Date.now()-ts)/86400000}
 function acceptEtf(rows,source){
   if(!Array.isArray(rows)||rows.length<5) return false;
-  const latest=rows.at(-1);
-  if(ageDays(latest.timestamp)>MAX_ETF_AGE_DAYS) return false;
-  const last5=rows.slice(-5);
+
+  const clean=rows
+    .filter(x=>Number.isFinite(x.timestamp)&&Number.isFinite(x.flow_usd))
+    .sort((a,b)=>a.timestamp-b.timestamp);
+
+  if(clean.length<5) return false;
+
+  const latest=clean.at(-1);
+  const age=ageDays(latest.timestamp);
+
+  // ETF markets do not trade on weekends/market holidays.
+  // Use a wider calendar-age safety window so valid Friday/holiday data
+  // is not falsely rejected as stale. The exact latest date is always
+  // written into the JSON for transparency.
+  if(age>MAX_ETF_CALENDAR_AGE_DAYS) return false;
+
+  const last5=clean.slice(-5);
   out.etf={
-    status:"ok",source,fetched_at:ISO,
+    status:"ok",
+    source,
+    fetched_at:ISO,
     latest_date:new Date(latest.timestamp).toISOString().slice(0,10),
-    latest_age_days:+ageDays(latest.timestamp).toFixed(2),
+    latest_age_days:+age.toFixed(2),
+    row_count:clean.length,
     flow_5d_usd:last5.reduce((a,x)=>a+x.flow_usd,0),
-    history:rows.slice(-25)
+    last_5_trading_days:last5.map(x=>({
+      date:new Date(x.timestamp).toISOString().slice(0,10),
+      flow_usd:x.flow_usd
+    })),
+    history:clean.slice(-25)
   };
   return true;
 }
@@ -88,8 +109,10 @@ try{
     .filter(x=>Number.isFinite(x.timestamp)&&x.flow_usd!=null)
     .sort((a,b)=>a.timestamp-b.timestamp);
 
-  if(!acceptEtf(rows,"SoSoValue official API v2"))
-    throw new Error("SoSoValue ETF data stale or incomplete");
+  if(!acceptEtf(rows,"SoSoValue official API v2")){
+    const latest=rows.length?new Date(rows.at(-1).timestamp).toISOString().slice(0,10):"none";
+    throw new Error(`SoSoValue ETF data rejected: rows=${rows.length}, latest=${latest}`);
+  }
 
   out.sources.sosovalue="ok";
 }catch(e){
