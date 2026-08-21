@@ -3,7 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BTC — real vs paper · V11-B</title>
+
+<meta name="description" content="A free live Bitcoin dashboard that separates real BTC demand from futures and leveraged paper exposure using ETF flows, U.S. spot demand and derivatives data.">
+<meta name="theme-color" content="#0A1113">
+<link rel="canonical" href="https://twinpro.github.io/slip39-learning-lab/pages/btc-real-vs-paper-v11b.html">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SLIP-39 Learning Lab">
+<meta property="og:title" content="Bitcoin Real vs Paper — Live Demand Dashboard">
+<meta property="og:description" content="Is Bitcoin demand real or mostly paper? Track ETF flows, U.S. spot demand, futures leverage and supply-squeeze evidence in one free dashboard.">
+<meta property="og:url" content="https://twinpro.github.io/slip39-learning-lab/pages/btc-real-vs-paper-v11b.html">
+<meta property="og:image" content="https://twinpro.github.io/slip39-learning-lab/assets/btc-real-vs-paper-v11b-social.png">
+<meta property="og:image:secure_url" content="https://twinpro.github.io/slip39-learning-lab/assets/btc-real-vs-paper-v11b-social.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="BTC Real vs Paper dashboard showing Bitcoin ETF demand, U.S. spot demand and leverage signals">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bitcoin Real vs Paper — Live Demand Dashboard">
+<meta name="twitter:description" content="Track real Bitcoin demand versus leveraged paper exposure with ETF, spot and futures signals.">
+<meta name="twitter:image" content="https://twinpro.github.io/slip39-learning-lab/assets/btc-real-vs-paper-v11b-social.png">
+<meta name="twitter:image:alt" content="BTC Real vs Paper live Bitcoin demand dashboard">
+
+<title>Bitcoin Real vs Paper — Live Demand Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -107,13 +130,34 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 .unknown-note{color:var(--dimmer);font-family:var(--mono);font-size:10px;line-height:1.5}
 .source-pill{display:inline-block;border:1px solid var(--rule);padding:2px 6px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:9px;color:var(--dim)}
 .source-pill.ok{color:var(--green)} .source-pill.err{color:var(--red)}
+
+/* ===== V11-B education layer ===== */
+.learn{margin-top:14px;border:1px solid var(--rule);background:var(--panel)}
+.learn-hd{padding:14px 16px;border-bottom:1px solid var(--rule)}
+.learn-hd h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--bone);margin:0 0 5px}
+.learn-hd p{font-family:var(--mono);font-size:10.5px;color:var(--dim);line-height:1.6;margin:0}
+.learn details{border-bottom:1px solid var(--rule);margin:0}
+.learn details:last-of-type{border-bottom:none}
+.learn summary{padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;list-style:none}
+.learn summary::-webkit-details-marker{display:none}
+.learn summary::before{content:"▶";font-family:var(--mono);font-size:10px;color:var(--dim);margin-right:9px}
+.learn details[open] summary::before{content:"▼"}
+.learn-body{padding:0 16px 14px 35px;font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.75}
+.learn-body strong{color:var(--bone);font-weight:500}
+.learn-bottom{margin:14px 16px 16px;padding:12px 14px;background:var(--panel2);border:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--dim)}
+.learn-bottom strong{color:var(--green)}
+
+
+.public-subtitle{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.02em;margin-top:5px;line-height:1.5}
+
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <header>
-  <h1>BTC — real <em>vs</em> paper · V11-B</h1>
+  <div><h1>BITCOIN — REAL <em>VS</em> PAPER</h1><div class="public-subtitle">Is Bitcoin demand coming from real buyers or leveraged trading?</div></div>
   <div class="hdr-meta">
     <span><span class="dot" id="wsdot"></span><span id="wstext">connecting live price</span></span>
     <span id="snapshotAge">snapshot —</span>
@@ -224,13 +268,85 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   </div>
 </section>
 
+
+<section class="learn">
+  <div class="learn-hd">
+    <h2>Learn what these signals mean</h2>
+    <p>Plain-English explanations for students and new Bitcoin learners. Open any section below without changing the dashboard.</p>
+  </div>
+
+  <details>
+    <summary>ETF / institutional spot demand — Are big investors buying Bitcoin?</summary>
+    <div class="learn-body">
+      Spot Bitcoin ETFs let investors get Bitcoin exposure through the traditional financial system.
+      When a lot of money flows into these ETFs, it is evidence of stronger demand for Bitcoin exposure.
+      <strong>More net inflow generally means stronger institutional demand.</strong>
+      <br><br>
+      Think of it like a store with a limited number of concert tickets. If large buyers keep showing up and purchasing tickets,
+      demand is clearly strong. Bitcoin is different from normal products because its maximum supply is fixed at 21 million BTC.
+    </div>
+  </details>
+
+  <details>
+    <summary>U.S. spot-demand proxy — Are U.S. buyers more aggressive?</summary>
+    <div class="learn-body">
+      Bitcoin Real vs Paper compares Bitcoin prices on U.S.-dollar markets at Coinbase and Kraken with the Bitcoin price on OKX.
+      If Bitcoin trades a little higher on Coinbase and Kraken, U.S. buyers may be applying stronger buying pressure.
+      If the difference is near zero or negative, U.S. demand is not unusually strong at that moment.
+      <br><br>
+      <strong>This is only a proxy.</strong> It does not measure every Bitcoin buyer in the United States or every exchange in the world.
+    </div>
+  </details>
+
+  <details>
+    <summary>Leverage health — Is the market relying too much on borrowed money?</summary>
+    <div class="learn-body">
+      Futures traders can control large Bitcoin positions with much less money. This is called leverage.
+      Too much leverage can make the market fragile because falling prices can force leveraged positions to close automatically.
+      <br><br>
+      Bitcoin Real vs Paper looks at derivatives information such as funding rates across the working futures venues.
+      <strong>A high leverage-health score means leverage looks relatively normal.</strong>
+      A low score means the market looks more crowded and may be more vulnerable to forced liquidations.
+    </div>
+  </details>
+
+  <details>
+    <summary>Exchange BTC supply — Is Bitcoin becoming harder to buy?</summary>
+    <div class="learn-body">
+      Bitcoin held on exchanges is generally easier to sell quickly. If BTC keeps leaving exchanges, fewer coins may be immediately
+      available for sale. That can strengthen the evidence for a supply squeeze when demand is also strong.
+      <br><br>
+      Bitcoin Real vs Paper currently shows this signal as <strong>UNKNOWN</strong> because no verified free automated all-exchange balance source has been
+      added to this project. Unknown does not mean neutral, bullish, or bearish. It means the dashboard does not have reliable data.
+    </div>
+  </details>
+
+  <details>
+    <summary>Supply squeeze — What would confirm it?</summary>
+    <div class="learn-body">
+      A real supply squeeze means strong buyers are competing for a shrinking amount of Bitcoin that is readily available for sale.
+      Strong ETF demand alone is not enough to prove that.
+      <br><br>
+      The strongest setup would be:
+      <strong>strong ETF buying + strong spot buying + healthy leverage + falling exchange BTC supply.</strong>
+      If those signals line up together, the supply-squeeze argument becomes much stronger.
+    </div>
+  </details>
+
+  <div class="learn-bottom">
+    <strong>How to read the dashboard together:</strong>
+    Strong ETF demand + strong spot demand + healthy leverage means buyers are more likely driving the move than leveraged speculation alone.
+    But this dashboard will not call the supply squeeze confirmed until exchange BTC supply can also be verified as falling.
+  </div>
+</section>
+
 <div class="log">
   <h2>Source log</h2>
   <div id="loglines"></div>
 </div>
 
 <footer>
-  V11-B presentation with V11 backend. ETF + derivatives + spot snapshot refresh = GitHub Actions every 15 minutes. This page re-reads the snapshot every 60 seconds.
+  Bitcoin Real vs Paper · Live Demand Dashboard. ETF + derivatives + spot snapshot refresh = GitHub Actions every 15 minutes. This page re-reads the snapshot every 60 seconds.
   Coinbase BTC-USD price streams live in the browser. Kraken public spot/futures data is collected server-side in the snapshot when reachable.
   Exchange BTC supply remains unknown and unscored. Not investment advice.
 </footer>
@@ -397,7 +513,7 @@ connectPrice();
 setInterval(()=>$('clock').textContent=hhmmss(now())+' local',1000);
 addEventListener('resize',()=>{drawSpark();if(S.snapshot)renderSnapshot();});
 drawGauge(null);
-log('V11-B opened · V11 snapshot backend + live Coinbase price');
+log('Bitcoin Real vs Paper opened · live demand dashboard');
 </script>
 </body>
 </html>
