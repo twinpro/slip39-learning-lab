@@ -1,4 +1,4 @@
-name: Update BTC real-vs-paper data
+name: Update BTC real-vs-paper data FREE
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: btc-market-data
+  group: btc-market-data-free
   cancel-in-progress: true
 
 jobs:
@@ -21,14 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Collect BTC market data
-        env:
-          COINGLASS_API_KEY: ${{ secrets.COINGLASS_API_KEY }}
-          MACROMICRO_TOKEN: ${{ secrets.MACROMICRO_TOKEN }}
-          MACROMICRO_API_URL: ${{ secrets.MACROMICRO_API_URL }}
+      - name: Collect free public BTC market data
         run: node scripts/update-btc-market.mjs
-
       - name: Commit updated market JSON
         run: |
           git config user.name "btc-data-bot"
