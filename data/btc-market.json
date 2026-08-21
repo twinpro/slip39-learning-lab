@@ -1,6 +1,6 @@
 {
   "schema": 9,
-  "generated_at": "2026-08-21T15:31:30.708Z",
+  "generated_at": "2026-08-21T15:43:36.011Z",
   "cost": "$0",
   "paid_api_keys_required": false,
   "sources": {
@@ -25,15 +25,17 @@
     "deribit": "ok",
     "bitmex": "ok",
     "hyperliquid": "ok",
+    "kraken_futures": "ok",
     "bybit": "error",
+    "kraken_spot": "ok",
     "spot": "ok"
   },
   "etf": {
     "status": "ok",
     "source": "SoSoValue official API v2",
-    "fetched_at": "2026-08-21T15:31:30.708Z",
+    "fetched_at": "2026-08-21T15:43:36.011Z",
     "latest_date": "2026-08-20",
-    "latest_age_days": 1.65,
+    "latest_age_days": 1.66,
     "row_count": 300,
     "flow_5d_usd": 1552704260.73,
     "last_5_trading_days": [
@@ -165,29 +167,37 @@
     "venues": {
       "okx": {
         "status": "ok",
-        "oi_usd": 2354697000.9158516,
-        "oi_btc": 30313.407600000148,
+        "oi_usd": 2351639075.2761707,
+        "oi_btc": 30323.69680000014,
         "funding_rate_percent": 0.01,
-        "mark_price": 77669.4
+        "mark_price": 77550.1
       },
       "deribit": {
         "status": "ok",
-        "oi_usd": 882603410,
-        "funding_rate_percent": 0.015895,
-        "mark_price": 77652.64
+        "oi_usd": 883753710,
+        "funding_rate_percent": 0.015816,
+        "mark_price": 77531.19
       },
       "bitmex": {
         "status": "ok",
         "oi_usd": 22110100,
         "funding_rate_percent": 0.01,
-        "mark_price": 77667.12
+        "mark_price": 77533.51
       },
       "hyperliquid": {
         "status": "ok",
-        "oi_usd": 2636229161.307796,
-        "oi_btc": 33925.37788,
+        "oi_usd": 2631223337.2618804,
+        "oi_btc": 33916.69572,
         "funding_rate_percent": 0.01,
-        "mark_price": 77706.7
+        "mark_price": 77579
+      },
+      "kraken": {
+        "status": "ok",
+        "symbol": "PI_XBTUSD",
+        "oi_usd": 263957072448.81702,
+        "open_interest_contracts": 3405642,
+        "funding_rate_percent": -2.28852431e-8,
+        "mark_price": 77505.81900529093
       },
       "bybit": {
         "status": "error",
@@ -196,24 +206,29 @@
     },
     "aggregate": {
       "status": "ok",
-      "venue_count": 4,
+      "venue_count": 5,
       "venues": [
         "okx",
         "deribit",
         "bitmex",
-        "hyperliquid"
+        "hyperliquid",
+        "kraken"
       ],
-      "oi_usd": 5895639672.223648,
-      "funding_rate_percent": 0.01088250764823075,
+      "oi_usd": 269845798671.35507,
+      "funding_rate_percent": 0.00023725080544589406,
       "warning": "Free partial derivatives coverage; not global open interest."
     }
   },
   "spot": {
     "status": "ok",
-    "source": "Coinbase BTC-USD vs OKX BTC-USDT",
-    "coinbase_usd": 77661.67,
-    "okx_usdt": 77663,
-    "coinbase_premium_percent": -0.0017125272008589043
+    "source": "Coinbase BTC-USD + Kraken XBT/USD vs OKX BTC-USDT",
+    "coinbase_usd": 77528.23,
+    "kraken_usd": 77532.7,
+    "us_spot_average_usd": 77530.465,
+    "okx_usdt": 77546.4,
+    "us_spot_premium_percent": -0.02054898744493494,
+    "coinbase_premium_percent": -0.023431132844331515,
+    "kraken_premium_percent": -0.017666842045538367
   },
   "exchange_supply": {
     "status": "unavailable_free_reliable",
