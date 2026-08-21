@@ -91,3 +91,8 @@ Final public release includes:
 - Custom 404 page
 
 QA checks are documented in `QA_REPORT.txt`.
+
+
+## BTC Real vs Paper Dashboard
+
+Added V7 market-structure dashboard at `pages/btc-real-vs-paper-v7.html`. Live data is collected by GitHub Actions into `data/btc-market.json`; API secrets are not exposed in the public site. Setup details are in `README-BTC-V7.md`.
