@@ -83,16 +83,47 @@ function acceptEtf(rows,source){
   return true;
 }
 
-// ETF source: SoSoValue official API v2.
-// Free Demo API plan; requires x-soso-api-key.
-// Verified endpoint:
-// POST https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart
-// body: {"type":"us-btc-spot"}
+// ETF source: SoSoValue official API.
+// Primary: V2 historical inflow endpoint.
+// Fallback: official legacy V1 BTC ETF historical inflow endpoint.
+// Both require the same x-soso-api-key. No paid API is used.
 const SOSO_KEY = process.env.SOSOVALUE_API_KEY || "";
 
-try{
-  if(!SOSO_KEY) throw new Error("SOSOVALUE_API_KEY secret is missing");
-  const j = await getJson("https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart",{
+function sosoRowsFrom(j){
+  const lists = [
+    j?.data?.list,
+    j?.data,
+    j?.list,
+    j?.result?.list,
+    j?.result
+  ];
+  for(const a of lists){
+    if(!Array.isArray(a)) continue;
+    const rows=a.map(x=>({
+      timestamp:Date.parse(String(x?.date ?? x?.timestamp ?? x?.time ?? "")+"T00:00:00Z"),
+      flow_usd:num(x?.totalNetInflow ?? x?.dailyNetInflow ?? x?.netInflow ?? x?.flow_usd)
+    })).filter(x=>Number.isFinite(x.timestamp)&&x.flow_usd!=null);
+    if(rows.length) return rows.sort((a,b)=>a.timestamp-b.timestamp);
+  }
+  return [];
+}
+
+function sosoDebug(j){
+  const d=j?.data;
+  return {
+    code:j?.code ?? null,
+    msg:j?.msg ?? null,
+    top_level_keys:j && typeof j==="object" ? Object.keys(j).slice(0,20) : [],
+    data_type:Array.isArray(d)?"array":(d===null?"null":typeof d),
+    data_keys:d && typeof d==="object" && !Array.isArray(d) ? Object.keys(d).slice(0,20) : [],
+    list_length:Array.isArray(d?.list)?d.list.length:null,
+    first_item_keys:Array.isArray(d?.list)&&d.list[0]&&typeof d.list[0]==="object"
+      ? Object.keys(d.list[0]).slice(0,20) : []
+  };
+}
+
+async function trySosoV2(){
+  const j=await getJson("https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
@@ -100,21 +131,55 @@ try{
     },
     body:JSON.stringify({type:"us-btc-spot"})
   });
-  if(Number(j?.code)!==0) throw new Error(j?.msg || "SoSoValue API error");
-  const rows=(j?.data?.list||[])
-    .map(x=>({
-      timestamp:Date.parse(String(x.date)+"T00:00:00Z"),
-      flow_usd:num(x.totalNetInflow)
-    }))
-    .filter(x=>Number.isFinite(x.timestamp)&&x.flow_usd!=null)
-    .sort((a,b)=>a.timestamp-b.timestamp);
+  if(Number(j?.code)!==0) throw new Error(j?.msg || "SoSoValue V2 API error");
+  return {rows:sosoRowsFrom(j),debug:sosoDebug(j),version:"v2"};
+}
 
-  if(!acceptEtf(rows,"SoSoValue official API v2")){
-    const latest=rows.length?new Date(rows.at(-1).timestamp).toISOString().slice(0,10):"none";
-    throw new Error(`SoSoValue ETF data rejected: rows=${rows.length}, latest=${latest}`);
+async function trySosoV1(){
+  const j=await getJson("https://api.sosovalue.xyz/openapi/v1/etf/us-btc-spot/historicalInflowChart",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "x-soso-api-key":SOSO_KEY
+    },
+    body:JSON.stringify({})
+  });
+  if(Number(j?.code)!==0) throw new Error(j?.msg || "SoSoValue V1 API error");
+  return {rows:sosoRowsFrom(j),debug:sosoDebug(j),version:"v1"};
+}
+
+try{
+  if(!SOSO_KEY) throw new Error("SOSOVALUE_API_KEY secret is missing");
+
+  let chosen=null;
+  let v2error=null;
+
+  try{
+    const v2=await trySosoV2();
+    out.sources.sosovalue_v2_debug=v2.debug;
+    if(v2.rows.length>=5) chosen=v2;
+    else v2error=`V2 returned ${v2.rows.length} usable rows`;
+  }catch(e){
+    v2error=String(e.message||e);
+    out.sources.sosovalue_v2_error=v2error;
+  }
+
+  if(!chosen){
+    const v1=await trySosoV1();
+    out.sources.sosovalue_v1_debug=v1.debug;
+    if(v1.rows.length>=5) chosen=v1;
+    else throw new Error(`${v2error||"V2 unavailable"}; V1 returned ${v1.rows.length} usable rows`);
+  }
+
+  if(!acceptEtf(chosen.rows,`SoSoValue official API ${chosen.version}`)){
+    const latest=chosen.rows.length
+      ? new Date(chosen.rows.at(-1).timestamp).toISOString().slice(0,10)
+      : "none";
+    throw new Error(`SoSoValue ${chosen.version} ETF data rejected: rows=${chosen.rows.length}, latest=${latest}`);
   }
 
   out.sources.sosovalue="ok";
+  out.sources.sosovalue_endpoint=chosen.version;
 }catch(e){
   out.etf={status:"unavailable",error:String(e.message||e)};
   out.sources.sosovalue="error: "+String(e.message||e);
