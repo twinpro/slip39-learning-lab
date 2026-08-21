@@ -1,10 +1,26 @@
 {
   "schema": 9,
-  "generated_at": "2026-08-21T15:08:02.503Z",
+  "generated_at": "2026-08-21T15:12:42.880Z",
   "cost": "$0",
   "paid_api_keys_required": false,
   "sources": {
-    "sosovalue": "error: SoSoValue ETF data rejected: rows=0, latest=none",
+    "sosovalue_v2_debug": {
+      "code": 0,
+      "msg": null,
+      "top_level_keys": [
+        "code",
+        "msg",
+        "traceId",
+        "data",
+        "tid"
+      ],
+      "data_type": "array",
+      "data_keys": [],
+      "list_length": null,
+      "first_item_keys": []
+    },
+    "sosovalue": "ok",
+    "sosovalue_endpoint": "v2",
     "okx": "ok",
     "deribit": "ok",
     "bitmex": "ok",
@@ -13,36 +29,165 @@
     "spot": "ok"
   },
   "etf": {
-    "status": "unavailable",
-    "error": "SoSoValue ETF data rejected: rows=0, latest=none"
+    "status": "ok",
+    "source": "SoSoValue official API v2",
+    "fetched_at": "2026-08-21T15:12:42.880Z",
+    "latest_date": "2026-08-20",
+    "latest_age_days": 1.63,
+    "row_count": 300,
+    "flow_5d_usd": 1552704260.73,
+    "last_5_trading_days": [
+      {
+        "date": "2026-08-14",
+        "flow_usd": -57632150.75
+      },
+      {
+        "date": "2026-08-17",
+        "flow_usd": 297556930.725
+      },
+      {
+        "date": "2026-08-18",
+        "flow_usd": 189296469.295
+      },
+      {
+        "date": "2026-08-19",
+        "flow_usd": 517192505.28000003
+      },
+      {
+        "date": "2026-08-20",
+        "flow_usd": 606290506.18
+      }
+    ],
+    "history": [
+      {
+        "timestamp": 1784246400000,
+        "flow_usd": 132296394.775
+      },
+      {
+        "timestamp": 1784505600000,
+        "flow_usd": 226919372.63
+      },
+      {
+        "timestamp": 1784592000000,
+        "flow_usd": 203144295.4
+      },
+      {
+        "timestamp": 1784678400000,
+        "flow_usd": 68987046.87500043
+      },
+      {
+        "timestamp": 1784764800000,
+        "flow_usd": -225176828.385
+      },
+      {
+        "timestamp": 1784851200000,
+        "flow_usd": -240084652.50000003
+      },
+      {
+        "timestamp": 1785110400000,
+        "flow_usd": -11643898.8
+      },
+      {
+        "timestamp": 1785196800000,
+        "flow_usd": -49754364.00000001
+      },
+      {
+        "timestamp": 1785283200000,
+        "flow_usd": 32109893.80499999
+      },
+      {
+        "timestamp": 1785369600000,
+        "flow_usd": 233129286.20999956
+      },
+      {
+        "timestamp": 1785456000000,
+        "flow_usd": -265372778.16
+      },
+      {
+        "timestamp": 1785715200000,
+        "flow_usd": 170090384.45499998
+      },
+      {
+        "timestamp": 1785801600000,
+        "flow_usd": 211492376.2
+      },
+      {
+        "timestamp": 1785888000000,
+        "flow_usd": 244419263.35
+      },
+      {
+        "timestamp": 1785974400000,
+        "flow_usd": 128688195.84000044
+      },
+      {
+        "timestamp": 1786060800000,
+        "flow_usd": 98845326.995
+      },
+      {
+        "timestamp": 1786320000000,
+        "flow_usd": -144670942.17
+      },
+      {
+        "timestamp": 1786406400000,
+        "flow_usd": 4886243.949999999
+      },
+      {
+        "timestamp": 1786492800000,
+        "flow_usd": -61163714
+      },
+      {
+        "timestamp": 1786579200000,
+        "flow_usd": -131129456.97000003
+      },
+      {
+        "timestamp": 1786665600000,
+        "flow_usd": -57632150.75
+      },
+      {
+        "timestamp": 1786924800000,
+        "flow_usd": 297556930.725
+      },
+      {
+        "timestamp": 1787011200000,
+        "flow_usd": 189296469.295
+      },
+      {
+        "timestamp": 1787097600000,
+        "flow_usd": 517192505.28000003
+      },
+      {
+        "timestamp": 1787184000000,
+        "flow_usd": 606290506.18
+      }
+    ]
   },
   "derivatives": {
     "venues": {
       "okx": {
         "status": "ok",
-        "oi_usd": 2353863036.3611326,
-        "oi_btc": 30348.891200000162,
+        "oi_usd": 2351575834.8170524,
+        "oi_btc": 30302.95320000016,
         "funding_rate_percent": 0.01,
-        "mark_price": 77562.9
+        "mark_price": 77603.8
       },
       "deribit": {
         "status": "ok",
-        "oi_usd": 877016030,
-        "funding_rate_percent": 0.015957,
-        "mark_price": 77510.67
+        "oi_usd": 877928800,
+        "funding_rate_percent": 0.015967,
+        "mark_price": 77589.47
       },
       "bitmex": {
         "status": "ok",
-        "oi_usd": 22117100,
+        "oi_usd": 22108600,
         "funding_rate_percent": 0.01,
-        "mark_price": 77542.38
+        "mark_price": 77597.54
       },
       "hyperliquid": {
         "status": "ok",
-        "oi_usd": 2668723652.27802,
-        "oi_btc": 34402.73874,
+        "oi_usd": 2637446516.50652,
+        "oi_btc": 33976.32902,
         "funding_rate_percent": 0.01,
-        "mark_price": 77573
+        "mark_price": 77626
       },
       "bybit": {
         "status": "error",
@@ -58,17 +203,17 @@
         "bitmex",
         "hyperliquid"
       ],
-      "oi_usd": 5921719818.639153,
-      "funding_rate_percent": 0.01088224108041481,
+      "oi_usd": 5889059751.323572,
+      "funding_rate_percent": 0.010889547970441735,
       "warning": "Free partial derivatives coverage; not global open interest."
     }
   },
   "spot": {
     "status": "ok",
     "source": "Coinbase BTC-USD vs OKX BTC-USDT",
-    "coinbase_usd": 77553.54,
-    "okx_usdt": 77572.9,
-    "coinbase_premium_percent": -0.024957169320727335
+    "coinbase_usd": 77593.05,
+    "okx_usdt": 77598.8,
+    "coinbase_premium_percent": -0.007409908400646259
   },
   "exchange_supply": {
     "status": "unavailable_free_reliable",
