@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC Real vs Paper — V11</title>
+<style>
+:root{
+  --bg:#071012;--panel:#0d191c;--panel2:#101f22;--rule:#223337;
+  --text:#eee9dc;--muted:#8ba0a3;--dim:#60777a;
+  --green:#49d879;--yellow:#efb544;--red:#ff6262;--white:#d2dcde;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+.wrap{max-width:1080px;margin:auto;padding:18px}
+header{display:flex;justify-content:space-between;gap:16px;align-items:center;border-bottom:1px solid var(--rule);padding-bottom:15px;margin-bottom:15px}
+.brand{font-weight:800;letter-spacing:.14em}
+.meta{font:11px var(--mono);color:var(--muted);text-align:right}
+.box{background:var(--panel);border:1px solid var(--rule);padding:18px;margin-bottom:14px}
+.kicker{font:11px var(--mono);color:var(--muted);letter-spacing:.08em}
+h1{font-size:42px;line-height:1.05;margin:10px 0 8px}
+.lead{font-size:17px;line-height:1.55}
+.apple{margin-top:15px;background:var(--panel2);border:1px solid var(--rule);padding:13px;line-height:1.55}
+.apple b{color:var(--green)}
+.verdict{display:flex;gap:12px;border-top:1px solid var(--rule);padding-top:17px;margin-top:17px}
+.light{font-size:28px}.vt{font-size:25px;font-weight:800}.why{margin-top:4px;color:var(--muted);line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);margin-top:18px}
+.cell{background:var(--panel2);padding:14px}.q{font-size:13px;font-weight:700}.v{font-size:20px;font-weight:800;margin:9px 0}.note{font-size:12px;color:var(--muted);line-height:1.45}
+.good{color:var(--green)}.warn{color:var(--yellow)}.bad{color:var(--red)}.unknown{color:var(--white)}
+h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;margin:0 0 13px}
+.small{font:11px var(--mono);color:var(--muted);line-height:1.55}
+.rows{border-top:1px solid var(--rule)}
+.row{display:grid;grid-template-columns:1.4fr 100px 1fr;gap:14px;align-items:center;padding:13px 0;border-bottom:1px solid var(--rule)}
+.score{text-align:right;font:700 18px var(--mono)}.bar{height:8px;border:1px solid var(--rule)}.bar i{display:block;height:100%;background:currentColor}
+.explain{color:var(--muted);line-height:1.65}.explain strong{color:var(--text)}
+.statusline{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pill{border:1px solid var(--rule);padding:5px 8px;font:10px var(--mono);color:var(--muted)}
+.liveprice{font:700 18px var(--mono);color:var(--green)}
+details{border-top:1px solid var(--rule);margin-top:14px}
+summary{cursor:pointer;padding-top:14px;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);margin-top:14px}
+.card{background:var(--panel2);padding:14px}.cl{font:10px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.cv{font:700 22px var(--mono);margin:7px 0}.cn{font-size:12px;color:var(--muted);line-height:1.45}
+footer{font:10px var(--mono);color:var(--dim);line-height:1.7;padding-bottom:16px}
+@media(max-width:780px){
+  h1{font-size:31px}.grid,.cards{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr 82px}.bar{grid-column:1/3}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">BTC — REAL VS PAPER · FREE V11</div>
+  <div class="meta">
+    <div id="livePrice">BTC live price —</div>
+    <div id="stamp">snapshot loading…</div>
+  </div>
+</header>
+
+<section class="box">
+  <div class="kicker">SIMPLE ANSWER FIRST · $0 PAID DATA</div>
+  <h1 id="headline">Checking current data…</h1>
+  <div class="lead" id="lead">V11 separates real demand, leverage, and unknown supply data instead of forcing them into one number.</div>
+
+  <div class="apple"><b>Think of 21 apples.</b> Real Bitcoin is the apple. Futures and options are tickets whose value follows the apple. Tickets can multiply; the 21 million BTC limit cannot.</div>
+
+  <div class="verdict">
+    <div class="light" id="vl">⚪</div>
+    <div>
+      <div class="vt" id="vt">Checking</div>
+      <div class="why" id="vw">ETF demand, U.S. spot demand, and leverage are loading.</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="cell">
+      <div class="q">Are ETFs buying BTC?</div>
+      <div class="v" id="etf">⚪ —</div>
+      <div class="note" id="etfn">SoSoValue official API</div>
+    </div>
+    <div class="cell">
+      <div class="q">Is BTC leaving exchanges?</div>
+      <div class="v unknown">⚪ Unknown</div>
+      <div class="note">No verified free automated all-exchange BTC balance feed. Not scored.</div>
+    </div>
+    <div class="cell">
+      <div class="q">Are U.S. spot buyers stronger?</div>
+      <div class="v" id="spot">⚪ —</div>
+      <div class="note" id="spotn">Coinbase + Kraken vs OKX</div>
+    </div>
+    <div class="cell">
+      <div class="q">Is leverage crowded?</div>
+      <div class="v" id="lev">⚪ —</div>
+      <div class="note" id="levn">Free public futures venues</div>
+    </div>
+  </div>
+</section>
+
+<section class="box">
+  <h2>Scoreboard</h2>
+  <div class="small" style="margin-bottom:10px">These scores measure real-demand evidence and leverage health. They are not a complete supply-squeeze score because exchange BTC supply is unknown.</div>
+  <div class="rows" id="rows"></div>
+  <div class="explain" id="conclusion" style="margin-top:14px"></div>
+</section>
+
+<section class="box">
+  <h2>What V11 can and cannot prove</h2>
+  <div class="explain">
+    <strong>Facts:</strong> ETF flows come from SoSoValue's official API. Coinbase and Kraken public USD spot prices are averaged and compared with OKX BTC-USDT. Public derivatives data is aggregated from every working free venue in the snapshot, including OKX, Deribit, BitMEX, Hyperliquid, and Kraken Futures when reachable.<br><br>
+    <strong>Limitation:</strong> exchange-balance data requires continuously maintained address labels identifying which BTC addresses belong to exchanges. No trustworthy free machine-readable all-exchange balance feed has been verified for this automated build. Exchange supply therefore stays ⚪ UNKNOWN and is excluded rather than guessed.<br><br>
+    <strong>Interpretation:</strong> high open interest is not automatically bearish and is not proof of manipulation. V11 treats derivatives as a leverage/crowding signal, not as evidence of manipulation.
+  </div>
+
+  <details>
+    <summary>Advanced numbers / source health</summary>
+    <div class="cards">
+      <div class="card"><div class="cl">ETF net flow · 5 days</div><div class="cv" id="aetf">—</div><div class="cn" id="aetfn">SoSoValue official API.</div></div>
+      <div class="card"><div class="cl">USD spot premium</div><div class="cv" id="aprem">—</div><div class="cn">Coinbase BTC-USD + Kraken XBT/USD average versus OKX BTC-USDT.</div></div>
+      <div class="card"><div class="cl">Partial futures OI</div><div class="cv" id="aoi">—</div><div class="cn">Only the working free venues in the latest snapshot. Never labeled global OI.</div></div>
+      <div class="card"><div class="cl">Weighted funding</div><div class="cv" id="afund">—</div><div class="cn">OI-weighted across working free futures venues.</div></div>
+      <div class="card"><div class="cl">Working futures venues</div><div class="cv" id="avenues">—</div><div class="cn" id="avenuesn">—</div></div>
+      <div class="card"><div class="cl">Exchange BTC supply</div><div class="cv unknown">UNKNOWN</div><div class="cn">No verified free automated all-exchange balance source.</div></div>
+    </div>
+    <div class="statusline" id="health"></div>
+  </details>
+</section>
+
+<footer>
+V11 uses no paid market-data API. The free SoSoValue key is stored privately in GitHub Secrets. GitHub Actions refreshes the market snapshot every 15 minutes; this page re-reads that snapshot every 60 seconds. Coinbase price streams live in the browser when available. Missing data stays unknown instead of becoming a guessed score. Not investment advice.
+</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const usd=n=>n==null?'—':(n<0?'-':'')+'$'+(Math.abs(n)>=1e9?(Math.abs(n)/1e9).toFixed(2)+'B':(Math.abs(n)/1e6).toFixed(1)+'M');
+function cls(s){return s==null?'unknown':s>=65?'good':s>=40?'warn':'bad'}
+function lamp(s){return s==null?'⚪':s>=65?'🟢':s>=40?'🟡':'🔴'}
+function word(s){return s==null?'No data':s>=65?'Strong':s>=40?'Mixed':'Weak'}
+function lin(x,a,b){if(x==null||!isFinite(x))return null;return Math.max(0,Math.min(100,(x-a)/(b-a)*100))}
+function row(name,s,note,showScore=true){
+  const scoreText=!showScore||s==null?'—':Math.round(s)+'/100';
+  const width=!showScore||s==null?0:s;
+  return `<div class="row"><div><b>${lamp(s)} ${name}</b><div class="small" style="margin-top:4px">${note}</div></div><div class="score ${cls(s)}">${scoreText}</div><div class="bar"><i class="${cls(s)}" style="width:${width}%"></i></div></div>`
+}
+function pill(label,status){
+  const c=status==='ok'?'good':status&&String(status).startsWith('error')?'bad':'unknown';
+  return `<span class="pill ${c}">${label}: ${status||'—'}</span>`;
+}
+
+async function loadSnapshot(){
+  let d;
+  try{
+    const r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw Error('HTTP '+r.status);
+    d=await r.json();
+  }catch(e){
+    $('headline').textContent='⚪ DATA SNAPSHOT NOT READY';
+    $('vt').textContent='No verdict';
+    $('vw').textContent='The latest market snapshot could not be loaded.';
+    return;
+  }
+
+  $('stamp').textContent='snapshot '+new Date(d.generated_at).toLocaleString();
+
+  const ef=d.etf?.flow_5d_usd;
+  const prem=d.spot?.us_spot_premium_percent ?? d.spot?.coinbase_premium_percent;
+  const ag=d.derivatives?.aggregate||{};
+  const fund=ag.funding_rate_percent;
+  const venueCount=ag.venue_count||0;
+  const venues=(ag.venues||[]).join(', ');
+
+  const es=ef==null?null:lin(ef,-1e9,1e9);
+  const ss=prem==null?null:lin(prem,-.25,.25);
+  const fp=(fund!=null&&venueCount>=2)?lin(Math.abs(fund),0,.05):null;
+  const ls=fp==null?null:100-fp;
+  const demandEvidence=(es!=null&&ss!=null)?es*.65+ss*.35:null;
+
+  let state='gray';
+  if(demandEvidence!=null) state=demandEvidence>=68?'green':demandEvidence>=40?'yellow':'red';
+
+  const M={
+    green:['🟢','REAL BTC DEMAND IS STRONG','ETF buying is strong. U.S. spot demand is less urgent, while leverage is not dominating the move.'],
+    yellow:['🟡','REAL BTC DEMAND IS MIXED','The measurable real-demand signals do not agree strongly enough for a clean call.'],
+    red:['🔴','REAL BTC DEMAND IS WEAK','The measurable ETF and U.S. spot signals are not strong enough to support a real-demand-led move.'],
+    gray:['⚪','NOT ENOUGH FRESH DATA','One or more free sources failed. V11 will not guess.']
+  }[state];
+
+  $('vl').textContent=M[0]; $('vt').textContent=M[1]; $('vw').textContent=M[2]; $('headline').textContent=M[1];
+  $('lead').textContent=
+    state==='green'?'Real demand looks strong, but a true supply squeeze is NOT confirmed because exchange BTC supply is still unknown.':
+    state==='yellow'?'The measurable signals are mixed, and exchange BTC supply is still unknown.':
+    state==='red'?'Real demand is weak on the measurable signals, and exchange BTC supply is still unknown.':
+    'V11 separates measured data from what cannot be verified for free.';
+
+  $('etf').innerHTML=`<span class="${cls(es)}">${lamp(es)} ${word(es)}</span>`;
+  $('etfn').textContent=ef==null?'SoSoValue ETF data unavailable':`${usd(ef)} net over last 5 trading days`;
+
+  $('spot').innerHTML=`<span class="${cls(ss)}">${lamp(ss)} ${word(ss)}</span>`;
+  $('spotn').textContent=prem==null?'USD spot premium unavailable':`Coinbase + Kraken vs OKX ${prem>=0?'+':''}${prem.toFixed(3)}%`;
+
+  $('lev').innerHTML=`<span class="${cls(ls)}">${lamp(ls)} ${ls==null?'No data':ls>=65?'Normal':ls>=40?'Elevated':'Crowded'}</span>`;
+  $('levn').textContent=ag.status==='ok'?`${venueCount} venues: ${venues||'partial coverage'}`:'Derivatives feeds unavailable';
+
+  $('rows').innerHTML=
+    row('ETF / institutional spot demand',es,ef==null?'No ETF flow':`SoSoValue 5-day net flow ${usd(ef)}`)+
+    row('U.S. spot-demand proxy',ss,prem==null?'No premium':`Coinbase + Kraken vs OKX ${prem>=0?'+':''}${prem.toFixed(3)}%`)+
+    row('Leverage health',ls,`Funding ${fund==null?'—':fund.toFixed(4)+'%'} · ${venueCount} working venues`)+
+    row('Exchange BTC supply',null,'UNKNOWN — no verified free automated all-exchange balance feed',false)+
+    row('Real-demand evidence',demandEvidence,'65% ETF + 35% U.S. spot-demand proxy. This is NOT a supply-squeeze score.');
+
+  $('conclusion').innerHTML='<strong>Bottom line:</strong> '+
+    (state==='green'
+      ?'Real BTC demand is strong on the data we can verify. <strong>Supply-squeeze confirmation remains INCOMPLETE</strong> because we cannot yet verify whether BTC held on exchanges is falling.'
+      :state==='red'
+      ?'Real BTC demand is weak on the measurable signals. <strong>Supply-squeeze confirmation remains INCOMPLETE</strong> because exchange BTC supply is unknown.'
+      :'The evidence is mixed. <strong>Supply-squeeze confirmation remains INCOMPLETE</strong> because exchange BTC supply is unknown.');
+
+  $('aetf').textContent=usd(ef);
+  $('aetfn').textContent=`${d.etf?.source||'SoSoValue'} · latest ${d.etf?.latest_date||'—'}`;
+  $('aprem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%';
+  $('aoi').textContent=usd(ag.oi_usd);
+  $('afund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%';
+  $('avenues').textContent=venueCount?venueCount+' venues':'—';
+  $('avenuesn').textContent=venues||'No working derivatives venues';
+
+  $('health').innerHTML=
+    pill('ETF',d.sources?.sosovalue)+
+    pill('Spot',d.sources?.spot)+
+    pill('Kraken spot',d.sources?.kraken_spot)+
+    pill('Kraken futures',d.sources?.kraken_futures)+
+    pill('OKX',d.sources?.okx)+
+    pill('Deribit',d.sources?.deribit)+
+    pill('BitMEX',d.sources?.bitmex)+
+    pill('Hyperliquid',d.sources?.hyperliquid);
+}
+
+// Re-read generated market snapshot every 60 seconds.
+loadSnapshot();
+setInterval(loadSnapshot,60000);
+
+// Live Coinbase BTC-USD ticker for page feel only; it does not alter the verdict.
+try{
+  const ws=new WebSocket('wss://ws-feed.exchange.coinbase.com');
+  ws.onopen=()=>ws.send(JSON.stringify({type:'subscribe',product_ids:['BTC-USD'],channels:['ticker']}));
+  ws.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    if(m.type==='ticker'&&m.price){
+      $('livePrice').innerHTML=`<span class="liveprice">BTC $${Number(m.price).toLocaleString(undefined,{maximumFractionDigits:0})}</span> · LIVE`;
+    }
+  };
+  ws.onerror=()=>{$('livePrice').textContent='BTC live price unavailable'};
+}catch(e){
+  $('livePrice').textContent='BTC live price unavailable';
+}
+</script>
+</body>
+</html>
