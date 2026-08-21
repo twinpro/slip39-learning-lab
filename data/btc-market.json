@@ -1,19 +1,50 @@
 {
   "schema": 8,
-  "generated_at": null,
+  "generated_at": "2026-08-21T14:23:14.665Z",
   "cost": "$0",
   "paid_api_keys_required": false,
-  "sources": {},
-  "etf": {
-    "status": "not_run"
+  "sources": {
+    "farside": "error",
+    "bybit": "error",
+    "okx": "ok",
+    "spot": "ok"
   },
-  "derivatives": {},
+  "etf": {
+    "status": "error",
+    "error": "403 Forbidden"
+  },
+  "derivatives": {
+    "bybit": {
+      "status": "error",
+      "error": "403 Forbidden"
+    },
+    "okx": {
+      "status": "ok",
+      "oi_usd": 2326529420.7863507,
+      "oi_btc": 30211.09740000014,
+      "funding_rate_percent": 0.01,
+      "last_price": 76953.3,
+      "volume_24h_btc": 242510.9703
+    },
+    "aggregate": {
+      "status": "ok",
+      "coverage": "Bybit BTCUSDT perpetual + OKX BTC-USDT-SWAP",
+      "oi_usd": 2326529420.7863507,
+      "funding_rate_percent": 0.01,
+      "bybit_oi_change_24h_percent": null,
+      "warning": "Partial derivatives coverage. It is not global open interest."
+    }
+  },
   "spot": {
-    "status": "not_run"
+    "status": "ok",
+    "source": "Coinbase BTC-USD vs OKX BTC-USDT public tickers",
+    "coinbase_usd": 76926.15,
+    "okx_usdt": 76938.3,
+    "coinbase_premium_percent": -0.01579187478799593
   },
   "exchange_supply": {
     "status": "unavailable_free_reliable",
     "score": null,
-    "note": "No reliable free machine-readable all-exchange BTC balance feed was verified."
+    "note": "No reliable free machine-readable all-exchange BTC balance feed was verified. This metric is shown as unknown and excluded from the verdict rather than guessed."
   }
 }
