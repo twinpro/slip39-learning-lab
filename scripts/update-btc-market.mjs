@@ -230,6 +230,34 @@ try{
   out.sources.hyperliquid="ok";
 }catch(e){out.derivatives.venues.hyperliquid={status:"error",error:String(e.message||e)};out.sources.hyperliquid="error"}
 
+
+// Kraken public derivatives API — no API key required.
+try{
+  const j=await getJson("https://futures.kraken.com/derivatives/api/v3/tickers");
+  const rows=Array.isArray(j?.tickers)?j.tickers:[];
+  // Prefer the perpetual BTC/USD contract.
+  const d=rows.find(x=>String(x.symbol||"").toLowerCase()==="pi_xbtusd")
+       || rows.find(x=>String(x.symbol||"").toLowerCase().includes("xbtusd"));
+  if(!d) throw new Error("Kraken BTC perpetual ticker not found");
+
+  const oiContracts=num(d.openInterest);
+  const mark=num(d.markPrice);
+  const oiUsd=(oiContracts!=null && mark!=null)?oiContracts*mark:null;
+
+  out.derivatives.venues.kraken={
+    status:"ok",
+    symbol:d.symbol||"PI_XBTUSD",
+    oi_usd:oiUsd,
+    open_interest_contracts:oiContracts,
+    funding_rate_percent:num(d.fundingRate)!=null?num(d.fundingRate)*100:null,
+    mark_price:mark
+  };
+  out.sources.kraken_futures="ok";
+}catch(e){
+  out.derivatives.venues.kraken={status:"error",error:String(e.message||e)};
+  out.sources.kraken_futures="error";
+}
+
 // Bybit is now optional only; a 403 cannot kill the score.
 try{
   const t=await getJson("https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT");
@@ -259,17 +287,41 @@ if(good.length>=2){
   out.derivatives.aggregate={status:"insufficient",venue_count:good.length,venues:good.map(([k])=>k),warning:"Need at least two working venues."};
 }
 
-// Spot demand proxy: Coinbase BTC-USD vs OKX BTC-USDT.
+// Spot demand proxy: Coinbase + Kraken USD markets vs OKX BTC-USDT.
+// All endpoints are public. No account/API key is used.
 try{
-  const [cb,ok]=await Promise.all([
+  const [cb,kr,ok]=await Promise.all([
     getJson("https://api.exchange.coinbase.com/products/BTC-USD/ticker"),
+    getJson("https://api.kraken.com/0/public/Ticker?pair=XBTUSD"),
     getJson("https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT")
   ]);
-  const cbp=num(cb.price),okp=num(ok.data?.[0]?.last);
-  if(!cbp||!okp) throw new Error("missing spot price");
-  out.spot={status:"ok",source:"Coinbase BTC-USD vs OKX BTC-USDT",coinbase_usd:cbp,okx_usdt:okp,coinbase_premium_percent:(cbp/okp-1)*100};
+
+  const cbp=num(cb.price);
+  const krKey=kr?.result?Object.keys(kr.result)[0]:null;
+  const krp=krKey?num(kr.result[krKey]?.c?.[0]):null;
+  const okp=num(ok.data?.[0]?.last);
+
+  if(!cbp||!krp||!okp) throw new Error("missing public spot price");
+
+  const usdAvg=(cbp+krp)/2;
+  out.spot={
+    status:"ok",
+    source:"Coinbase BTC-USD + Kraken XBT/USD vs OKX BTC-USDT",
+    coinbase_usd:cbp,
+    kraken_usd:krp,
+    us_spot_average_usd:usdAvg,
+    okx_usdt:okp,
+    us_spot_premium_percent:(usdAvg/okp-1)*100,
+    coinbase_premium_percent:(cbp/okp-1)*100,
+    kraken_premium_percent:(krp/okp-1)*100
+  };
+  out.sources.kraken_spot="ok";
   out.sources.spot="ok";
-}catch(e){out.spot={status:"error",error:String(e.message||e)};out.sources.spot="error"}
+}catch(e){
+  out.spot={status:"error",error:String(e.message||e)};
+  out.sources.kraken_spot="error";
+  out.sources.spot="error";
+}
 
 await fs.mkdir(new URL("../data/", import.meta.url),{recursive:true});
 await fs.writeFile(OUT,JSON.stringify(out,null,2)+"\n","utf8");
