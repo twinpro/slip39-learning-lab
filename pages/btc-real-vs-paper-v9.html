@@ -23,7 +23,7 @@ footer{font:10px Consolas,monospace;color:#60777a;line-height:1.7}
 <div class="verdict"><div class="light" id="vl">⚪</div><div><div class="vt" id="vt">Checking</div><div class="why" id="vw">ETF demand, spot demand and leverage are loading.</div></div></div>
 <div class="grid">
  <div class="cell"><div class="q">Are ETFs buying BTC?</div><div class="v" id="etf">⚪ —</div><div class="note" id="etfn">SoSoValue</div></div>
- <div class="cell"><div class="q">Is BTC leaving exchanges?</div><div class="v unknown">⚪ Verification needed</div><div class="note">No reliable free machine-readable all-exchange BTC balance feed was verified. V9 refuses to guess.</div></div>
+ <div class="cell"><div class="q">Is BTC leaving exchanges?</div><div class="v unknown">⚪ Unknown</div><div class="note">No reliable free machine-readable all-exchange BTC balance feed was verified. V9 refuses to guess.</div></div>
  <div class="cell"><div class="q">Are U.S. spot buyers stronger?</div><div class="v" id="spot">⚪ —</div><div class="note" id="spotn">Coinbase vs OKX premium</div></div>
  <div class="cell"><div class="q">Is leverage crowded?</div><div class="v" id="lev">⚪ —</div><div class="note" id="levn">Multiple free futures venues</div></div>
 </div>
@@ -52,33 +52,123 @@ footer{font:10px Consolas,monospace;color:#60777a;line-height:1.7}
 
 <footer>V9 uses no paid API and no subscription. The free SoSoValue Demo API key is stored as a GitHub repository secret and never exposed in the webpage. GitHub Actions updates data every 15 minutes. Missing data stays unknown instead of becoming a guessed score. Not investment advice.</footer>
 </div><script>
-const $=id=>document.getElementById(id), usd=n=>n==null?'—':(n<0?'-':'')+'$'+(Math.abs(n)>=1e9?(Math.abs(n)/1e9).toFixed(2)+'B':(Math.abs(n)/1e6).toFixed(1)+'M');
-function cls(s){return s==null?'unknown':s>=65?'good':s>=40?'warn':'bad'} function lamp(s){return s==null?'⚪':s>=65?'🟢':s>=40?'🟡':'🔴'}
+const $=id=>document.getElementById(id);
+const usd=n=>n==null?'—':(n<0?'-':'')+'$'+(Math.abs(n)>=1e9?(Math.abs(n)/1e9).toFixed(2)+'B':(Math.abs(n)/1e6).toFixed(1)+'M');
+function cls(s){return s==null?'unknown':s>=65?'good':s>=40?'warn':'bad'}
+function lamp(s){return s==null?'⚪':s>=65?'🟢':s>=40?'🟡':'🔴'}
 function word(s){return s==null?'No data':s>=65?'Strong':s>=40?'Mixed':'Weak'}
 function lin(x,a,b){if(x==null||!isFinite(x))return null;return Math.max(0,Math.min(100,(x-a)/(b-a)*100))}
-function row(name,s,note){return `<div class="row"><div><b>${lamp(s)} ${name}</b><div class="small" style="margin-top:4px">${note}</div></div><div class="score ${cls(s)}">${s==null?'—':Math.round(s)+'/100'}</div><div class="bar"><i class="${cls(s)}" style="width:${s==null?0:s}%"></i></div></div>`}
+function row(name,s,note,showScore=true){
+  const scoreText = !showScore || s==null ? '—' : Math.round(s)+'/100';
+  const width = !showScore || s==null ? 0 : s;
+  return `<div class="row"><div><b>${lamp(s)} ${name}</b><div class="small" style="margin-top:4px">${note}</div></div><div class="score ${cls(s)}">${scoreText}</div><div class="bar"><i class="${cls(s)}" style="width:${width}%"></i></div></div>`
+}
+function safeText(x){return x==null?'—':String(x)}
 async function run(){
- let d; try{let r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error(r.status);d=await r.json()}catch(e){$('headline').textContent='⚪ Data file not ready';$('vt').textContent='No verdict';$('vw').textContent='Run the included GitHub Action once.';return}
- $('stamp').textContent='updated '+new Date(d.generated_at).toLocaleString();
- const ef=d.etf?.flow_5d_usd, prem=d.spot?.coinbase_premium_percent, ag=d.derivatives?.aggregate||{}, fund=ag.funding_rate_percent, venueCount=ag.venue_count||0;
- // ETF: -$1B = 0, 0 = 50, +$1B = 100
- const es=ef==null?null:lin(ef,-1e9,1e9);
- // Coinbase premium: -0.25% = 0, 0 = 50, +0.25% = 100
- const ss=prem==null?null:lin(prem,-.25,.25);
- // Leverage health: funding crowding is scored only when at least two futures venues are live. Partial OI is context, not a global leverage ratio.
- const fp=(fund!=null&&venueCount>=2)?lin(Math.abs(fund),0,.05):null;
- const pressure=fp, ls=pressure==null?null:100-pressure;
- // Overall is evidence-limited because exchange balance is unavailable. ETF 50%, spot 30%, leverage health 20%.
- const vals=[es,ss,ls]; const overall=vals.every(x=>x!=null)?es*.50+ss*.30+ls*.20:null;
- let status=overall==null?'gray':overall>=68?'green':overall>=38?'yellow':'red';
- const M={green:['🟢','REAL BTC DEMAND LOOKS STRONG','The free signals favor real demand over a leverage-only move, but exchange-balance confirmation is still missing.'],yellow:['🟡','MIXED','The free signals do not show a clean real-BTC squeeze or a clean leverage-dominated market.'],red:['🔴','PAPER / LEVERAGE RISK IS HIGHER','The free signals are not showing enough real spot/ETF strength to support a strong supply-squeeze call.'],gray:['⚪','NOT ENOUGH FRESH DATA','One or more free sources failed. V8 will not guess.']}[status];
- $('vl').textContent=M[0];$('vt').textContent=M[1];$('vw').textContent=M[2];$('headline').textContent=M[1];$('lead').textContent=status==='green'?'Real-demand evidence is winning on the data we can verify for free.':status==='yellow'?'The market is giving conflicting signals.':'V8 separates measured data from what cannot be verified for free.';
- $('etf').innerHTML=`<span class="${cls(es)}">${lamp(es)} ${word(es)}</span>`;$('etfn').textContent=ef==null?'SoSoValue unavailable':`${usd(ef)} net over last 5 trading days`;
- $('spot').innerHTML=`<span class="${cls(ss)}">${lamp(ss)} ${word(ss)}</span>`;$('spotn').textContent=prem==null?'Spot premium unavailable':`Coinbase premium ${prem>=0?'+':''}${prem.toFixed(3)}%`;
- $('lev').innerHTML=`<span class="${cls(ls)}">${lamp(ls)} ${ls==null?'No data':ls>=65?'Normal':ls>=40?'Elevated':'Crowded'}</span>`;$('levn').textContent=ag.status==='ok'?'Working free venues; partial, not global':'Derivatives feeds unavailable';
- $('rows').innerHTML=row('ETF / institutional spot demand',es,ef==null?'No ETF flow':'SoSoValue 5-day net flow '+usd(ef))+row('U.S. spot-demand proxy',ss,prem==null?'No premium':'Coinbase vs OKX '+(prem>=0?'+':'')+prem.toFixed(3)+'%')+row('Leverage health',ls,`Funding ${fund==null?'—':fund.toFixed(4)+'%'} · ${venueCount} working futures venues`)+row('Exchange BTC supply',null,'Not scored: no verified free automated all-exchange balance feed')+row('Evidence-limited overall signal',overall,'50% ETF + 30% spot premium + 20% leverage health. Exchange supply intentionally excluded.');
- $('conclusion').innerHTML=status==='green'?'<strong>Bottom line:</strong> Your $200K–$300K supply-squeeze thesis is getting stronger on the free measurable signals, but I would not call it a confirmed supply squeeze until exchange BTC balances also show sustained decline.':status==='red'?'<strong>Bottom line:</strong> The supply-squeeze thesis is weaker right now on the free measurable signals. Stronger ETF/spot demand would be needed before treating leverage as secondary.':'<strong>Bottom line:</strong> Mixed. Do not force a bullish or bearish conclusion from incomplete evidence. The missing exchange-balance feed is explicitly visible.';
- $('aetf').textContent=usd(ef);$('aprem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%';$('aoi').textContent=usd(ag.oi_usd);$('afund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%';$('aoi24').textContent=venueCount?venueCount+' venues':'—';
- $('health').textContent='ETF: '+(d.etf?.source||d.etf?.status||'—')+' · Futures: '+((ag.venues||[]).join(', ')||'—')+' · Spot: '+(d.sources?.spot||'—')+' · Paid APIs: NONE';
-} run();
+  let d;
+  try{
+    let r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw Error(r.status);
+    d=await r.json();
+  }catch(e){
+    $('headline').textContent='⚪ DATA FILE NOT READY';
+    $('vt').textContent='No verdict';
+    $('vw').textContent='The market-data file could not be loaded.';
+    return;
+  }
+
+  $('stamp').textContent='updated '+new Date(d.generated_at).toLocaleString();
+
+  const ef=d.etf?.flow_5d_usd;
+  const prem=d.spot?.coinbase_premium_percent;
+  const ag=d.derivatives?.aggregate||{};
+  const fund=ag.funding_rate_percent;
+  const venueCount=ag.venue_count||0;
+  const venues=(ag.venues||[]).join(', ');
+
+  // ETF: -$1B -> 0, 0 -> 50, +$1B -> 100
+  const es=ef==null?null:lin(ef,-1e9,1e9);
+
+  // Coinbase premium: -0.25% -> 0, 0 -> 50, +0.25% -> 100
+  const ss=prem==null?null:lin(prem,-.25,.25);
+
+  // Leverage health: positive/negative extreme funding is crowding.
+  // Score only when at least two independent futures venues are working.
+  const fp=(fund!=null&&venueCount>=2)?lin(Math.abs(fund),0,.05):null;
+  const ls=fp==null?null:100-fp;
+
+  // Real-demand evidence score only. This is NOT a supply-squeeze score.
+  const demandEvidence=(es!=null&&ss!=null)?es*.65+ss*.35:null;
+
+  let demandState='gray';
+  if(demandEvidence!=null){
+    demandState=demandEvidence>=68?'green':demandEvidence>=40?'yellow':'red';
+  }
+
+  const M={
+    green:['🟢','REAL BTC DEMAND IS STRONG','ETF buying is strong. Spot demand is not showing the same urgency, but leverage is not dominating the move.'],
+    yellow:['🟡','REAL BTC DEMAND IS MIXED','The measurable real-demand signals do not agree strongly enough for a clean call.'],
+    red:['🔴','REAL BTC DEMAND IS WEAK','The measurable spot and ETF signals are not strong enough to support a real-demand-led move.'],
+    gray:['⚪','NOT ENOUGH FRESH DATA','One or more free sources failed. V10 will not guess.']
+  }[demandState];
+
+  $('vl').textContent=M[0];
+  $('vt').textContent=M[1];
+  $('vw').textContent=M[2];
+  $('headline').textContent=M[1];
+  $('lead').textContent = demandState==='green'
+    ? 'Real demand looks strong, but a true supply squeeze is NOT confirmed because exchange BTC supply is still unknown.'
+    : demandState==='yellow'
+    ? 'The measurable signals are mixed, and exchange BTC supply is still unknown.'
+    : demandState==='red'
+    ? 'Real demand is not strong enough on the measurable signals, and exchange BTC supply is still unknown.'
+    : 'V10 separates measured data from what cannot be verified for free.';
+
+  $('etf').innerHTML=`<span class="${cls(es)}">${lamp(es)} ${word(es)}</span>`;
+  $('etfn').textContent=ef==null?'SoSoValue ETF data unavailable':`${usd(ef)} net over last 5 trading days`;
+
+  const exSupplyText = document.querySelectorAll('.cell .v')[1];
+  if(exSupplyText) exSupplyText.innerHTML='<span class="unknown">⚪ Unknown</span>';
+  const exSupplyNote = document.querySelectorAll('.cell .note')[1];
+  if(exSupplyNote) exSupplyNote.textContent='No verified free automated all-exchange BTC balance feed. Not scored.';
+
+  $('spot').innerHTML=`<span class="${cls(ss)}">${lamp(ss)} ${word(ss)}</span>`;
+  $('spotn').textContent=prem==null?'Spot premium unavailable':`Coinbase premium ${prem>=0?'+':''}${prem.toFixed(3)}%`;
+
+  $('lev').innerHTML=`<span class="${cls(ls)}">${lamp(ls)} ${ls==null?'No data':ls>=65?'Normal':ls>=40?'Elevated':'Crowded'}</span>`;
+  $('levn').textContent=ag.status==='ok'
+    ? `${venueCount} venues: ${venues || 'partial coverage'}`
+    : 'Derivatives feeds unavailable';
+
+  $('rows').innerHTML=
+    row('ETF / institutional spot demand',es,ef==null?'No ETF flow':`SoSoValue 5-day net flow ${usd(ef)}`)+
+    row('U.S. spot-demand proxy',ss,prem==null?'No premium':`Coinbase vs OKX ${prem>=0?'+':''}${prem.toFixed(3)}%`)+
+    row('Leverage health',ls,`Funding ${fund==null?'—':fund.toFixed(4)+'%'} · ${venueCount} working venues`)+
+    row('Exchange BTC supply',null,'UNKNOWN — no verified free automated all-exchange balance feed',false)+
+    row('Real-demand evidence',demandEvidence,'65% ETF + 35% U.S. spot-demand proxy. This is NOT a supply-squeeze score.');
+
+  $('conclusion').innerHTML =
+    '<strong>Bottom line:</strong> '+
+    (demandState==='green'
+      ? 'Real BTC demand is strong on the data we can verify. <strong>Supply-squeeze confirmation remains INCOMPLETE</strong> because we cannot yet verify whether BTC held on exchanges is falling.'
+      : demandState==='red'
+      ? 'Real BTC demand is weak on the measurable signals. <strong>Supply-squeeze confirmation remains INCOMPLETE</strong> because exchange BTC supply is unknown.'
+      : 'The evidence is mixed. <strong>Supply-squeeze confirmation remains INCOMPLETE</strong> because exchange BTC supply is unknown.');
+
+  $('aetf').textContent=usd(ef);
+  $('aprem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%';
+  $('aoi').textContent=usd(ag.oi_usd);
+  $('afund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%';
+
+  // The old Bybit-specific advanced field is repurposed for working venue count.
+  if($('aoi24')) $('aoi24').textContent=venueCount?venueCount+' venues':'—';
+
+  $('health').textContent=
+    'ETF: '+(d.etf?.source||d.etf?.status||'—')+
+    ' · Futures: '+(venues||'—')+
+    ' · Spot: '+(d.sources?.spot||'—')+
+    ' · Exchange supply: UNVERIFIED FREE SOURCE'+
+    ' · Paid APIs: NONE';
+}
+run();
 </script></body></html>
