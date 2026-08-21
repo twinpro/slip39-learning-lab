@@ -151,6 +151,25 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 
 .public-subtitle{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.02em;margin-top:5px;line-height:1.5}
 
+
+/* ===== Inline signal explanations under Verdict Board ===== */
+.row-wrap{border-bottom:1px solid var(--rule)}
+.row-wrap:last-child{border-bottom:none}
+.row-wrap .row{border-bottom:none}
+.row-explain{
+  margin:-5px 18px 12px 58px;
+  max-width:860px;
+  font-family:var(--cond);
+  font-size:13px;
+  line-height:1.55;
+  color:#A9B8BA;
+}
+.row-explain strong{color:var(--bone);font-weight:600}
+@media (max-width:760px){
+  .row-wrap .row{border-bottom:none}
+  .row-explain{margin:-2px 18px 13px 52px;font-size:13px;line-height:1.5}
+}
+
 </style>
 </head>
 <body>
@@ -269,76 +288,6 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 </section>
 
 
-<section class="learn">
-  <div class="learn-hd">
-    <h2>Learn what these signals mean</h2>
-    <p>Plain-English explanations for students and new Bitcoin learners. Open any section below without changing the dashboard.</p>
-  </div>
-
-  <details>
-    <summary>ETF / institutional spot demand — Are big investors buying Bitcoin?</summary>
-    <div class="learn-body">
-      Spot Bitcoin ETFs let investors get Bitcoin exposure through the traditional financial system.
-      When a lot of money flows into these ETFs, it is evidence of stronger demand for Bitcoin exposure.
-      <strong>More net inflow generally means stronger institutional demand.</strong>
-      <br><br>
-      Think of it like a store with a limited number of concert tickets. If large buyers keep showing up and purchasing tickets,
-      demand is clearly strong. Bitcoin is different from normal products because its maximum supply is fixed at 21 million BTC.
-    </div>
-  </details>
-
-  <details>
-    <summary>U.S. spot-demand proxy — Are U.S. buyers more aggressive?</summary>
-    <div class="learn-body">
-      Bitcoin Real vs Paper compares Bitcoin prices on U.S.-dollar markets at Coinbase and Kraken with the Bitcoin price on OKX.
-      If Bitcoin trades a little higher on Coinbase and Kraken, U.S. buyers may be applying stronger buying pressure.
-      If the difference is near zero or negative, U.S. demand is not unusually strong at that moment.
-      <br><br>
-      <strong>This is only a proxy.</strong> It does not measure every Bitcoin buyer in the United States or every exchange in the world.
-    </div>
-  </details>
-
-  <details>
-    <summary>Leverage health — Is the market relying too much on borrowed money?</summary>
-    <div class="learn-body">
-      Futures traders can control large Bitcoin positions with much less money. This is called leverage.
-      Too much leverage can make the market fragile because falling prices can force leveraged positions to close automatically.
-      <br><br>
-      Bitcoin Real vs Paper looks at derivatives information such as funding rates across the working futures venues.
-      <strong>A high leverage-health score means leverage looks relatively normal.</strong>
-      A low score means the market looks more crowded and may be more vulnerable to forced liquidations.
-    </div>
-  </details>
-
-  <details>
-    <summary>Exchange BTC supply — Is Bitcoin becoming harder to buy?</summary>
-    <div class="learn-body">
-      Bitcoin held on exchanges is generally easier to sell quickly. If BTC keeps leaving exchanges, fewer coins may be immediately
-      available for sale. That can strengthen the evidence for a supply squeeze when demand is also strong.
-      <br><br>
-      Bitcoin Real vs Paper currently shows this signal as <strong>UNKNOWN</strong> because no verified free automated all-exchange balance source has been
-      added to this project. Unknown does not mean neutral, bullish, or bearish. It means the dashboard does not have reliable data.
-    </div>
-  </details>
-
-  <details>
-    <summary>Supply squeeze — What would confirm it?</summary>
-    <div class="learn-body">
-      A real supply squeeze means strong buyers are competing for a shrinking amount of Bitcoin that is readily available for sale.
-      Strong ETF demand alone is not enough to prove that.
-      <br><br>
-      The strongest setup would be:
-      <strong>strong ETF buying + strong spot buying + healthy leverage + falling exchange BTC supply.</strong>
-      If those signals line up together, the supply-squeeze argument becomes much stronger.
-    </div>
-  </details>
-
-  <div class="learn-bottom">
-    <strong>How to read the dashboard together:</strong>
-    Strong ETF demand + strong spot demand + healthy leverage means buyers are more likely driving the move than leveraged speculation alone.
-    But this dashboard will not call the supply squeeze confirmed until exchange BTC supply can also be verified as falling.
-  </div>
-</section>
 
 <div class="log">
   <h2>Source log</h2>
@@ -455,13 +404,28 @@ function renderSnapshot(){
     {n:'Exchange BTC supply',sc:null,note:'UNKNOWN · no verified free automated all-exchange balance feed',inv:false},
     {n:'Supply-squeeze confirmation',sc:null,note:'INCOMPLETE · exchange-supply confirmation missing',inv:false,total:true}
   ];
+  const explain={
+    'ETF / institutional spot demand':
+      '<strong>What it means:</strong> Are big investors buying Bitcoin? More money flowing into spot Bitcoin ETFs generally means stronger institutional demand.',
+    'U.S. spot-demand proxy':
+      '<strong>What it means:</strong> Are U.S. buyers more aggressive? Coinbase + Kraken are compared with OKX. A positive premium suggests stronger U.S./USD buying pressure; near zero or negative means demand is less urgent.',
+    'Leverage health':
+      '<strong>What it means:</strong> Is the move relying too much on borrowed money? A high score means leverage looks relatively normal. A low score means futures trading is crowded and more vulnerable to forced liquidations.',
+    'Exchange BTC supply':
+      '<strong>What it means:</strong> Is Bitcoin leaving exchanges? Falling exchange balances can mean fewer coins are immediately available for sale. This stays UNKNOWN until a verified automated all-exchange balance source is available.',
+    'Supply-squeeze confirmation':
+      '<strong>What it means:</strong> A supply squeeze needs strong demand plus evidence that readily available BTC supply is shrinking. Strong ETF demand alone cannot confirm it.'
+  };
   $('rows').innerHTML=boardRows.map(r=>{
     const L=light(r.sc,r.inv),w=r.sc==null?0:r.sc;
-    return `<div class="row${r.total?' total':''}">
-      <div class="light">${L.e}</div>
-      <div><div class="rname">${r.n}</div><div class="rmeta">${r.note}</div></div>
-      <div class="bar"><i style="width:${w}%;background:${L.c}"></i><u style="left:50%"></u></div>
-      <div class="score" style="color:${L.c}">${r.sc==null?'—':Math.round(r.sc)}<small>/100</small></div>
+    return `<div class="row-wrap${r.total?' total':''}">
+      <div class="row${r.total?' total':''}">
+        <div class="light">${L.e}</div>
+        <div><div class="rname">${r.n}</div><div class="rmeta">${r.note}</div></div>
+        <div class="bar"><i style="width:${w}%;background:${L.c}"></i><u style="left:50%"></u></div>
+        <div class="score" style="color:${L.c}">${r.sc==null?'—':Math.round(r.sc)}<small>/100</small></div>
+      </div>
+      <div class="row-explain">${explain[r.n]||''}</div>
     </div>`;
   }).join('');
 }
