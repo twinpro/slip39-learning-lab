@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC — real vs paper · V11-B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --ink:#0A1113; --panel:#101A1D; --panel2:#0D1618; --rule:#1E2C30;
+  --bone:#E4E0D4; --dim:#7A8A8C; --dimmer:#48585B;
+  --green:#3FCF6B; --red:#FF4D4D; --amber:#E8A33D;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--bone)}
+body{font-family:var(--cond);-webkit-font-smoothing:antialiased;padding:0 0 48px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+header{border-bottom:1px solid var(--rule);padding:14px 0 12px;margin-bottom:18px;
+  display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between}
+h1{font-weight:700;font-size:15px;letter-spacing:.16em;text-transform:uppercase;margin:0}
+h1 em{font-style:normal;color:var(--dim)}
+.hdr-meta{font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;gap:16px;flex-wrap:wrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dimmer);margin-right:6px;vertical-align:middle}
+.dot.on{background:var(--green);box-shadow:0 0 8px var(--green)} .dot.off{background:var(--red)}
+
+/* ===== VERDICT BOARD — the signature ===== */
+.board{border:1px solid var(--rule);background:var(--panel);margin-bottom:14px}
+.board-hd{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;
+  padding:14px 18px 10px;border-bottom:1px solid var(--rule)}
+.board-hd h2{font-size:12px;letter-spacing:.2em;text-transform:uppercase;margin:0;color:var(--bone)}
+.board-hd .asof{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.row{display:grid;grid-template-columns:26px minmax(150px,1.35fr) 1fr 66px;gap:14px;align-items:center;
+  padding:13px 18px;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:none}
+.row.total{background:var(--panel2);border-top:2px solid var(--rule)}
+.light{font-size:16px;line-height:1;text-align:center;filter:saturate(1.2)}
+.rname{font-weight:600;font-size:14px;letter-spacing:.01em}
+.rmeta{font-family:var(--mono);font-size:10px;color:var(--dimmer);margin-top:3px;line-height:1.5}
+.bar{height:7px;background:#0A1113;border:1px solid var(--rule);position:relative;overflow:hidden}
+.bar i{display:block;height:100%;width:0;transition:width .5s ease}
+.bar u{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--dimmer)}
+.score{font-family:var(--mono);font-size:26px;text-align:right;line-height:1}
+.score small{font-size:10px;color:var(--dimmer);display:block;margin-top:3px;letter-spacing:.06em}
+.board-ft{padding:11px 18px;font-family:var(--mono);font-size:10px;color:var(--dimmer);line-height:1.7}
+
+/* gauge + price */
+.hero{background:var(--panel);border:1px solid var(--rule);padding:20px 18px 16px;margin-bottom:14px}
+.hero-top{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.ratio-num{font-family:var(--mono);font-weight:300;font-size:clamp(46px,11vw,80px);line-height:.86;letter-spacing:-.03em}
+.ratio-num span{font-size:.32em;letter-spacing:.06em;color:var(--dim);margin-left:8px}
+.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
+.verdict{text-align:right;max-width:330px}
+.verdict-word{font-weight:700;font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.verdict-sub{font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.5;margin-top:6px}
+#gauge{width:100%;height:74px;display:block}
+.formula{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);margin-top:10px;border-top:1px solid var(--rule);padding-top:9px}
+.strip{display:grid;grid-template-columns:minmax(210px,1fr) 2fr;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:14px}
+.strip>div{background:var(--panel);padding:15px 18px}
+.px{font-family:var(--mono);font-size:36px;line-height:1;transition:color .25s}
+.px.up{color:var(--green)} .px.dn{color:var(--red)}
+.px-sub{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:8px}
+#spark{width:100%;height:66px;display:block}
+
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(262px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.card{background:var(--panel2);padding:13px 15px 11px;min-height:124px;display:flex;flex-direction:column}
+.card-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.card-label{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;padding:2px 7px;border:1px solid currentColor;white-space:nowrap;text-transform:uppercase}
+.chip.g{color:var(--green)} .chip.r{color:var(--red)} .chip.a{color:var(--amber)} .chip.n{color:var(--dimmer)}
+.card-val{font-family:var(--mono);font-size:25px;margin:11px 0 2px;line-height:1}
+.card-val.stale{color:var(--dimmer)}
+.card-unit{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+.breakdown{font-family:var(--mono);font-size:10.5px;color:var(--dim);line-height:1.7;margin-top:6px}
+.breakdown b{color:var(--bone);font-weight:500}
+.card-ft{margin-top:auto;padding-top:9px;font-family:var(--mono);font-size:9.5px;color:var(--dimmer);
+  display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--rule)}
+.in{background:transparent;border:1px solid var(--rule);color:var(--bone);font-family:var(--mono);
+  font-size:14px;padding:6px 8px;width:100%;margin:9px 0 2px}
+.in:focus{outline:2px solid var(--amber);outline-offset:1px}
+textarea.in{height:78px;font-size:11px;resize:vertical}
+.btn{background:transparent;border:1px solid var(--rule);color:var(--bone);font-family:var(--cond);
+  font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;cursor:pointer;margin-top:8px}
+.btn:hover{border-color:var(--amber);color:var(--amber)}
+.paste{border:1px solid var(--rule);background:var(--panel2);padding:14px 16px;margin-top:14px}
+.paste h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 0 4px}
+.paste p{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:1.6;margin:0 0 8px}
+.log{margin-top:14px;border:1px solid var(--rule);background:var(--panel2);padding:12px 16px}
+.log h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 0 8px}
+#loglines{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:1.8;max-height:160px;overflow:auto}
+#loglines .err{color:var(--red)} #loglines .ok{color:var(--dim)}
+footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:1.8;margin-top:18px;
+  border-top:1px solid var(--rule);padding-top:12px}
+@media (max-width:760px){
+  .strip{grid-template-columns:1fr}.verdict{text-align:left}
+  .row{grid-template-columns:24px 1fr 58px;gap:10px}
+  .row .bar{grid-column:2/4}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.live-tag{font-family:var(--mono);font-size:9px;color:var(--green);border:1px solid var(--green);padding:2px 6px;letter-spacing:.08em}
+.unknown-note{color:var(--dimmer);font-family:var(--mono);font-size:10px;line-height:1.5}
+.source-pill{display:inline-block;border:1px solid var(--rule);padding:2px 6px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:9px;color:var(--dim)}
+.source-pill.ok{color:var(--green)} .source-pill.err{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>BTC — real <em>vs</em> paper · V11-B</h1>
+  <div class="hdr-meta">
+    <span><span class="dot" id="wsdot"></span><span id="wstext">connecting live price</span></span>
+    <span id="snapshotAge">snapshot —</span>
+    <span id="clock">—</span>
+  </div>
+</header>
+
+<section class="board">
+  <div class="board-hd">
+    <h2>Verdict board</h2>
+    <span class="asof" id="asof">—</span>
+  </div>
+  <div id="rows"></div>
+  <div class="board-ft">
+    Green means the named signal supports real-demand / lower-crowding conditions. Yellow means mixed. Red means weak real demand or crowded leverage.
+    Grey means unknown — never a neutral guess. Exchange BTC supply remains unscored until a verified free automated source exists.
+  </div>
+</section>
+
+<section class="hero">
+  <div class="hero-top">
+    <div>
+      <div class="eyebrow">Real-demand evidence</div>
+      <div class="ratio-num" id="demandNum">—<span>/100</span></div>
+    </div>
+    <div class="verdict">
+      <div class="verdict-word" id="verdictWord">waiting for snapshot</div>
+      <div class="verdict-sub" id="verdictSub">ETF demand, USD spot demand and leverage health are loaded from the V11 market snapshot.</div>
+    </div>
+  </div>
+  <canvas id="gauge"></canvas>
+  <div class="formula" id="formula">65% ETF demand + 35% U.S. spot-demand proxy. This is NOT a complete supply-squeeze score.</div>
+</section>
+
+<section class="strip">
+  <div>
+    <div class="card-label">Spot — Coinbase BTC-USD</div>
+    <div class="px" id="px">—</div>
+    <div class="px-sub" id="pxsub">live ticker connecting</div>
+  </div>
+  <div>
+    <div class="card-label">Last 300 live ticks</div>
+    <canvas id="spark"></canvas>
+  </div>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <div class="card-hd"><span class="card-label">ETF net flow · 5d</span><span class="chip n" id="s-etf">no data</span></div>
+    <div class="card-val stale" id="v-etf">—</div>
+    <div class="card-unit">USD net flow, last 5 trading days</div>
+    <div class="breakdown" id="b-etf">SoSoValue official API via GitHub Actions</div>
+    <div class="card-ft"><span>SoSoValue</span><span id="t-etf">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-label">U.S. spot premium</span><span class="chip n" id="s-prem">no data</span></div>
+    <div class="card-val stale" id="v-prem">—</div>
+    <div class="card-unit">Coinbase + Kraken USD average vs OKX USDT</div>
+    <div class="breakdown" id="b-prem">Positive means U.S./USD spot trades above OKX.</div>
+    <div class="card-ft"><span>Coinbase · Kraken · OKX</span><span id="t-prem">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-label">Partial futures OI</span><span class="chip n" id="s-oi">no data</span></div>
+    <div class="card-val stale" id="v-oi">—</div>
+    <div class="card-unit">USD notional across working free venues</div>
+    <div class="breakdown" id="b-oi">Never labeled global OI.</div>
+    <div class="card-ft"><span id="oisrc">working venues</span><span id="t-oi">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-label">Weighted funding</span><span class="chip n" id="s-fund">no data</span></div>
+    <div class="card-val stale" id="v-fund">—</div>
+    <div class="card-unit">OI-weighted across working free futures venues</div>
+    <div class="breakdown" id="b-fund"></div>
+    <div class="card-ft"><span>free public APIs</span><span id="t-fund">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-label">Leverage health</span><span class="chip n" id="s-lev">no data</span></div>
+    <div class="card-val stale" id="v-lev">—</div>
+    <div class="card-unit">100 = low crowding, 0 = highly crowded</div>
+    <div class="breakdown" id="b-lev"></div>
+    <div class="card-ft"><span>derived</span><span id="t-lev">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-label">Exchange BTC supply</span><span class="chip n">unknown</span></div>
+    <div class="card-val stale">—</div>
+    <div class="card-unit">30-day exchange-balance trend</div>
+    <div class="breakdown">No verified free automated all-exchange BTC balance source. Not scored.</div>
+    <div class="card-ft"><span>verification needed</span><span>—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-label">Snapshot source health</span><span class="chip n" id="s-health">checking</span></div>
+    <div class="breakdown" id="b-health" style="margin-top:12px"></div>
+    <div class="card-ft"><span>GitHub Actions</span><span id="t-health">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-label">Supply-squeeze confirmation</span><span class="chip n" id="s-sq">incomplete</span></div>
+    <div class="card-val stale" id="v-sq">INCOMPLETE</div>
+    <div class="card-unit">Exchange supply is a required confirmation input</div>
+    <div class="breakdown" id="b-sq">Strong real demand does not by itself prove a supply squeeze.</div>
+    <div class="card-ft"><span>evidence status</span><span id="t-sq">—</span></div>
+  </div>
+</section>
+
+<div class="log">
+  <h2>Source log</h2>
+  <div id="loglines"></div>
+</div>
+
+<footer>
+  V11-B presentation with V11 backend. ETF + derivatives + spot snapshot refresh = GitHub Actions every 15 minutes. This page re-reads the snapshot every 60 seconds.
+  Coinbase BTC-USD price streams live in the browser. Kraken public spot/futures data is collected server-side in the snapshot when reachable.
+  Exchange BTC supply remains unknown and unscored. Not investment advice.
+</footer>
+</div>
+
+<script>
+const A = {
+  etf5d: [[-1e9,0],[0,50],[5e8,75],[1e9,90],[2e9,100]],
+  premium: [[-0.25,0],[-0.10,30],[0,50],[0.10,70],[0.25,100]],
+  funding: [[0,100],[0.01,80],[0.02,60],[0.05,20],[0.10,0]]
+};
+
+const S = { snapshot:null, price:null, prev:null, ticks:[] };
+const $=id=>document.getElementById(id);
+const now=()=>new Date();
+const hhmmss=d=>d.toTimeString().slice(0,8);
+const usd=n=>n==null?'—':(n<0?'-':'')+(Math.abs(n)>=1e9?'$'+(Math.abs(n)/1e9).toFixed(2)+'B':
+  Math.abs(n)>=1e6?'$'+(Math.abs(n)/1e6).toFixed(1)+'M':'$'+Math.abs(n).toFixed(0));
+function log(m,err=false){const el=$('loglines'),l=document.createElement('div');l.className=err?'err':'ok';l.textContent=hhmmss(now())+'  '+m;el.prepend(l);while(el.children.length>50)el.lastChild.remove();}
+function interp(x,pts){if(x==null||!isFinite(x))return null;if(x<=pts[0][0])return pts[0][1];if(x>=pts.at(-1)[0])return pts.at(-1)[1];for(let i=0;i<pts.length-1;i++){const[a,b]=pts[i],[c,d]=pts[i+1];if(x>=a&&x<=c)return b+(x-a)/(c-a)*(d-b)}return null}
+function setChip(id,st,tx){const c=$(id);c.className='chip '+st;c.textContent=tx;}
+function light(score,invert=false){if(score==null)return{e:'⚪',c:'var(--dimmer)'};const s=invert?100-score:score;return s>=65?{e:'🟢',c:'var(--green)'}:s>=40?{e:'🟡',c:'var(--amber)'}:{e:'🔴',c:'var(--red)'}}
+function scoreClass(s){return s==null?'n':s>=65?'g':s>=40?'a':'r'}
+
+async function loadSnapshot(){
+  try{
+    const r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    S.snapshot=d;
+    renderSnapshot();
+    log('snapshot loaded · '+new Date(d.generated_at).toLocaleString());
+  }catch(e){
+    log('snapshot failed: '+e.message,true);
+    $('snapshotAge').textContent='snapshot unavailable';
+  }
+}
+
+function renderSnapshot(){
+  const d=S.snapshot;if(!d)return;
+  const etf=d.etf||{}, spot=d.spot||{}, ag=d.derivatives?.aggregate||{}, venues=ag.venues||[];
+  const etf5=etf.flow_5d_usd;
+  const prem=spot.us_spot_premium_percent ?? spot.coinbase_premium_percent;
+  const fund=ag.funding_rate_percent;
+  const etfScore=etf5==null?null:interp(etf5,A.etf5d);
+  const spotScore=prem==null?null:interp(prem,A.premium);
+  const levHealth=(fund==null||ag.venue_count<2)?null:interp(Math.abs(fund),A.funding);
+  const demand=(etfScore!=null&&spotScore!=null)?etfScore*.65+spotScore*.35:null;
+
+  $('snapshotAge').textContent='snapshot '+new Date(d.generated_at).toLocaleString();
+  $('asof').textContent=new Date(d.generated_at).toLocaleString();
+
+  $('v-etf').textContent=usd(etf5); $('v-etf').classList.toggle('stale',etf5==null);
+  $('b-etf').innerHTML=etf5==null?'No ETF data':`latest <b>${etf.latest_date||'—'}</b> · ${etf.row_count||'—'} rows`;
+  setChip('s-etf',scoreClass(etfScore),etfScore==null?'no data':Math.round(etfScore)+'/100');
+  $('t-etf').textContent=etf.latest_date||'—';
+
+  $('v-prem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%'; $('v-prem').classList.toggle('stale',prem==null);
+  $('b-prem').innerHTML=`Coinbase <b>${spot.coinbase_usd?('$'+Number(spot.coinbase_usd).toLocaleString()):'—'}</b> · Kraken <b>${spot.kraken_usd?('$'+Number(spot.kraken_usd).toLocaleString()):'—'}</b> · OKX <b>${spot.okx_usdt?('$'+Number(spot.okx_usdt).toLocaleString()):'—'}</b>`;
+  setChip('s-prem',scoreClass(spotScore),spotScore==null?'no data':Math.round(spotScore)+'/100');
+  $('t-prem').textContent=hhmmss(new Date(d.generated_at));
+
+  $('v-oi').textContent=usd(ag.oi_usd); $('v-oi').classList.toggle('stale',!ag.oi_usd);
+  $('b-oi').innerHTML=venues.length?venues.map(v=>`<b>${v}</b>`).join(' · '):'No working futures venues';
+  setChip('s-oi',venues.length>=2?'g':'n',venues.length?venues.length+' venues':'no data');
+  $('oisrc').textContent=venues.join(' · ')||'working venues';
+  $('t-oi').textContent=hhmmss(new Date(d.generated_at));
+
+  $('v-fund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%'; $('v-fund').classList.toggle('stale',fund==null);
+  $('b-fund').textContent=venues.length?`weighted across ${venues.length} working venues`:'No funding data';
+  setChip('s-fund',scoreClass(levHealth),levHealth==null?'no data':levHealth>=65?'normal':levHealth>=40?'elevated':'crowded');
+  $('t-fund').textContent=hhmmss(new Date(d.generated_at));
+
+  $('v-lev').textContent=levHealth==null?'—':Math.round(levHealth)+'/100'; $('v-lev').classList.toggle('stale',levHealth==null);
+  $('b-lev').textContent=fund==null?'No leverage health score':`weighted funding ${fund.toFixed(4)}% · ${venues.length} venues`;
+  setChip('s-lev',scoreClass(levHealth),levHealth==null?'no data':levHealth>=65?'healthy':levHealth>=40?'mixed':'crowded');
+  $('t-lev').textContent=hhmmss(new Date(d.generated_at));
+
+  setChip('s-sq','n','incomplete');
+  $('v-sq').textContent='INCOMPLETE';
+  $('b-sq').textContent='Real demand can be strong while exchange-supply confirmation is still missing.';
+  $('t-sq').textContent=hhmmss(new Date(d.generated_at));
+
+  const src=d.sources||{};
+  const names=['sosovalue','spot','kraken_spot','kraken_futures','okx','deribit','bitmex','hyperliquid'];
+  $('b-health').innerHTML=names.map(n=>`<span class="source-pill ${String(src[n]||'').startsWith('ok')?'ok':String(src[n]||'').startsWith('error')?'err':''}">${n}: ${src[n]||'—'}</span>`).join('');
+  setChip('s-health','g','snapshot');
+  $('t-health').textContent=hhmmss(new Date(d.generated_at));
+
+  const state=demand==null?'unknown':demand>=68?'strong':demand>=40?'mixed':'weak';
+  $('demandNum').innerHTML=demand==null?'—<span>/100</span>':Math.round(demand)+'<span>/100</span>';
+  $('verdictWord').textContent=state==='strong'?'real demand strong':state==='mixed'?'mixed real demand':state==='weak'?'real demand weak':'insufficient data';
+  $('verdictWord').style.color=state==='strong'?'var(--green)':state==='mixed'?'var(--amber)':state==='weak'?'var(--red)':'var(--dimmer)';
+  $('verdictSub').textContent=state==='strong'
+    ?'ETF demand is strong. U.S. spot demand is softer. Supply squeeze remains unconfirmed because exchange BTC supply is unknown.'
+    :state==='mixed'?'Real-demand signals are mixed. Exchange BTC supply is still unknown.'
+    :state==='weak'?'Measured real-demand signals are weak. Exchange BTC supply is still unknown.'
+    :'Not enough fresh data.';
+
+  drawGauge(demand);
+
+  const boardRows=[
+    {n:'ETF / institutional spot demand',sc:etfScore,note:etf5==null?'no ETF data':`5-day net ${usd(etf5)} · latest ${etf.latest_date||'—'}`,inv:false},
+    {n:'U.S. spot-demand proxy',sc:spotScore,note:prem==null?'no premium data':`Coinbase + Kraken vs OKX ${prem>=0?'+':''}${prem.toFixed(3)}%`,inv:false},
+    {n:'Leverage health',sc:levHealth,note:fund==null?'no funding data':`funding ${fund.toFixed(4)}% · ${venues.length} venues`,inv:false},
+    {n:'Exchange BTC supply',sc:null,note:'UNKNOWN · no verified free automated all-exchange balance feed',inv:false},
+    {n:'Supply-squeeze confirmation',sc:null,note:'INCOMPLETE · exchange-supply confirmation missing',inv:false,total:true}
+  ];
+  $('rows').innerHTML=boardRows.map(r=>{
+    const L=light(r.sc,r.inv),w=r.sc==null?0:r.sc;
+    return `<div class="row${r.total?' total':''}">
+      <div class="light">${L.e}</div>
+      <div><div class="rname">${r.n}</div><div class="rmeta">${r.note}</div></div>
+      <div class="bar"><i style="width:${w}%;background:${L.c}"></i><u style="left:50%"></u></div>
+      <div class="score" style="color:${L.c}">${r.sc==null?'—':Math.round(r.sc)}<small>/100</small></div>
+    </div>`;
+  }).join('');
+}
+
+function drawGauge(v){
+  const c=$('gauge'),dpr=devicePixelRatio||1,w=c.clientWidth,h=74;c.width=w*dpr;c.height=h*dpr;
+  const x=c.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+  const y=34,bh=10;
+  [[0,40,'#FF4D4D'],[40,65,'#E8A33D'],[65,100,'#3FCF6B']].forEach(([a,b,col])=>{x.fillStyle=col;x.globalAlpha=.22;x.fillRect(a/100*w,y,(b-a)/100*w,bh);x.globalAlpha=1;});
+  x.strokeStyle='#1E2C30';x.strokeRect(.5,y+.5,w-1,bh-1);
+  x.fillStyle='#48585B';x.font='10px "IBM Plex Mono",monospace';
+  [0,25,50,75,100].forEach(n=>{const px=n/100*w;x.fillRect(px,y+bh,1,5);x.fillText(n,Math.min(px,w-18),y+bh+17);});
+  x.fillText('WEAK',0,y-10);const rt='STRONG';x.fillText(rt,w-x.measureText(rt).width,y-10);
+  if(v==null)return;
+  const px=v/100*w;x.fillStyle=v>=65?'#3FCF6B':v>=40?'#E8A33D':'#FF4D4D';
+  x.beginPath();x.moveTo(px,y-6);x.lineTo(px-6,y-16);x.lineTo(px+6,y-16);x.closePath();x.fill();x.fillRect(px-1,y-6,2,bh+6);
+}
+
+function connectPrice(){
+  let ws,retry=0;
+  function go(){
+    try{ws=new WebSocket('wss://ws-feed.exchange.coinbase.com')}catch(e){log('price socket refused: '+e.message,true);return}
+    ws.onopen=()=>{retry=0;$('wsdot').className='dot on';$('wstext').textContent='Coinbase ticker live';ws.send(JSON.stringify({type:'subscribe',product_ids:['BTC-USD'],channels:['ticker']}));log('price stream open');};
+    ws.onmessage=ev=>{const m=JSON.parse(ev.data);if(m.type!=='ticker'||!m.price)return;S.prev=S.price;S.price=parseFloat(m.price);S.ticks.push(S.price);if(S.ticks.length>300)S.ticks.shift();paintPrice();};
+    ws.onerror=()=>log('price stream error',true);
+    ws.onclose=()=>{$('wsdot').className='dot off';$('wstext').textContent='price stream down';const wait=Math.min(30000,1000*Math.pow(2,retry++));setTimeout(go,wait);};
+  }
+  go();
+}
+
+function paintPrice(){
+  const el=$('px');el.textContent='$'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  el.classList.remove('up','dn');if(S.prev!=null)el.classList.add(S.price>=S.prev?'up':'dn');
+  $('pxsub').textContent=S.ticks.length+' ticks · last '+hhmmss(now());drawSpark();
+}
+
+function drawSpark(){
+  const c=$('spark'),dpr=devicePixelRatio||1,w=c.clientWidth,h=66;c.width=w*dpr;c.height=h*dpr;
+  const x=c.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+  if(S.ticks.length<2)return;const mn=Math.min(...S.ticks),mx=Math.max(...S.ticks),rg=(mx-mn)||1;
+  x.strokeStyle=S.ticks.at(-1)>=S.ticks[0]?'#3FCF6B':'#FF4D4D';x.lineWidth=1.5;x.beginPath();
+  S.ticks.forEach((v,i)=>{const px=(i/(S.ticks.length-1))*w,py=h-6-((v-mn)/rg)*(h-14);i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();
+  x.fillStyle='#48585B';x.font='10px "IBM Plex Mono",monospace';x.fillText('$'+mx.toFixed(0),0,10);x.fillText('$'+mn.toFixed(0),0,h-1);
+}
+
+loadSnapshot();
+setInterval(loadSnapshot,60000);
+connectPrice();
+setInterval(()=>$('clock').textContent=hhmmss(now())+' local',1000);
+addEventListener('resize',()=>{drawSpark();if(S.snapshot)renderSnapshot();});
+drawGauge(null);
+log('V11-B opened · V11 snapshot backend + live Coinbase price');
+</script>
+</body>
+</html>
