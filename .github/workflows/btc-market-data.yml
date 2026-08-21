@@ -1,4 +1,4 @@
-name: Update BTC real-vs-paper data FREE
+name: Update BTC real-vs-paper data FREE V9
 
 on:
   workflow_dispatch:
@@ -20,9 +20,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
       - name: Collect free public BTC market data
         run: node scripts/update-btc-market.mjs
+      - name: Print source health
+        run: cat data/btc-market.json
       - name: Commit updated market JSON
         run: |
           git config user.name "btc-data-bot"

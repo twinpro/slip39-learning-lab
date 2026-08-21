@@ -1,4 +1,4 @@
-# BTC Real vs Paper V8 — $0 data version
+# BTC Real vs Paper V9 — $0 data version
 
 No paid API key is required. Do not buy CoinGlass or any other data subscription for this build.
 
@@ -16,6 +16,6 @@ Deployment:
 2. Commit and push.
 3. GitHub -> Actions -> `Update BTC real-vs-paper data FREE` -> Run workflow.
 4. No GitHub secret is needed.
-5. Open `/pages/btc-real-vs-paper-v8.html`.
+5. Open `/pages/btc-real-vs-paper-v9.html`.
 
 The scheduled Action refreshes every 15 minutes.

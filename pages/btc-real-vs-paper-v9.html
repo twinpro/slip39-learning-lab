@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC Real vs Paper — Free</title>
+<style>
+:root{--bg:#071012;--p:#0d191c;--p2:#101f22;--r:#223337;--t:#eee9dc;--m:#8ba0a3;--g:#49d879;--y:#efb544;--red:#ff6262;--w:#d2dcde}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font-family:Arial,sans-serif}.wrap{max-width:1050px;margin:auto;padding:18px}
+header{display:flex;justify-content:space-between;border-bottom:1px solid var(--r);padding:0 0 15px;margin-bottom:15px}.brand{font-weight:800;letter-spacing:.14em}.small{font:11px Consolas,monospace;color:var(--m)}
+.box{background:var(--p);border:1px solid var(--r);margin-bottom:14px;padding:18px}h1{font-size:42px;margin:8px 0}.lead{font-size:17px;line-height:1.55}.apple{background:var(--p2);border:1px solid var(--r);padding:13px;margin-top:14px;line-height:1.5}.apple b{color:var(--g)}
+.verdict{border-top:1px solid var(--r);margin-top:17px;padding-top:17px;display:flex;gap:12px}.light{font-size:28px}.vt{font-size:25px;font-weight:800}.why{color:var(--m);margin-top:5px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--r);margin-top:18px}.cell{background:var(--p2);padding:14px}.q{font-weight:700;font-size:13px}.v{font-size:20px;font-weight:800;margin:9px 0}.note{font-size:12px;color:var(--m);line-height:1.45}
+h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;margin:0 0 13px}.row{display:grid;grid-template-columns:1.4fr 100px 1fr;gap:14px;padding:13px 0;border-top:1px solid var(--r);align-items:center}.score{text-align:right;font:700 18px Consolas,monospace}.bar{height:8px;border:1px solid var(--r)}.bar i{display:block;height:100%;background:currentColor}.good{color:var(--g)}.warn{color:var(--y)}.bad{color:var(--red)}.unknown{color:var(--w)}
+.explain{line-height:1.65;color:var(--m)}.explain strong{color:var(--t)}details{border-top:1px solid var(--r);margin-top:14px}summary{cursor:pointer;padding-top:14px;font-weight:700}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--r);margin-top:14px}.card{background:var(--p2);padding:14px}.cv{font:700 22px Consolas,monospace;margin:7px 0}.cl{font:10px Consolas,monospace;color:var(--m);text-transform:uppercase}.cn{font-size:12px;color:var(--m);line-height:1.45}
+footer{font:10px Consolas,monospace;color:#60777a;line-height:1.7}
+@media(max-width:760px){h1{font-size:30px}.grid,.cards{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr 80px}.bar{grid-column:1/3}}
+</style></head><body><div class="wrap">
+<header><div class="brand">BTC — REAL VS PAPER · FREE V9</div><div class="small" id="stamp">loading…</div></header>
+
+<section class="box">
+<div class="small">SIMPLE ANSWER FIRST · $0 PAID DATA</div>
+<h1 id="headline">Checking current data…</h1>
+<div class="lead" id="lead">The page will not invent a number when a trustworthy free source is unavailable.</div>
+<div class="apple"><b>Think of 21 apples.</b> Real Bitcoin is the apple. Futures and options are tickets whose value follows the apple. Tickets can multiply; the 21 million BTC limit cannot.</div>
+<div class="verdict"><div class="light" id="vl">⚪</div><div><div class="vt" id="vt">Checking</div><div class="why" id="vw">ETF demand, spot demand and leverage are loading.</div></div></div>
+<div class="grid">
+ <div class="cell"><div class="q">Are ETFs buying BTC?</div><div class="v" id="etf">⚪ —</div><div class="note" id="etfn">Farside</div></div>
+ <div class="cell"><div class="q">Is BTC leaving exchanges?</div><div class="v unknown">⚪ Verification needed</div><div class="note">No reliable free machine-readable all-exchange BTC balance feed was verified. V9 refuses to guess.</div></div>
+ <div class="cell"><div class="q">Are U.S. spot buyers stronger?</div><div class="v" id="spot">⚪ —</div><div class="note" id="spotn">Coinbase vs OKX premium</div></div>
+ <div class="cell"><div class="q">Is leverage crowded?</div><div class="v" id="lev">⚪ —</div><div class="note" id="levn">Multiple free futures venues</div></div>
+</div>
+</section>
+
+<section class="box">
+<h2>Scoreboard</h2>
+<div id="rows"></div>
+<div class="explain" id="conclusion"></div>
+</section>
+
+<section class="box">
+<h2>What V8 can and cannot prove</h2>
+<div class="explain"><strong>Facts:</strong> Farside ETF flows are pulled from Farside's public table. Bybit and OKX provide public futures open-interest/funding data without API keys. Coinbase and OKX public spot tickers provide a U.S.-versus-offshore price-premium proxy.<br><br>
+<strong>Limitation:</strong> the exchange-balance metric needs continuously maintained address labels. I did not find a trustworthy, free, machine-readable all-exchange BTC balance feed suitable for automatic GitHub use. Therefore it stays ⚪ and is <strong>excluded from the mathematical verdict</strong>.<br><br>
+<strong>Interpretation:</strong> high open interest is not automatically bearish and is not proof of manipulation. V9 calls leverage "crowded" only when multiple leverage measures become elevated.</div>
+<details><summary>Advanced numbers / source health</summary><div class="cards">
+ <div class="card"><div class="cl">ETF net flow · 5 days</div><div class="cv" id="aetf">—</div><div class="cn">Official Farside public table.</div></div>
+ <div class="card"><div class="cl">Coinbase premium</div><div class="cv" id="aprem">—</div><div class="cn">Coinbase BTC-USD relative to OKX BTC-USDT. A proxy, not total global spot accumulation.</div></div>
+ <div class="card"><div class="cl">Partial futures OI</div><div class="cv" id="aoi">—</div><div class="cn">Bybit BTCUSDT + OKX BTC-USDT-SWAP only. Never labeled global OI.</div></div>
+ <div class="card"><div class="cl">Weighted funding</div><div class="cv" id="afund">—</div><div class="cn">OI-weighted across the two free venues.</div></div>
+ <div class="card"><div class="cl">Working futures venues</div><div class="cv" id="aoi24">—</div><div class="cn">V9 aggregates only venues that actually respond. The total is partial, never labeled global.</div></div>
+ <div class="card"><div class="cl">Exchange BTC supply</div><div class="cv unknown">NOT SCORED</div><div class="cn">Free reliable automated source not verified.</div></div>
+</div><div class="small" id="health" style="margin-top:14px"></div></details>
+</section>
+
+<footer>V9 uses no paid API, no secret, and no subscription. GitHub Actions updates data every 15 minutes. Missing data stays unknown instead of becoming a guessed score. Not investment advice.</footer>
+</div><script>
+const $=id=>document.getElementById(id), usd=n=>n==null?'—':(n<0?'-':'')+'$'+(Math.abs(n)>=1e9?(Math.abs(n)/1e9).toFixed(2)+'B':(Math.abs(n)/1e6).toFixed(1)+'M');
+function cls(s){return s==null?'unknown':s>=65?'good':s>=40?'warn':'bad'} function lamp(s){return s==null?'⚪':s>=65?'🟢':s>=40?'🟡':'🔴'}
+function word(s){return s==null?'No data':s>=65?'Strong':s>=40?'Mixed':'Weak'}
+function lin(x,a,b){if(x==null||!isFinite(x))return null;return Math.max(0,Math.min(100,(x-a)/(b-a)*100))}
+function row(name,s,note){return `<div class="row"><div><b>${lamp(s)} ${name}</b><div class="small" style="margin-top:4px">${note}</div></div><div class="score ${cls(s)}">${s==null?'—':Math.round(s)+'/100'}</div><div class="bar"><i class="${cls(s)}" style="width:${s==null?0:s}%"></i></div></div>`}
+async function run(){
+ let d; try{let r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error(r.status);d=await r.json()}catch(e){$('headline').textContent='⚪ Data file not ready';$('vt').textContent='No verdict';$('vw').textContent='Run the included GitHub Action once.';return}
+ $('stamp').textContent='updated '+new Date(d.generated_at).toLocaleString();
+ const ef=d.etf?.flow_5d_usd, prem=d.spot?.coinbase_premium_percent, ag=d.derivatives?.aggregate||{}, fund=ag.funding_rate_percent, venueCount=ag.venue_count||0;
+ // ETF: -$1B = 0, 0 = 50, +$1B = 100
+ const es=ef==null?null:lin(ef,-1e9,1e9);
+ // Coinbase premium: -0.25% = 0, 0 = 50, +0.25% = 100
+ const ss=prem==null?null:lin(prem,-.25,.25);
+ // Leverage health: funding crowding is scored only when at least two futures venues are live. Partial OI is context, not a global leverage ratio.
+ const fp=(fund!=null&&venueCount>=2)?lin(Math.abs(fund),0,.05):null;
+ const pressure=fp, ls=pressure==null?null:100-pressure;
+ // Overall is evidence-limited because exchange balance is unavailable. ETF 50%, spot 30%, leverage health 20%.
+ const vals=[es,ss,ls]; const overall=vals.every(x=>x!=null)?es*.50+ss*.30+ls*.20:null;
+ let status=overall==null?'gray':overall>=68?'green':overall>=38?'yellow':'red';
+ const M={green:['🟢','REAL BTC DEMAND LOOKS STRONG','The free signals favor real demand over a leverage-only move, but exchange-balance confirmation is still missing.'],yellow:['🟡','MIXED','The free signals do not show a clean real-BTC squeeze or a clean leverage-dominated market.'],red:['🔴','PAPER / LEVERAGE RISK IS HIGHER','The free signals are not showing enough real spot/ETF strength to support a strong supply-squeeze call.'],gray:['⚪','NOT ENOUGH FRESH DATA','One or more free sources failed. V8 will not guess.']}[status];
+ $('vl').textContent=M[0];$('vt').textContent=M[1];$('vw').textContent=M[2];$('headline').textContent=M[1];$('lead').textContent=status==='green'?'Real-demand evidence is winning on the data we can verify for free.':status==='yellow'?'The market is giving conflicting signals.':'V8 separates measured data from what cannot be verified for free.';
+ $('etf').innerHTML=`<span class="${cls(es)}">${lamp(es)} ${word(es)}</span>`;$('etfn').textContent=ef==null?'Farside unavailable':`${usd(ef)} net over last 5 trading days`;
+ $('spot').innerHTML=`<span class="${cls(ss)}">${lamp(ss)} ${word(ss)}</span>`;$('spotn').textContent=prem==null?'Spot premium unavailable':`Coinbase premium ${prem>=0?'+':''}${prem.toFixed(3)}%`;
+ $('lev').innerHTML=`<span class="${cls(ls)}">${lamp(ls)} ${ls==null?'No data':ls>=65?'Normal':ls>=40?'Elevated':'Crowded'}</span>`;$('levn').textContent=ag.status==='ok'?'Working free venues; partial, not global':'Derivatives feeds unavailable';
+ $('rows').innerHTML=row('ETF / institutional spot demand',es,ef==null?'No ETF flow':'Farside 5-day net flow '+usd(ef))+row('U.S. spot-demand proxy',ss,prem==null?'No premium':'Coinbase vs OKX '+(prem>=0?'+':'')+prem.toFixed(3)+'%')+row('Leverage health',ls,`Funding ${fund==null?'—':fund.toFixed(4)+'%'} · ${venueCount} working futures venues`)+row('Exchange BTC supply',null,'Not scored: no verified free automated all-exchange balance feed')+row('Evidence-limited overall signal',overall,'50% ETF + 30% spot premium + 20% leverage health. Exchange supply intentionally excluded.');
+ $('conclusion').innerHTML=status==='green'?'<strong>Bottom line:</strong> Your $200K–$300K supply-squeeze thesis is getting stronger on the free measurable signals, but I would not call it a confirmed supply squeeze until exchange BTC balances also show sustained decline.':status==='red'?'<strong>Bottom line:</strong> The supply-squeeze thesis is weaker right now on the free measurable signals. Stronger ETF/spot demand would be needed before treating leverage as secondary.':'<strong>Bottom line:</strong> Mixed. Do not force a bullish or bearish conclusion from incomplete evidence. The missing exchange-balance feed is explicitly visible.';
+ $('aetf').textContent=usd(ef);$('aprem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%';$('aoi').textContent=usd(ag.oi_usd);$('afund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%';$('aoi24').textContent=venueCount?venueCount+' venues':'—';
+ $('health').textContent='ETF: '+(d.etf?.source||d.etf?.status||'—')+' · Futures: '+((ag.venues||[]).join(', ')||'—')+' · Spot: '+(d.sources?.spot||'—')+' · Paid APIs: NONE';
+} run();
+</script></body></html>
