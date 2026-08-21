@@ -1,4 +1,4 @@
-name: Update BTC real-vs-paper data FREE V9
+name: Update BTC real-vs-paper data FREE
 
 on:
   workflow_dispatch:
@@ -22,6 +22,8 @@ jobs:
         with:
           node-version: "24"
       - name: Collect free public BTC market data
+        env:
+          SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
         run: node scripts/update-btc-market.mjs
       - name: Print source health
         run: cat data/btc-market.json

@@ -47,42 +47,6 @@ function parseDate(s){
   return Number.isFinite(t)?t:null;
 }
 function ageDays(ts){return (Date.now()-ts)/86400000}
-function parseFarsideHtml(html){
-  const rows=[];
-  for(const tr of html.match(/<tr[\s\S]*?<\/tr>/gi)||[]){
-    const cells=[...tr.matchAll(/<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi)]
-      .map(m=>m[1].replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/\s+/g," ").trim());
-    if(cells.length<2) continue;
-    const dm=cells[0].match(/(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})/);
-    if(!dm) continue;
-    const ts=Date.parse(`${dm[1]} ${dm[2]} ${dm[3]} UTC`);
-    if(!Number.isFinite(ts)) continue;
-    let total=null;
-    for(let i=cells.length-1;i>=1;i--){
-      let s=cells[i].replace(/[,$£€]/g,"").replace("−","-").trim();
-      if(s===""||s==="-"||s==="—") continue;
-      if(/^\(.*\)$/.test(s)) s="-"+s.slice(1,-1);
-      if(/^[-+]?\d+(?:\.\d+)?$/.test(s)){total=Number(s)*1e6;break;}
-    }
-    if(total!=null) rows.push({timestamp:ts,flow_usd:total});
-  }
-  return [...new Map(rows.map(x=>[x.timestamp,x])).values()].sort((a,b)=>a.timestamp-b.timestamp);
-}
-function parseSimpleEtfCsv(csv){
-  const rows=[];
-  for(const line of csv.split(/\r?\n/)){
-    if(!line.trim()||/^date/i.test(line)||line.startsWith("#")) continue;
-    const c=line.split(",").map(x=>x.trim().replace(/^"|"$/g,""));
-    const ts=Date.parse(c[0]);
-    if(!Number.isFinite(ts)) continue;
-    // known mirror format: Date, Total Flow (in millions USD), Type
-    let m=Number(c[1]);
-    if(!Number.isFinite(m)) continue;
-    if((c[2]||"").toLowerCase().includes("outflow") && m>0) m=-m;
-    rows.push({timestamp:ts,flow_usd:m*1e6});
-  }
-  return [...new Map(rows.map(x=>[x.timestamp,x])).values()].sort((a,b)=>a.timestamp-b.timestamp);
-}
 function acceptEtf(rows,source){
   if(!Array.isArray(rows)||rows.length<5) return false;
   const latest=rows.at(-1);
@@ -98,27 +62,39 @@ function acceptEtf(rows,source){
   return true;
 }
 
-// ETF source chain.
-// #1 Farside official page.
-// #2 public GitHub mirror of Farside totals, accepted ONLY if current.
-// If neither is fresh, ETF remains unavailable. No stale seed is used.
+// ETF source: SoSoValue official API v2.
+// Free Demo API plan; requires x-soso-api-key.
+// Verified endpoint:
+// POST https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart
+// body: {"type":"us-btc-spot"}
+const SOSO_KEY = process.env.SOSOVALUE_API_KEY || "";
+
 try{
-  const html=await getText("https://farside.co.uk/bitcoin-etf-flow-all-data/");
-  const rows=parseFarsideHtml(html);
-  if(!acceptEtf(rows,"Farside Investors official table")) throw new Error("Farside parsed data stale or incomplete");
-  out.sources.farside="ok";
+  if(!SOSO_KEY) throw new Error("SOSOVALUE_API_KEY secret is missing");
+  const j = await getJson("https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "x-soso-api-key":SOSO_KEY
+    },
+    body:JSON.stringify({type:"us-btc-spot"})
+  });
+  if(Number(j?.code)!==0) throw new Error(j?.msg || "SoSoValue API error");
+  const rows=(j?.data?.list||[])
+    .map(x=>({
+      timestamp:Date.parse(String(x.date)+"T00:00:00Z"),
+      flow_usd:num(x.totalNetInflow)
+    }))
+    .filter(x=>Number.isFinite(x.timestamp)&&x.flow_usd!=null)
+    .sort((a,b)=>a.timestamp-b.timestamp);
+
+  if(!acceptEtf(rows,"SoSoValue official API v2"))
+    throw new Error("SoSoValue ETF data stale or incomplete");
+
+  out.sources.sosovalue="ok";
 }catch(e){
-  out.sources.farside="error: "+String(e.message||e);
-}
-if(out.etf.status!=="ok"){
-  try{
-    const csv=await getText("https://raw.githubusercontent.com/0xLearn2Earn/btc-etf-flows/main/data/BTC_ETF_INFLOWS_OUTFLOWS.csv");
-    const rows=parseSimpleEtfCsv(csv);
-    if(!acceptEtf(rows,"Public GitHub mirror of Farside daily totals")) throw new Error("mirror stale or incomplete");
-    out.sources.etf_mirror="ok";
-  }catch(e){
-    out.sources.etf_mirror="error: "+String(e.message||e);
-  }
+  out.etf={status:"unavailable",error:String(e.message||e)};
+  out.sources.sosovalue="error: "+String(e.message||e);
 }
 
 // OKX — already verified working from the user's GitHub runner.
