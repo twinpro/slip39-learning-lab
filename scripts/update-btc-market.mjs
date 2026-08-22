@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { num, guardVenueUnits, fiveSessionSpanDays, CORE_VENUES, MAX_ETF_5_SESSION_SPAN_DAYS, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
 
 const OUT = new URL("../data/btc-market.json", import.meta.url);
 const NOW = new Date();
@@ -8,8 +9,6 @@ const SCHEMA = 12;
 const MAX_ETF_CALENDAR_AGE_DAYS = 4;
 const ETF_DAILY_SANITY_USD = 25_000_000_000;
 const ETF_MIN_RECENT_MAGNITUDE_USD = 1_000_000;
-const CORE_VENUES = ["okx", "deribit", "bitmex", "hyperliquid", "kraken"];
-const FUNDING_SANITY_PERCENT_8H = 5;
 
 const out = {
   schema: SCHEMA,
@@ -27,11 +26,6 @@ const out = {
     score: null,
     note: "No verified free automated all-exchange BTC balance feed has been implemented. This metric remains UNKNOWN and is excluded from scoring."
   }
-};
-
-const num = x => {
-  const v = Number(x);
-  return Number.isFinite(v) ? v : null;
 };
 
 async function fetchAny(url, opts = {}) {
@@ -95,7 +89,7 @@ function buildEtf(rows, source) {
   if (clean.length < 5) throw new Error(`only ${clean.length} usable ETF rows`);
 
   const latest = clean.at(-1);
-  const ageDays = (Date.now() - latest.timestamp) / 86_400_000;
+  const ageDays = (NOW.getTime() - latest.timestamp) / 86_400_000;
   if (ageDays > MAX_ETF_CALENDAR_AGE_DAYS) {
     throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${ageDays.toFixed(1)} calendar days old (max ${MAX_ETF_CALENDAR_AGE_DAYS})`);
   }
@@ -110,6 +104,11 @@ function buildEtf(rows, source) {
     throw new Error(`largest recent ETF daily flow is only ${peak}; feed may not be denominated in USD`);
   }
 
+  const spanDays = fiveSessionSpanDays(clean);
+  if (spanDays != null && spanDays > MAX_ETF_5_SESSION_SPAN_DAYS) {
+    throw new Error(`last 5 ETF rows span ${spanDays.toFixed(1)} calendar days (max ${MAX_ETF_5_SESSION_SPAN_DAYS}); series may have gaps`);
+  }
+
   const last5 = clean.slice(-5);
   return {
     status: "ok",
@@ -117,6 +116,7 @@ function buildEtf(rows, source) {
     fetched_at: ISO,
     latest_date: isoDate(latest.timestamp),
     latest_age_days: +ageDays.toFixed(2),
+    five_session_span_calendar_days: spanDays == null ? null : +spanDays.toFixed(2),
     row_count: clean.length,
     flow_5d_usd: last5.reduce((a, x) => a + x.flow_usd, 0),
     last_5_trading_sessions: last5.map(x => ({ date: isoDate(x.timestamp), flow_usd: x.flow_usd })),
@@ -316,6 +316,12 @@ try {
   out.derivatives.venues.bybit = { status: "error", core: false, error: String(e.message || e) };
   out.sources.bybit = "error (optional; not relied upon)";
 }
+
+// Defense-in-depth dimensional checks run before aggregation. If a contract-unit
+// invariant fails, the venue is rejected from this run and verify-snapshot.mjs prevents
+// the bad snapshot from being published.
+const unitRejected = guardVenueUnits(out.derivatives.venues);
+if (unitRejected.length) out.sources.unit_guard_rejected = unitRejected.join(", ");
 
 // Fixed comparable core set. OI can be displayed as partial working coverage, but
 // time-series comparisons are only valid when all five core venues are working.

@@ -21,12 +21,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+
+      - name: Run collector safety tests
+        run: node scripts/test-collector.mjs
+
       - name: Collect free public BTC market data
         env:
           SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
         run: node scripts/update-btc-market.mjs
-      - name: Print source health
-        run: cat data/btc-market.json
+
+      - name: Print compact source health
+        run: node scripts/report-health.mjs
+
+      - name: Verify generated snapshot before publish
+        run: node scripts/verify-snapshot.mjs
+
       - name: Commit updated market JSON
         run: |
           git config user.name "btc-data-bot"
