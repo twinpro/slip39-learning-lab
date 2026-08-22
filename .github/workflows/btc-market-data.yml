@@ -3,7 +3,7 @@ name: Update BTC real-vs-paper data FREE
 on:
   workflow_dispatch:
   schedule:
-    - cron: "7,22,37,52 * * * *"
+    - cron: "13,28,43,58 * * * *"
 
 permissions:
   contents: write
@@ -11,7 +11,6 @@ permissions:
 concurrency:
   group: btc-market-data-free
   cancel-in-progress: true
-
 jobs:
   update:
     runs-on: ubuntu-latest
