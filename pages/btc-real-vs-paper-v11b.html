@@ -170,6 +170,12 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   .row-explain{margin:-2px 18px 13px 52px;font-size:13px;line-height:1.5}
 }
 
+
+.header-btc-live{font-family:var(--mono);text-align:right;margin-left:auto}
+.header-btc-price{font-size:16px;font-weight:600;color:var(--green);white-space:nowrap}
+.header-btc-time{font-size:10px;color:var(--dim);margin-top:4px;white-space:nowrap}
+@media(max-width:760px){.header-btc-live{margin-left:auto;text-align:right}}
+
 </style>
 </head>
 <body>
@@ -177,7 +183,11 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 
 <header>
   <div><h1>BITCOIN — REAL <em>VS</em> PAPER</h1><div class="public-subtitle">Is Bitcoin demand coming from real buyers or leveraged trading?</div></div>
-  <div class="hdr-meta">
+  <div class="header-btc-live">
+    <div class="header-btc-price" id="headerBtcPrice">BTC — · LIVE</div>
+    <div class="header-btc-time" id="headerDateTime">—</div>
+  </div>
+  <div class="hdr-meta" style="display:none">
     <span><span class="dot" id="wsdot"></span><span id="wstext">connecting live price</span></span>
     <span id="snapshotAge">snapshot —</span>
     <span id="clock">—</span>
@@ -458,6 +468,7 @@ function connectPrice(){
 
 function paintPrice(){
   const el=$('px');el.textContent='$'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  $('headerBtcPrice').textContent='BTC $'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' · LIVE';
   el.classList.remove('up','dn');if(S.prev!=null)el.classList.add(S.price>=S.prev?'up':'dn');
   $('pxsub').textContent=S.ticks.length+' ticks · last '+hhmmss(now());drawSpark();
 }
@@ -474,7 +485,11 @@ function drawSpark(){
 loadSnapshot();
 setInterval(loadSnapshot,60000);
 connectPrice();
-setInterval(()=>$('clock').textContent=hhmmss(now())+' local',1000);
+setInterval(()=>{
+  $('clock').textContent=hhmmss(now())+' local';
+  $('headerDateTime').textContent=now().toLocaleString('en-US');
+},1000);
+$('headerDateTime').textContent=now().toLocaleString('en-US');
 addEventListener('resize',()=>{drawSpark();if(S.snapshot)renderSnapshot();});
 drawGauge(null);
 log('Bitcoin Real vs Paper opened · live demand dashboard');
