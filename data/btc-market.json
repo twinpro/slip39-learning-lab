@@ -1,71 +1,30 @@
 {
-  "schema": 12,
-  "generated_at": "2026-08-22T01:02:08.814Z",
-  "cost": "$0",
-  "api_keys_required": true,
-  "api_keys": [
-    "SOSOVALUE_API_KEY (free tier)"
-  ],
-  "paid_api_keys_required": false,
+  "schema": 10,
+  "generated_at": "2026-08-22T01:10:21.739Z",
+  "cost": "$0 in fees",
+  "api_key_required": true,
   "sources": {
-    "sosovalue_v2_debug": {
-      "code": 0,
-      "msg": null,
-      "top_level_keys": [
-        "code",
-        "msg",
-        "traceId",
-        "data",
-        "tid"
-      ],
-      "data_type": "array",
-      "data_keys": [],
-      "list_length": null,
-      "first_item_keys": []
-    },
-    "sosovalue": "ok",
-    "sosovalue_endpoint": "v2",
+    "sosovalue_v2": "ok",
+    "farside": "error: 403 Forbidden",
+    "etf": "ok",
     "okx": "ok",
     "deribit": "ok",
     "bitmex": "ok",
     "hyperliquid": "ok",
     "kraken_futures": "ok",
-    "bybit": "error",
-    "kraken_spot": "ok",
-    "spot": "ok"
+    "bybit": "error (often geoblocked on US runners)",
+    "cme": "error (expected; CME blocks most non-browser clients)",
+    "spot": "ok",
+    "usdt_peg": "peg_adjusted"
   },
   "etf": {
     "status": "ok",
-    "source": "SoSoValue official API v2",
-    "fetched_at": "2026-08-22T01:02:08.814Z",
+    "source": "SoSoValue v2",
     "latest_date": "2026-08-20",
-    "latest_age_days": 2.04,
+    "latest_age_days": 2.05,
     "row_count": 300,
-    "flow_5_sessions_usd": 1552704260.73,
     "flow_5d_usd": 1552704260.73,
-    "five_session_span_calendar_days": 6,
-    "last_5_trading_sessions": [
-      {
-        "date": "2026-08-14",
-        "flow_usd": -57632150.75
-      },
-      {
-        "date": "2026-08-17",
-        "flow_usd": 297556930.725
-      },
-      {
-        "date": "2026-08-18",
-        "flow_usd": 189296469.295
-      },
-      {
-        "date": "2026-08-19",
-        "flow_usd": 517192505.28000003
-      },
-      {
-        "date": "2026-08-20",
-        "flow_usd": 606290506.18
-      }
-    ],
+    "flow_5d_span_days": 6,
     "last_5_trading_days": [
       {
         "date": "2026-08-14",
@@ -89,6 +48,66 @@
       }
     ],
     "history": [
+      {
+        "timestamp": 1782345600000,
+        "flow_usd": -696292055.9300001
+      },
+      {
+        "timestamp": 1782432000000,
+        "flow_usd": -444505600.00000006
+      },
+      {
+        "timestamp": 1782691200000,
+        "flow_usd": -231098221.08
+      },
+      {
+        "timestamp": 1782777600000,
+        "flow_usd": -222644311.4
+      },
+      {
+        "timestamp": 1782864000000,
+        "flow_usd": -294619481.90999997
+      },
+      {
+        "timestamp": 1782950400000,
+        "flow_usd": 221719273.5
+      },
+      {
+        "timestamp": 1783296000000,
+        "flow_usd": 265686935.35
+      },
+      {
+        "timestamp": 1783382400000,
+        "flow_usd": 21435004.250000004
+      },
+      {
+        "timestamp": 1783468800000,
+        "flow_usd": -84860056
+      },
+      {
+        "timestamp": 1783555200000,
+        "flow_usd": -95301696.51
+      },
+      {
+        "timestamp": 1783641600000,
+        "flow_usd": 90439970
+      },
+      {
+        "timestamp": 1783900800000,
+        "flow_usd": -424661225.9
+      },
+      {
+        "timestamp": 1783987200000,
+        "flow_usd": 181083537.89
+      },
+      {
+        "timestamp": 1784073600000,
+        "flow_usd": 107804553.79999958
+      },
+      {
+        "timestamp": 1784160000000,
+        "flow_usd": 79150022.97999999
+      },
       {
         "timestamp": 1784246400000,
         "flow_usd": 132296394.775
@@ -189,115 +208,111 @@
         "timestamp": 1787184000000,
         "flow_usd": 606290506.18
       }
-    ]
+    ],
+    "fetched_at": "2026-08-22T01:10:21.739Z",
+    "cross_check": {
+      "second_source": null,
+      "agreement": "single_source_only"
+    }
   },
   "derivatives": {
     "venues": {
       "okx": {
         "status": "ok",
-        "oi_usd": 2330679930.0443916,
-        "oi_btc": 29881.239800000145,
+        "contract": "BTC-USDT-SWAP (linear, oiUsd published)",
+        "oi_usd": 2333407103.5577707,
+        "oi_btc": 29888.499400000135,
         "funding_rate_percent": 0.01,
-        "mark_price": 77969.1
+        "mark_price": 78113.1,
+        "implied_btc": 29872.16,
+        "mark_deviation_percent": -0.021
       },
       "deribit": {
         "status": "ok",
-        "oi_usd": 922405980,
-        "funding_rate_percent": 0.000713,
-        "mark_price": 77993.01
+        "contract": "BTC-PERPETUAL (open_interest already USD)",
+        "oi_usd": 922650300,
+        "funding_rate_percent": 0.000732,
+        "mark_price": 78129.26,
+        "implied_btc": 11809.28,
+        "mark_deviation_percent": 0
       },
       "bitmex": {
         "status": "ok",
-        "oi_usd": 22137200,
+        "contract": "XBTUSD (inverse, 1 contract = 1 USD, no multiply)",
+        "oi_usd": 22136600,
         "funding_rate_percent": 0.01,
-        "mark_price": 77980.74
+        "mark_price": 78088.54,
+        "implied_btc": 283.48,
+        "mark_deviation_percent": -0.052
       },
       "hyperliquid": {
         "status": "ok",
-        "oi_usd": 2597712002.0193076,
-        "oi_btc": 33300.1577000001,
+        "contract": "BTC perp (linear, openInterest in BTC, multiplied by mark)",
+        "oi_usd": 2595938558.06856,
+        "oi_btc": 33225.03658,
         "funding_rate_percent": 0.01,
-        "mark_price": 78009
+        "mark_price": 78132,
+        "implied_btc": 33225.04,
+        "mark_deviation_percent": 0.004
       },
       "kraken": {
         "status": "ok",
-        "symbol": "PI_XBTUSD",
-        "contract_type": "inverse perpetual",
-        "contract_size_usd": 1,
-        "oi_usd": 3411865,
-        "open_interest_contracts": 3411865,
-        "mark_price": 77953.20165518609,
-        "funding_rate_absolute_raw": -1.38995321e-10,
-        "funding_rate_percent": -0.0010832175,
-        "funding_rate_source": "Kraken funding analytics relativeRate",
-        "funding_note": "Kraken relative funding normalized from public analytics."
+        "contract": "PF_XBTUSD (linear, openInterest in BTC, multiplied by markPrice)",
+        "symbol": "PF_XBTUSD",
+        "oi_usd": 189118135.8968507,
+        "open_interest_raw": 2420.2859,
+        "mark_price": 78138.75868832303,
+        "funding_rate_percent": null,
+        "funding_excluded_reason": "Kraken v3 REST publishes the absolute funding rate, not the relative rate; no correct conversion is available from this endpoint.",
+        "implied_btc": 2420.29,
+        "mark_deviation_percent": 0.012
       },
       "bybit": {
         "status": "error",
         "error": "403 Forbidden"
+      },
+      "cme": {
+        "status": "error",
+        "error": "404 Not Found",
+        "include_in_aggregate": false,
+        "verified": false
       }
     },
     "aggregate": {
       "status": "ok",
       "venue_count": 5,
       "venues": [
-        "okx",
-        "deribit",
         "bitmex",
+        "deribit",
         "hyperliquid",
-        "kraken"
+        "kraken",
+        "okx"
       ],
-      "oi_usd": 5876346977.0637,
-      "funding_rate_percent": 0.0085357912302117,
+      "venue_set": "bitmex+deribit+hyperliquid+kraken+okx",
+      "oi_usd": 6063250697.523182,
+      "funding_rate_percent": 0.008277771304486195,
       "funding_venue_count": 5,
-      "funding_venues": [
-        "okx",
-        "deribit",
-        "bitmex",
-        "hyperliquid",
-        "kraken"
-      ],
-      "core_expected_venues": [
-        "okx",
-        "deribit",
-        "bitmex",
-        "hyperliquid",
-        "kraken"
-      ],
-      "core_working_venues": [
-        "okx",
-        "deribit",
-        "bitmex",
-        "hyperliquid",
-        "kraken"
-      ],
-      "core_missing_venues": [],
-      "core_comparable_status": "ok",
-      "core_comparable_oi_usd": 5876346977.0637,
-      "warning": "OI is partial, not global. Compare OI over time only when the fixed core venue set is complete."
+      "warning": "Partial free coverage. Binance and CME are absent, so this is NOT global open interest. The venue set can change between runs; compare oi_usd only within the same venue_set."
     }
   },
   "spot": {
     "status": "ok",
-    "source": "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
-    "coinbase_usd": 77967.83,
-    "kraken_usd": 77967.2,
-    "us_spot_average_usd": 77967.515,
-    "okx_usdt": 77984.2,
-    "usdt_usd": 0.99983,
-    "usdt_usd_sources": [
-      "Coinbase USDT-USD",
-      "Kraken USDT/USD"
-    ],
-    "okx_usd_equivalent": 77970.942686,
-    "us_spot_premium_percent": -0.004396106911008779,
-    "coinbase_premium_percent": -0.003992110256412218,
-    "kraken_premium_percent": -0.004800103565594238,
-    "note": "OKX BTC-USDT is normalized by live USDT/USD before calculating the premium."
+    "source": "Coinbase BTC-USD + Kraken XBT/USD vs OKX BTC-USDT, Tether peg removed via OKX USDC-USDT",
+    "coinbase_usd": 78119,
+    "kraken_usd": 78092.4,
+    "us_spot_average_usd": 78105.7,
+    "okx_usdt": 78130.1,
+    "usdc_usdt": 1.0001,
+    "usdt_usd": 0.9999000099990001,
+    "peg_adjustment_percent": -0.01,
+    "us_spot_premium_percent_raw": -0.0312,
+    "us_spot_premium_percent": -0.0212,
+    "premium_status": "peg_adjusted",
+    "note": "Premium is net of Tether drift. Compare only the peg-adjusted figure."
   },
   "exchange_supply": {
     "status": "unavailable_free_reliable",
     "score": null,
-    "note": "No reliable free machine-readable all-exchange BTC balance feed was verified. This metric remains unknown and is excluded from scoring."
+    "note": "No verified free machine-readable all-exchange BTC balance feed. Cold-wallet address baskets measure storage, not flow, and are excluded deliberately. Unscored."
   }
 }
