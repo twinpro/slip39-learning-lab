@@ -1,0 +1,39 @@
+name: Update BTC real-vs-paper data FREE
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "13,28,43,58 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btc-market-data-free
+  cancel-in-progress: true
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Collect free public BTC market data
+        env:
+          SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
+        run: node scripts/update-btc-market.mjs
+      - name: Print source health
+        run: cat data/btc-market.json
+      - name: Commit updated market JSON
+        run: |
+          git config user.name "btc-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/btc-market.json
+          if git diff --cached --quiet; then
+            echo "No data change"
+          else
+            git commit -m "Update BTC market data"
+            git push
+          fi
