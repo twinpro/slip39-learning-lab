@@ -1,6 +1,6 @@
 {
   "schema": 10,
-  "generated_at": "2026-08-22T01:10:21.739Z",
+  "generated_at": "2026-08-22T01:13:59.371Z",
   "cost": "$0 in fees",
   "api_key_required": true,
   "sources": {
@@ -209,7 +209,7 @@
         "flow_usd": 606290506.18
       }
     ],
-    "fetched_at": "2026-08-22T01:10:21.739Z",
+    "fetched_at": "2026-08-22T01:13:59.371Z",
     "cross_check": {
       "second_source": null,
       "agreement": "single_source_only"
@@ -220,52 +220,52 @@
       "okx": {
         "status": "ok",
         "contract": "BTC-USDT-SWAP (linear, oiUsd published)",
-        "oi_usd": 2333407103.5577707,
-        "oi_btc": 29888.499400000135,
+        "oi_usd": 2337010328.613741,
+        "oi_btc": 29901.446300000138,
         "funding_rate_percent": 0.01,
-        "mark_price": 78113.1,
-        "implied_btc": 29872.16,
-        "mark_deviation_percent": -0.021
+        "mark_price": 78152.5,
+        "implied_btc": 29903.21,
+        "mark_deviation_percent": -0.025
       },
       "deribit": {
         "status": "ok",
         "contract": "BTC-PERPETUAL (open_interest already USD)",
-        "oi_usd": 922650300,
-        "funding_rate_percent": 0.000732,
-        "mark_price": 78129.26,
-        "implied_btc": 11809.28,
+        "oi_usd": 922821250,
+        "funding_rate_percent": 0.000731,
+        "mark_price": 78172.12,
+        "implied_btc": 11804.99,
         "mark_deviation_percent": 0
       },
       "bitmex": {
         "status": "ok",
         "contract": "XBTUSD (inverse, 1 contract = 1 USD, no multiply)",
-        "oi_usd": 22136600,
+        "oi_usd": 22135800,
         "funding_rate_percent": 0.01,
-        "mark_price": 78088.54,
-        "implied_btc": 283.48,
-        "mark_deviation_percent": -0.052
+        "mark_price": 78165.97,
+        "implied_btc": 283.19,
+        "mark_deviation_percent": -0.008
       },
       "hyperliquid": {
         "status": "ok",
         "contract": "BTC perp (linear, openInterest in BTC, multiplied by mark)",
-        "oi_usd": 2595938558.06856,
-        "oi_btc": 33225.03658,
+        "oi_usd": 2597270544.8409276,
+        "oi_btc": 33220.8250600001,
         "funding_rate_percent": 0.01,
-        "mark_price": 78132,
-        "implied_btc": 33225.04,
-        "mark_deviation_percent": 0.004
+        "mark_price": 78182,
+        "implied_btc": 33220.83,
+        "mark_deviation_percent": 0.013
       },
       "kraken": {
         "status": "ok",
         "contract": "PF_XBTUSD (linear, openInterest in BTC, multiplied by markPrice)",
         "symbol": "PF_XBTUSD",
-        "oi_usd": 189118135.8968507,
-        "open_interest_raw": 2420.2859,
-        "mark_price": 78138.75868832303,
+        "oi_usd": 189128881.84024197,
+        "open_interest_raw": 2419.1515,
+        "mark_price": 78179.84191574689,
         "funding_rate_percent": null,
         "funding_excluded_reason": "Kraken v3 REST publishes the absolute funding rate, not the relative rate; no correct conversion is available from this endpoint.",
-        "implied_btc": 2420.29,
-        "mark_deviation_percent": 0.012
+        "implied_btc": 2419.15,
+        "mark_deviation_percent": 0.01
       },
       "bybit": {
         "status": "error",
@@ -289,8 +289,8 @@
         "okx"
       ],
       "venue_set": "bitmex+deribit+hyperliquid+kraken+okx",
-      "oi_usd": 6063250697.523182,
-      "funding_rate_percent": 0.008277771304486195,
+      "oi_usd": 6068366805.29491,
+      "funding_rate_percent": 0.008278792413217544,
       "funding_venue_count": 5,
       "warning": "Partial free coverage. Binance and CME are absent, so this is NOT global open interest. The venue set can change between runs; compare oi_usd only within the same venue_set."
     }
@@ -298,15 +298,15 @@
   "spot": {
     "status": "ok",
     "source": "Coinbase BTC-USD + Kraken XBT/USD vs OKX BTC-USDT, Tether peg removed via OKX USDC-USDT",
-    "coinbase_usd": 78119,
-    "kraken_usd": 78092.4,
-    "us_spot_average_usd": 78105.7,
-    "okx_usdt": 78130.1,
+    "coinbase_usd": 78161.85,
+    "kraken_usd": 78149.9,
+    "us_spot_average_usd": 78155.875,
+    "okx_usdt": 78166.9,
     "usdc_usdt": 1.0001,
     "usdt_usd": 0.9999000099990001,
     "peg_adjustment_percent": -0.01,
-    "us_spot_premium_percent_raw": -0.0312,
-    "us_spot_premium_percent": -0.0212,
+    "us_spot_premium_percent_raw": -0.0141,
+    "us_spot_premium_percent": -0.0041,
     "premium_status": "peg_adjusted",
     "note": "Premium is net of Tether drift. Compare only the peg-adjusted figure."
   },
