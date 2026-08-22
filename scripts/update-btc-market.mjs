@@ -3,12 +3,17 @@ import fs from "node:fs/promises";
 const OUT = new URL("../data/btc-market.json", import.meta.url);
 const NOW = new Date();
 const ISO = NOW.toISOString();
-const MAX_ETF_CALENDAR_AGE_DAYS = 10;
+const MAX_ETF_CALENDAR_AGE_DAYS = 4;
+const ETF_MAX_ABS_DAILY_FLOW_USD = 5_000_000_000;
+const ETF_MIN_MEANINGFUL_FLOW_USD = 100_000;
+const CORE_DERIVATIVE_VENUES = ["okx","deribit","bitmex","hyperliquid","kraken"];
 
 const out = {
-  schema: 9,
+  schema: 12,
   generated_at: ISO,
   cost: "$0",
+  api_keys_required: true,
+  api_keys: ["SOSOVALUE_API_KEY (free tier)"],
   paid_api_keys_required: false,
   sources: {},
   etf: {status:"unavailable"},
@@ -47,6 +52,17 @@ function parseDate(s){
   return Number.isFinite(t)?t:null;
 }
 function ageDays(ts){return (Date.now()-ts)/86400000}
+
+function lastFiniteDeep(x){
+  if(Array.isArray(x)){
+    for(let i=x.length-1;i>=0;i--){
+      const v=lastFiniteDeep(x[i]);
+      if(v!=null) return v;
+    }
+    return null;
+  }
+  return num(x);
+}
 function acceptEtf(rows,source){
   if(!Array.isArray(rows)||rows.length<5) return false;
 
@@ -58,14 +74,17 @@ function acceptEtf(rows,source){
 
   const latest=clean.at(-1);
   const age=ageDays(latest.timestamp);
-
-  // ETF markets do not trade on weekends/market holidays.
-  // Use a wider calendar-age safety window so valid Friday/holiday data
-  // is not falsely rejected as stale. The exact latest date is always
-  // written into the JSON for transparency.
   if(age>MAX_ETF_CALENDAR_AGE_DAYS) return false;
 
+  // Unit / magnitude guards. SoSoValue is expected to return USD, not "millions of USD".
+  if(clean.some(x=>Math.abs(x.flow_usd)>ETF_MAX_ABS_DAILY_FLOW_USD)) return false;
+  const recentNonZero=clean.slice(-20).map(x=>Math.abs(x.flow_usd)).filter(x=>x>0);
+  if(recentNonZero.length && Math.max(...recentNonZero)<ETF_MIN_MEANINGFUL_FLOW_USD) return false;
+
   const last5=clean.slice(-5);
+  const firstTs=last5[0].timestamp;
+  const spanCalendarDays=Math.round((latest.timestamp-firstTs)/86400000);
+
   out.etf={
     status:"ok",
     source,
@@ -73,7 +92,14 @@ function acceptEtf(rows,source){
     latest_date:new Date(latest.timestamp).toISOString().slice(0,10),
     latest_age_days:+age.toFixed(2),
     row_count:clean.length,
+    flow_5_sessions_usd:last5.reduce((a,x)=>a+x.flow_usd,0),
+    // Backward compatibility for existing pages; this is five TRADING SESSIONS, not five calendar days.
     flow_5d_usd:last5.reduce((a,x)=>a+x.flow_usd,0),
+    five_session_span_calendar_days:spanCalendarDays,
+    last_5_trading_sessions:last5.map(x=>({
+      date:new Date(x.timestamp).toISOString().slice(0,10),
+      flow_usd:x.flow_usd
+    })),
     last_5_trading_days:last5.map(x=>({
       date:new Date(x.timestamp).toISOString().slice(0,10),
       flow_usd:x.flow_usd
@@ -232,25 +258,50 @@ try{
 
 
 // Kraken public derivatives API — no API key required.
+// PI_XBTUSD is an inverse perpetual: contractSize = 1 USD.
+// Therefore openInterest is already USD notional and MUST NOT be multiplied by BTC price.
+// Kraken REST ticker "fundingRate" is retained as a raw absolute field.
+// Comparable relative funding is pulled from Kraken's public funding analytics when available.
 try{
   const j=await getJson("https://futures.kraken.com/derivatives/api/v3/tickers");
   const rows=Array.isArray(j?.tickers)?j.tickers:[];
-  // Prefer the perpetual BTC/USD contract.
   const d=rows.find(x=>String(x.symbol||"").toLowerCase()==="pi_xbtusd")
        || rows.find(x=>String(x.symbol||"").toLowerCase().includes("xbtusd"));
   if(!d) throw new Error("Kraken BTC perpetual ticker not found");
 
   const oiContracts=num(d.openInterest);
   const mark=num(d.markPrice);
-  const oiUsd=(oiContracts!=null && mark!=null)?oiContracts*mark:null;
+  const rawAbsoluteFunding=num(d.fundingRate);
+  let relativeFundingPercent=null;
+  let relativeFundingSource=null;
+
+  // Kraken's analytics API exposes "relativeRate". Use it only if it parses
+  // to a sane relative rate; otherwise Kraken stays in OI but is excluded
+  // from the weighted funding calculation rather than poisoning it.
+  try{
+    const since=Math.floor(Date.now()/1000)-6*3600;
+    const a=await getJson(`https://futures.kraken.com/api/charts/v1/analytics/PI_XBTUSD/funding?since=${since}&interval=3600`);
+    const rr=lastFiniteDeep(a?.result?.data?.relativeRate);
+    if(rr!=null && Math.abs(rr)<=0.01){
+      relativeFundingPercent=rr*100;
+      relativeFundingSource="Kraken funding analytics relativeRate";
+    }
+  }catch(_){}
 
   out.derivatives.venues.kraken={
     status:"ok",
     symbol:d.symbol||"PI_XBTUSD",
-    oi_usd:oiUsd,
+    contract_type:"inverse perpetual",
+    contract_size_usd:1,
+    oi_usd:oiContracts,
     open_interest_contracts:oiContracts,
-    funding_rate_percent:num(d.fundingRate)!=null?num(d.fundingRate)*100:null,
-    mark_price:mark
+    mark_price:mark,
+    funding_rate_absolute_raw:rawAbsoluteFunding,
+    funding_rate_percent:relativeFundingPercent,
+    funding_rate_source:relativeFundingSource,
+    funding_note:relativeFundingPercent==null
+      ?"Kraken retained in OI; REST absolute funding excluded from comparable weighted funding."
+      :"Kraken relative funding normalized from public analytics."
   };
   out.sources.kraken_futures="ok";
 }catch(e){
@@ -267,53 +318,94 @@ try{
   out.sources.bybit="ok";
 }catch(e){out.derivatives.venues.bybit={status:"error",error:String(e.message||e)};out.sources.bybit="error"}
 
-// Aggregate only venues that actually returned data. This is explicitly PARTIAL OI,
-// never labeled global OI.
+// Aggregate current working venues, while separately exposing a FIXED core set.
+// This prevents a venue outage from silently looking like a market OI drop.
 const good=Object.entries(out.derivatives.venues).filter(([,v])=>v.status==="ok"&&num(v.oi_usd)>0);
+const coreWorking=CORE_DERIVATIVE_VENUES.filter(k=>out.derivatives.venues[k]?.status==="ok"&&num(out.derivatives.venues[k]?.oi_usd)>0);
+const coreMissing=CORE_DERIVATIVE_VENUES.filter(k=>!coreWorking.includes(k));
+
 if(good.length>=2){
   const oiUsd=good.reduce((a,[,v])=>a+v.oi_usd,0);
   const fundGood=good.filter(([,v])=>num(v.funding_rate_percent)!=null);
   const fw=fundGood.reduce((a,[,v])=>a+v.oi_usd*v.funding_rate_percent,0);
   const fow=fundGood.reduce((a,[,v])=>a+v.oi_usd,0);
+
+  const coreOiUsd=coreMissing.length===0
+    ? CORE_DERIVATIVE_VENUES.reduce((a,k)=>a+out.derivatives.venues[k].oi_usd,0)
+    : null;
+
   out.derivatives.aggregate={
     status:"ok",
     venue_count:good.length,
     venues:good.map(([k])=>k),
     oi_usd:oiUsd,
     funding_rate_percent:fow?fw/fow:null,
-    warning:"Free partial derivatives coverage; not global open interest."
+    funding_venue_count:fundGood.length,
+    funding_venues:fundGood.map(([k])=>k),
+    core_expected_venues:CORE_DERIVATIVE_VENUES,
+    core_working_venues:coreWorking,
+    core_missing_venues:coreMissing,
+    core_comparable_status:coreMissing.length===0?"ok":"incomplete",
+    core_comparable_oi_usd:coreOiUsd,
+    warning:"OI is partial, not global. Compare OI over time only when the fixed core venue set is complete."
   };
 }else{
-  out.derivatives.aggregate={status:"insufficient",venue_count:good.length,venues:good.map(([k])=>k),warning:"Need at least two working venues."};
+  out.derivatives.aggregate={
+    status:"insufficient",
+    venue_count:good.length,
+    venues:good.map(([k])=>k),
+    core_expected_venues:CORE_DERIVATIVE_VENUES,
+    core_working_venues:coreWorking,
+    core_missing_venues:coreMissing,
+    core_comparable_status:"incomplete",
+    warning:"Need at least two working venues."
+  };
 }
 
-// Spot demand proxy: Coinbase + Kraken USD markets vs OKX BTC-USDT.
-// All endpoints are public. No account/API key is used.
+// Spot demand proxy: Coinbase + Kraken USD markets vs OKX BTC-USDT,
+// with the OKX USDT quote converted to USD using live USDT/USD.
+// This removes stablecoin-basis noise from the signal.
 try{
-  const [cb,kr,ok]=await Promise.all([
+  const [cb,kr,ok,cbUsdt,krUsdt]=await Promise.all([
     getJson("https://api.exchange.coinbase.com/products/BTC-USD/ticker"),
     getJson("https://api.kraken.com/0/public/Ticker?pair=XBTUSD"),
-    getJson("https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT")
+    getJson("https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT"),
+    getJson("https://api.exchange.coinbase.com/products/USDT-USD/ticker").catch(()=>null),
+    getJson("https://api.kraken.com/0/public/Ticker?pair=USDTUSD").catch(()=>null)
   ]);
 
   const cbp=num(cb.price);
   const krKey=kr?.result?Object.keys(kr.result)[0]:null;
   const krp=krKey?num(kr.result[krKey]?.c?.[0]):null;
-  const okp=num(ok.data?.[0]?.last);
+  const okUsdt=num(ok.data?.[0]?.last);
 
-  if(!cbp||!krp||!okp) throw new Error("missing public spot price");
+  const cbUsdtUsd=num(cbUsdt?.price);
+  const krUsdtKey=krUsdt?.result?Object.keys(krUsdt.result)[0]:null;
+  const krUsdtUsd=krUsdtKey?num(krUsdt.result[krUsdtKey]?.c?.[0]):null;
+  const pegInputs=[cbUsdtUsd,krUsdtUsd].filter(x=>x!=null&&x>0.95&&x<1.05);
+  if(!cbp||!krp||!okUsdt||pegInputs.length===0) throw new Error("missing public spot or USDT/USD normalization price");
 
+  const usdtUsd=pegInputs.reduce((a,b)=>a+b,0)/pegInputs.length;
+  const okUsdEquivalent=okUsdt*usdtUsd;
   const usdAvg=(cbp+krp)/2;
+
   out.spot={
     status:"ok",
-    source:"Coinbase BTC-USD + Kraken XBT/USD vs OKX BTC-USDT",
+    source:"Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
     coinbase_usd:cbp,
     kraken_usd:krp,
     us_spot_average_usd:usdAvg,
-    okx_usdt:okp,
-    us_spot_premium_percent:(usdAvg/okp-1)*100,
-    coinbase_premium_percent:(cbp/okp-1)*100,
-    kraken_premium_percent:(krp/okp-1)*100
+    okx_usdt:okUsdt,
+    usdt_usd:usdtUsd,
+    usdt_usd_sources:[
+      ...(cbUsdtUsd!=null?["Coinbase USDT-USD"]:[]),
+      ...(krUsdtUsd!=null?["Kraken USDT/USD"]:[])
+    ],
+    okx_usd_equivalent:okUsdEquivalent,
+    us_spot_premium_percent:(usdAvg/okUsdEquivalent-1)*100,
+    coinbase_premium_percent:(cbp/okUsdEquivalent-1)*100,
+    kraken_premium_percent:(krp/okUsdEquivalent-1)*100,
+    note:"OKX BTC-USDT is normalized by live USDT/USD before calculating the premium."
   };
   out.sources.kraken_spot="ok";
   out.sources.spot="ok";
