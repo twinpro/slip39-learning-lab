@@ -175,6 +175,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 .header-btc-price{font-size:16px;font-weight:600;color:var(--green);white-space:nowrap}
 .header-btc-time{font-size:10px;color:var(--dim);margin-top:4px;white-space:nowrap}
 @media(max-width:760px){.header-btc-live{margin-left:auto;text-align:right}}
+
 </style>
 </head>
 <body>
@@ -193,6 +194,9 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   </div>
 </header>
 
+<div id="staleBanner" style="display:none;border:1px solid var(--red);background:rgba(255,77,77,.08);
+     color:var(--red);font-family:var(--mono);font-size:12px;padding:11px 14px;margin-bottom:14px;line-height:1.6"></div>
+
 <section class="board">
   <div class="board-hd">
     <h2>Verdict board</h2>
@@ -208,7 +212,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 <section class="hero">
   <div class="hero-top">
     <div>
-      <div class="eyebrow">Real-demand evidence</div>
+      <div class="eyebrow">Real vs paper balance</div>
       <div class="ratio-num" id="demandNum">—<span>/100</span></div>
     </div>
     <div class="verdict">
@@ -217,7 +221,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
     </div>
   </div>
   <canvas id="gauge"></canvas>
-  <div class="formula" id="formula">65% ETF demand + 35% U.S. spot-demand proxy. This is NOT a complete supply-squeeze score.</div>
+  <div class="formula" id="formula">Weighted from whichever inputs are live. This is NOT a supply-squeeze score.</div>
 </section>
 
 <section class="strip">
@@ -234,18 +238,18 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 
 <section class="grid">
   <div class="card">
-    <div class="card-hd"><span class="card-label">ETF net flow · 5 sessions</span><span class="chip n" id="s-etf">no data</span></div>
+    <div class="card-hd"><span class="card-label">ETF net flow · 5d</span><span class="chip n" id="s-etf">no data</span></div>
     <div class="card-val stale" id="v-etf">—</div>
-    <div class="card-unit">USD net flow, last 5 trading sessions</div>
-    <div class="breakdown" id="b-etf">SoSoValue official API via GitHub Actions</div>
-    <div class="card-ft"><span>SoSoValue</span><span id="t-etf">—</span></div>
+    <div class="card-unit">USD net flow, last 5 trading days</div>
+    <div class="breakdown" id="b-etf">Collected by GitHub Actions</div>
+    <div class="card-ft"><span id="etfsrc">ETF source</span><span id="t-etf">—</span></div>
   </div>
 
   <div class="card">
     <div class="card-hd"><span class="card-label">U.S. spot premium</span><span class="chip n" id="s-prem">no data</span></div>
     <div class="card-val stale" id="v-prem">—</div>
-    <div class="card-unit">Coinbase + Kraken USD average vs OKX USDT</div>
-    <div class="breakdown" id="b-prem">Positive means U.S./USD spot trades above USDT-normalized OKX.</div>
+    <div class="card-unit">Coinbase + Kraken USD vs OKX USDT, Tether drift removed</div>
+    <div class="breakdown" id="b-prem">Positive means U.S./USD spot trades above OKX.</div>
     <div class="card-ft"><span>Coinbase · Kraken · OKX</span><span id="t-prem">—</span></div>
   </div>
 
@@ -304,24 +308,26 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 </div>
 
 <footer>
-  Bitcoin Real vs Paper · Live Demand Dashboard. ETF + derivatives + spot snapshot refresh = GitHub Actions is scheduled four times per hour; free-runner timing can drift or skip runs. This page re-reads the snapshot every 60 seconds.
+  Bitcoin Real vs Paper · Live Demand Dashboard. ETF + derivatives + spot snapshot refresh = GitHub Actions every 15 minutes. This page re-reads the snapshot every 60 seconds.
   Coinbase BTC-USD price streams live in the browser. Kraken public spot/futures data is collected server-side in the snapshot when reachable.
   Exchange BTC supply remains unknown and unscored. Not investment advice.
 </footer>
 </div>
 
 <script>
-const SNAPSHOT_WARN_MINUTES = 60;
-const SNAPSHOT_MAX_MINUTES = 180;
-const REPO_SNAPSHOT_RAW = 'https://raw.githubusercontent.com/twinpro/slip39-learning-lab/main/data/btc-market.json';
-
 const A = {
   etf5d: [[-1e9,0],[0,50],[5e8,75],[1e9,90],[2e9,100]],
   premium: [[-0.25,0],[-0.10,30],[0,50],[0.10,70],[0.25,100]],
   funding: [[0,100],[0.01,80],[0.02,60],[0.05,20],[0.10,0]]
 };
 
-const S = { snapshot:null, price:null, prev:null, ticks:[] };
+/* A snapshot older than this stops producing scores. Actions can fail silently for
+   days; a confident number on stale inputs is the failure mode this whole board exists
+   to avoid, so it is enforced at the snapshot level too, not just per row. */
+const MAX_SNAPSHOT_AGE_MIN = 180;
+const W = { etf:0.40, spot:0.25, leverage:0.35 };   // weights renormalise over live inputs only
+
+const S = { snapshot:null, price:null, prev:null, ticks:[], stale:false, ageMin:null };
 const $=id=>document.getElementById(id);
 const now=()=>new Date();
 const hhmmss=d=>d.toTimeString().slice(0,8);
@@ -333,100 +339,87 @@ function setChip(id,st,tx){const c=$(id);c.className='chip '+st;c.textContent=tx
 function light(score,invert=false){if(score==null)return{e:'⚪',c:'var(--dimmer)'};const s=invert?100-score:score;return s>=65?{e:'🟢',c:'var(--green)'}:s>=40?{e:'🟡',c:'var(--amber)'}:{e:'🔴',c:'var(--red)'}}
 function scoreClass(s){return s==null?'n':s>=65?'g':s>=40?'a':'r'}
 
-function snapshotAgeMinutes(d){
-  return (Date.now()-Date.parse(d?.generated_at))/60000;
-}
-
-function snapshotTime(d){
-  const t=Date.parse(d?.generated_at);
-  return Number.isFinite(t)?t:-Infinity;
-}
-
-async function fetchSnapshot(url,label){
-  const sep=url.includes('?')?'&':'?';
-  const r=await fetch(url+sep+'v='+Date.now(),{cache:'no-store'});
-  if(!r.ok) throw new Error(label+' HTTP '+r.status);
-  const d=await r.json();
-  if(!Number.isFinite(snapshotTime(d))) throw new Error(label+' invalid generated_at');
-  return {d,label};
-}
-
 async function loadSnapshot(){
-  const results=await Promise.allSettled([
-    fetchSnapshot(REPO_SNAPSHOT_RAW,'GitHub repository'),
-    fetchSnapshot('../data/btc-market.json','GitHub Pages')
-  ]);
-
-  const good=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
-  results.filter(r=>r.status==='rejected').forEach(r=>log('snapshot source failed: '+r.reason.message,true));
-
-  if(!good.length){
-    if(S.snapshot){
-      renderSnapshot();
-      log('snapshot refresh failed; previous snapshot retained',true);
-      return;
-    }
+  try{
+    const r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    S.snapshot=d;
+    renderSnapshot();
+    log('snapshot loaded · '+new Date(d.generated_at).toLocaleString());
+  }catch(e){
+    log('snapshot failed: '+e.message,true);
     $('snapshotAge').textContent='snapshot unavailable';
-    return;
   }
-
-  good.sort((a,b)=>snapshotTime(b.d)-snapshotTime(a.d));
-  let {d, label:source}=good[0];
-
-  if(good.length>1){
-    const newest=snapshotTime(good[0].d), older=snapshotTime(good[1].d);
-    if(newest>older){
-      const lag=Math.round((newest-older)/60000);
-      log('snapshot source mismatch · using '+source+' · other source '+lag+'m older');
-    }
-  }
-
-  if(S.snapshot && snapshotTime(S.snapshot)>snapshotTime(d)){
-    d=S.snapshot;
-    source='fresher snapshot retained';
-  }
-
-  S.snapshot=d;
-  renderSnapshot();
-  log('snapshot loaded ('+source+') · '+new Date(d.generated_at).toLocaleString());
 }
 
 function renderSnapshot(){
   const d=S.snapshot;if(!d)return;
-  const snapshotMinutes=(Date.now()-Date.parse(d.generated_at))/60000;
-  const snapshotTooOld=!Number.isFinite(snapshotMinutes)||snapshotMinutes>SNAPSHOT_MAX_MINUTES;
-  const snapshotDelayed=Number.isFinite(snapshotMinutes)&&snapshotMinutes>SNAPSHOT_WARN_MINUTES;
-  const etf=d.etf||{}, spot=d.spot||{}, ag=d.derivatives?.aggregate||{}, venues=ag.venues||[];
-  const etf5=etf.flow_5d_usd;
-  const prem=spot.us_spot_premium_percent ?? spot.coinbase_premium_percent;
-  const fund=ag.funding_rate_percent;
-  const etfScore=snapshotTooOld||etf5==null?null:interp(etf5,A.etf5d);
-  const spotScore=snapshotTooOld||prem==null?null:interp(prem,A.premium);
-  const levHealth=snapshotTooOld||fund==null||ag.venue_count<2?null:interp(Math.abs(fund),A.funding);
-  const demand=(etfScore!=null&&spotScore!=null)?etfScore*.65+spotScore*.35:null;
 
-  $('snapshotAge').textContent=(snapshotTooOld?'STALE · ':snapshotDelayed?'DELAYED · ':'snapshot ')+new Date(d.generated_at).toLocaleString();
+  const ageMin=(Date.now()-Date.parse(d.generated_at))/60000;
+  S.ageMin=ageMin;
+  S.stale=!(ageMin<MAX_SNAPSHOT_AGE_MIN);
+  const bn=$('staleBanner');
+  if(S.stale){
+    bn.style.display='block';
+    bn.textContent=`Snapshot is ${(ageMin/60).toFixed(1)} hours old (limit ${MAX_SNAPSHOT_AGE_MIN/60}h). `
+      +`The collector has not run successfully since ${new Date(d.generated_at).toLocaleString()}. `
+      +`Scores are withheld — the figures below are last-known values, not current readings.`;
+  } else bn.style.display='none';
+  const etf=d.etf||{}, spot=d.spot||{}, ag=d.derivatives?.aggregate||{}, venues=ag.venues||[];
+  const rejectedNote=d.sources?.plausibility_rejected
+    ? `rejected as implausible: ${d.sources.plausibility_rejected}` : '';
+  const etf5=etf.flow_5d_usd;
+  /* Only the peg-adjusted premium is scored. The raw figure contains Tether drift of the
+     same magnitude as the signal, so it is displayed for transparency and never scored. */
+  const prem=spot.us_spot_premium_percent ?? null;
+  const premRaw=spot.us_spot_premium_percent_raw ?? null;
+  const fund=ag.funding_rate_percent;
+  const etfScore=(S.stale||etf5==null)?null:interp(etf5,A.etf5d);
+  const spotScore=(S.stale||prem==null)?null:interp(prem,A.premium);
+  const levHealth=(S.stale||fund==null||!(ag.venue_count>=2))?null:interp(Math.abs(fund),A.funding);
+  /* Weighted over whatever is actually live, with the coverage reported. A number
+     built on one of three inputs is not the same claim as one built on three. */
+  const parts=[{s:etfScore,w:W.etf},{s:spotScore,w:W.spot},{s:levHealth,w:W.leverage}];
+  const live=parts.filter(p=>p.s!=null);
+  const wsum=live.reduce((a,p)=>a+p.w,0);
+  const coverage=wsum/parts.reduce((a,p)=>a+p.w,0);
+  const demand=(!S.stale && wsum>0 && coverage>=0.6)
+    ? live.reduce((a,p)=>a+p.s*p.w,0)/wsum : null;
+
+  $('snapshotAge').textContent='snapshot '+new Date(d.generated_at).toLocaleString();
   $('asof').textContent=new Date(d.generated_at).toLocaleString();
 
   $('v-etf').textContent=usd(etf5); $('v-etf').classList.toggle('stale',etf5==null);
-  $('b-etf').innerHTML=etf5==null?'No ETF data':`latest <b>${etf.latest_date||'—'}</b> · ${etf.row_count||'—'} rows`;
+  const xc=etf.cross_check||{};
+  const xcTxt = xc.agreement==='agree' ? `<span style="color:var(--green)">confirmed by ${xc.second_source}</span>`
+    : xc.agreement==='minor_divergence' ? `<span style="color:var(--amber)">${xc.second_source} differs ${xc.divergence_percent}%</span>`
+    : xc.agreement==='material_divergence' ? `<span style="color:var(--red)">${xc.second_source} differs ${xc.divergence_percent}% — treat as unreliable</span>`
+    : `<span style="color:var(--dimmer)">single source, unconfirmed</span>`;
+  $('b-etf').innerHTML=etf5==null?'No ETF data'
+    :`latest <b>${etf.latest_date||'—'}</b> · ${etf.row_count||'—'} rows · spans ${etf.flow_5d_span_days??'—'}d<br>${xcTxt}`;
+  $('etfsrc').textContent=etf.source||'ETF source';
   setChip('s-etf',scoreClass(etfScore),etfScore==null?'no data':Math.round(etfScore)+'/100');
   $('t-etf').textContent=etf.latest_date||'—';
 
   $('v-prem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%'; $('v-prem').classList.toggle('stale',prem==null);
-  $('b-prem').innerHTML=`Coinbase <b>${spot.coinbase_usd?('$'+Number(spot.coinbase_usd).toLocaleString()):'—'}</b> · Kraken <b>${spot.kraken_usd?('$'+Number(spot.kraken_usd).toLocaleString()):'—'}</b> · OKX <b>${spot.okx_usdt?('$'+Number(spot.okx_usdt).toLocaleString()):'—'}</b>`;
+  $('b-prem').innerHTML=`Coinbase <b>${spot.coinbase_usd?('$'+Number(spot.coinbase_usd).toLocaleString()):'—'}</b> · Kraken <b>${spot.kraken_usd?('$'+Number(spot.kraken_usd).toLocaleString()):'—'}</b> · OKX <b>${spot.okx_usdt?('$'+Number(spot.okx_usdt).toLocaleString()):'—'}</b>`
+    + (premRaw!=null?`<br>raw <b>${premRaw>=0?'+':''}${premRaw.toFixed(3)}%</b>`:'')
+    + (spot.peg_adjustment_percent!=null?` · Tether drift removed <b>${spot.peg_adjustment_percent>=0?'+':''}${spot.peg_adjustment_percent.toFixed(3)}%</b>`:'')
+    + (prem==null&&premRaw!=null?` <span style="color:var(--red)">· unadjusted, not scored</span>`:'');
   setChip('s-prem',scoreClass(spotScore),spotScore==null?'no data':Math.round(spotScore)+'/100');
   $('t-prem').textContent=hhmmss(new Date(d.generated_at));
 
-  const displayOi=ag.core_comparable_oi_usd ?? ag.oi_usd;
-  $('v-oi').textContent=usd(displayOi); $('v-oi').classList.toggle('stale',!displayOi);
-  $('b-oi').innerHTML=venues.length?venues.map(v=>`<b>${v}</b>`).join(' · ')+(ag.core_comparable_status==='ok'?' · <b>fixed core complete</b>':' · core set incomplete'):'No working futures venues';
+  $('v-oi').textContent=usd(ag.oi_usd); $('v-oi').classList.toggle('stale',!ag.oi_usd);
+  $('b-oi').innerHTML=(venues.length?venues.map(v=>`<b>${v}</b>`).join(' · '):'No working futures venues')
+    + (ag.venue_set?`<br><span style="color:var(--dimmer)">venue set <b>${ag.venue_set}</b> — compare OI only within the same set</span>`:'')
+    + (rejectedNote?`<br><span style="color:var(--red)">${rejectedNote}</span>`:'');
   setChip('s-oi',venues.length>=2?'g':'n',venues.length?venues.length+' venues':'no data');
   $('oisrc').textContent=venues.join(' · ')||'working venues';
   $('t-oi').textContent=hhmmss(new Date(d.generated_at));
 
   $('v-fund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%'; $('v-fund').classList.toggle('stale',fund==null);
-  $('b-fund').textContent=ag.funding_venues?.length?`weighted across ${ag.funding_venues.length} comparable funding venues: ${ag.funding_venues.join(', ')}`:'No comparable funding data';
+  $('b-fund').textContent=venues.length?`weighted across ${venues.length} working venues`:'No funding data';
   setChip('s-fund',scoreClass(levHealth),levHealth==null?'no data':levHealth>=65?'normal':levHealth>=40?'elevated':'crowded');
   $('t-fund').textContent=hhmmss(new Date(d.generated_at));
 
@@ -443,8 +436,14 @@ function renderSnapshot(){
   const src=d.sources||{};
   const names=['sosovalue','spot','kraken_spot','kraken_futures','okx','deribit','bitmex','hyperliquid'];
   $('b-health').innerHTML=names.map(n=>`<span class="source-pill ${String(src[n]||'').startsWith('ok')?'ok':String(src[n]||'').startsWith('error')?'err':''}">${n}: ${src[n]||'—'}</span>`).join('');
-  setChip('s-health',snapshotTooOld?'r':snapshotDelayed?'a':'g',snapshotTooOld?'stale':snapshotDelayed?'delayed':'snapshot');
+  setChip('s-health','g','snapshot');
   $('t-health').textContent=hhmmss(new Date(d.generated_at));
+
+  $('formula').textContent = S.stale
+    ? `Scores withheld: snapshot ${(S.ageMin/60).toFixed(1)}h old.`
+    : demand==null
+      ? `Only ${Math.round(coverage*100)}% of inputs are live (60% needed). ETF ${etfScore==null?'off':'on'} · spot ${spotScore==null?'off':'on'} · leverage ${levHealth==null?'off':'on'}.`
+      : `${Math.round(W.etf*100)}% ETF + ${Math.round(W.spot*100)}% U.S. spot + ${Math.round(W.leverage*100)}% leverage health, renormalised over ${Math.round(coverage*100)}% live coverage. NOT a supply-squeeze score.`;
 
   const state=demand==null?'unknown':demand>=68?'strong':demand>=40?'mixed':'weak';
   $('demandNum').innerHTML=demand==null?'—<span>/100</span>':Math.round(demand)+'<span>/100</span>';
@@ -454,15 +453,17 @@ function renderSnapshot(){
     ?'ETF demand is strong. U.S. spot demand is softer. Supply squeeze remains unconfirmed because exchange BTC supply is unknown.'
     :state==='mixed'?'Real-demand signals are mixed. Exchange BTC supply is still unknown.'
     :state==='weak'?'Measured real-demand signals are weak. Exchange BTC supply is still unknown.'
-    :'Not enough fresh data.';
+    :(S.stale?'The snapshot is stale. Nothing here is a current reading.':'Not enough live inputs to score.');
 
   drawGauge(demand);
 
-  const staleSuffix=snapshotTooOld?' · STALE SNAPSHOT — scoring disabled':snapshotDelayed?' · DELAYED DATA — scores still active':'';
   const boardRows=[
-    {n:'ETF / institutional spot demand',sc:etfScore,note:etf5==null?'no ETF data':`5-session net ${usd(etf5)} · latest ${etf.latest_date||'—'}${staleSuffix}`,inv:false},
-    {n:'U.S. spot-demand proxy',sc:spotScore,note:prem==null?'no premium data':`Coinbase + Kraken vs USDT-normalized OKX ${prem>=0?'+':''}${prem.toFixed(3)}%${staleSuffix}`,inv:false},
-    {n:'Leverage health',sc:levHealth,note:fund==null?'no funding data':`funding ${fund.toFixed(4)}% · ${ag.funding_venue_count||0} comparable funding venues${staleSuffix}`,inv:false},
+    {n:'ETF / institutional spot demand',sc:etfScore,note:etf5==null?'no ETF data':`5-day net ${usd(etf5)} · latest ${etf.latest_date||'—'}`,inv:false},
+    {n:'U.S. spot-demand proxy',sc:spotScore,
+      note:prem!=null?`Coinbase + Kraken vs OKX ${prem>=0?'+':''}${prem.toFixed(3)}% (Tether drift removed)`
+        :premRaw!=null?`raw ${premRaw>=0?'+':''}${premRaw.toFixed(3)}% — unscored, Tether peg quote unavailable`
+        :'no premium data',inv:false},
+    {n:'Leverage health',sc:levHealth,note:fund==null?'no funding data':`funding ${fund.toFixed(4)}% · ${venues.length} venues`,inv:false},
     {n:'Exchange BTC supply',sc:null,note:'UNKNOWN · no verified free automated all-exchange balance feed',inv:false},
     {n:'Supply-squeeze confirmation',sc:null,note:'INCOMPLETE · exchange-supply confirmation missing',inv:false,total:true}
   ];
@@ -470,7 +471,7 @@ function renderSnapshot(){
     'ETF / institutional spot demand':
       '<strong>What it means:</strong> Are big investors buying Bitcoin? More money flowing into spot Bitcoin ETFs generally means stronger institutional demand.',
     'U.S. spot-demand proxy':
-      '<strong>What it means:</strong> Are U.S. buyers more aggressive? Coinbase + Kraken are compared with USDT-normalized OKX. A positive premium suggests stronger U.S./USD buying pressure; near zero or negative means demand is less urgent.',
+      '<strong>What it means:</strong> Are U.S. buyers more aggressive? Coinbase + Kraken are compared with OKX. A positive premium suggests stronger U.S./USD buying pressure; near zero or negative means demand is less urgent.',
     'Leverage health':
       '<strong>What it means:</strong> Is the move relying too much on borrowed money? A high score means leverage looks relatively normal. A low score means futures trading is crowded and more vulnerable to forced liquidations.',
     'Exchange BTC supply':
