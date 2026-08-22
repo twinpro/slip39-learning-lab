@@ -320,7 +320,17 @@ const A = {
   funding: [[0,100],[0.01,80],[0.02,60],[0.05,20],[0.10,0]]
 };
 
-const S = { snapshot:null, price:null, prev:null, ticks:[] };
+const S = { snapshot:null, price:null, prev:null, ticks:[], trustedClock:null };
+function setTrustedClock(value,source){
+  const ms=typeof value==='number'?value:Date.parse(value);
+  if(!Number.isFinite(ms))return false;
+  S.trustedClock={serverMs:ms,perfMs:performance.now(),source};
+  return true;
+}
+function trustedNowMs(){
+  if(S.trustedClock)return S.trustedClock.serverMs+(performance.now()-S.trustedClock.perfMs);
+  return Date.now();
+}
 const $=id=>document.getElementById(id);
 const now=()=>new Date();
 const hhmmss=d=>d.toTimeString().slice(0,8);
@@ -336,6 +346,8 @@ async function loadSnapshot(){
   try{
     const r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});
     if(!r.ok) throw new Error('HTTP '+r.status);
+    const httpDate=r.headers.get('date');
+    if(httpDate)setTrustedClock(httpDate,'GitHub Pages HTTP');
     const d=await r.json();
     S.snapshot=d;
     renderSnapshot();
@@ -348,7 +360,7 @@ async function loadSnapshot(){
 
 function renderSnapshot(){
   const d=S.snapshot;if(!d)return;
-  const snapshotMinutes=(Date.now()-Date.parse(d.generated_at))/60000;
+  const snapshotMinutes=(trustedNowMs()-Date.parse(d.generated_at))/60000;
   const snapshotTooOld=!Number.isFinite(snapshotMinutes)||snapshotMinutes>SNAPSHOT_MAX_MINUTES;
   const snapshotDelayed=Number.isFinite(snapshotMinutes)&&snapshotMinutes>SNAPSHOT_WARN_MINUTES;
   const etf=d.etf||{}, spot=d.spot||{}, ag=d.derivatives?.aggregate||{}, venues=ag.venues||[];
@@ -466,7 +478,10 @@ function connectPrice(){
   function go(){
     try{ws=new WebSocket('wss://ws-feed.exchange.coinbase.com')}catch(e){log('price socket refused: '+e.message,true);return}
     ws.onopen=()=>{retry=0;$('wsdot').className='dot on';$('wstext').textContent='Coinbase ticker live';ws.send(JSON.stringify({type:'subscribe',product_ids:['BTC-USD'],channels:['ticker']}));log('price stream open');};
-    ws.onmessage=ev=>{const m=JSON.parse(ev.data);if(m.type!=='ticker'||!m.price)return;S.prev=S.price;S.price=parseFloat(m.price);S.ticks.push(S.price);if(S.ticks.length>300)S.ticks.shift();paintPrice();};
+    ws.onmessage=ev=>{const m=JSON.parse(ev.data);if(m.type!=='ticker'||!m.price)return;
+      const wasCoinbase=S.trustedClock?.source==='Coinbase ticker';
+      if(m.time&&!wasCoinbase&&setTrustedClock(m.time,'Coinbase ticker')&&S.snapshot)renderSnapshot();
+      S.prev=S.price;S.price=parseFloat(m.price);S.ticks.push(S.price);if(S.ticks.length>300)S.ticks.shift();paintPrice();};
     ws.onerror=()=>log('price stream error',true);
     ws.onclose=()=>{$('wsdot').className='dot off';$('wstext').textContent='price stream down';const wait=Math.min(30000,1000*Math.pow(2,retry++));setTimeout(go,wait);};
   }
