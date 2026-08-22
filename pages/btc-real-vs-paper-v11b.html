@@ -170,6 +170,11 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   .row-explain{margin:-2px 18px 13px 52px;font-size:13px;line-height:1.5}
 }
 
+
+.header-btc-live{font-family:var(--mono);text-align:right;margin-left:auto}
+.header-btc-price{font-size:16px;font-weight:600;color:var(--green);white-space:nowrap}
+.header-btc-time{font-size:10px;color:var(--dim);margin-top:4px;white-space:nowrap}
+@media(max-width:760px){.header-btc-live{margin-left:auto;text-align:right}}
 </style>
 </head>
 <body>
@@ -177,7 +182,11 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 
 <header>
   <div><h1>BITCOIN — REAL <em>VS</em> PAPER</h1><div class="public-subtitle">Is Bitcoin demand coming from real buyers or leveraged trading?</div></div>
-  <div class="hdr-meta">
+  <div class="header-btc-live">
+    <div class="header-btc-price" id="headerBtcPrice">BTC — · LIVE</div>
+    <div class="header-btc-time" id="headerDateTime">—</div>
+  </div>
+  <div class="hdr-meta" style="display:none">
     <span><span class="dot" id="wsdot"></span><span id="wstext">connecting live price</span></span>
     <span id="snapshotAge">snapshot —</span>
     <span id="clock">—</span>
@@ -295,15 +304,15 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 </div>
 
 <footer>
-  Bitcoin Real vs Paper · Live Demand Dashboard. ETF + derivatives + spot snapshot refresh = GitHub Actions scheduled about every 15 minutes; free-runner timing can drift. This page re-reads the snapshot every 60 seconds.
+  Bitcoin Real vs Paper · Live Demand Dashboard. ETF + derivatives + spot snapshot refresh = GitHub Actions is scheduled four times per hour; free-runner timing can drift or skip runs. This page re-reads the snapshot every 60 seconds.
   Coinbase BTC-USD price streams live in the browser. Kraken public spot/futures data is collected server-side in the snapshot when reachable.
   Exchange BTC supply remains unknown and unscored. Not investment advice.
 </footer>
 </div>
 
 <script>
-const SNAPSHOT_WARN_MINUTES = 45;
-const SNAPSHOT_MAX_MINUTES = 120;
+const SNAPSHOT_WARN_MINUTES = 60;
+const SNAPSHOT_MAX_MINUTES = 180;
 
 const A = {
   etf5d: [[-1e9,0],[0,50],[5e8,75],[1e9,90],[2e9,100]],
@@ -341,7 +350,7 @@ function renderSnapshot(){
   const d=S.snapshot;if(!d)return;
   const snapshotMinutes=(Date.now()-Date.parse(d.generated_at))/60000;
   const snapshotTooOld=!Number.isFinite(snapshotMinutes)||snapshotMinutes>SNAPSHOT_MAX_MINUTES;
-  const snapshotWarn=Number.isFinite(snapshotMinutes)&&snapshotMinutes>SNAPSHOT_WARN_MINUTES;
+  const snapshotDelayed=Number.isFinite(snapshotMinutes)&&snapshotMinutes>SNAPSHOT_WARN_MINUTES;
   const etf=d.etf||{}, spot=d.spot||{}, ag=d.derivatives?.aggregate||{}, venues=ag.venues||[];
   const etf5=etf.flow_5d_usd;
   const prem=spot.us_spot_premium_percent ?? spot.coinbase_premium_percent;
@@ -351,7 +360,7 @@ function renderSnapshot(){
   const levHealth=snapshotTooOld||fund==null||ag.venue_count<2?null:interp(Math.abs(fund),A.funding);
   const demand=(etfScore!=null&&spotScore!=null)?etfScore*.65+spotScore*.35:null;
 
-  $('snapshotAge').textContent=(snapshotTooOld?'STALE · ':snapshotWarn?'AGING · ':'snapshot ')+new Date(d.generated_at).toLocaleString();
+  $('snapshotAge').textContent=(snapshotTooOld?'STALE · ':snapshotDelayed?'DELAYED · ':'snapshot ')+new Date(d.generated_at).toLocaleString();
   $('asof').textContent=new Date(d.generated_at).toLocaleString();
 
   $('v-etf').textContent=usd(etf5); $('v-etf').classList.toggle('stale',etf5==null);
@@ -389,7 +398,7 @@ function renderSnapshot(){
   const src=d.sources||{};
   const names=['sosovalue','spot','kraken_spot','kraken_futures','okx','deribit','bitmex','hyperliquid'];
   $('b-health').innerHTML=names.map(n=>`<span class="source-pill ${String(src[n]||'').startsWith('ok')?'ok':String(src[n]||'').startsWith('error')?'err':''}">${n}: ${src[n]||'—'}</span>`).join('');
-  setChip('s-health',snapshotTooOld?'r':snapshotWarn?'a':'g',snapshotTooOld?'stale':snapshotWarn?'aging':'snapshot');
+  setChip('s-health',snapshotTooOld?'r':snapshotDelayed?'a':'g',snapshotTooOld?'stale':snapshotDelayed?'delayed':'snapshot');
   $('t-health').textContent=hhmmss(new Date(d.generated_at));
 
   const state=demand==null?'unknown':demand>=68?'strong':demand>=40?'mixed':'weak';
@@ -404,7 +413,7 @@ function renderSnapshot(){
 
   drawGauge(demand);
 
-  const staleSuffix=snapshotTooOld?' · STALE SNAPSHOT — scoring disabled':snapshotWarn?' · snapshot aging':'';
+  const staleSuffix=snapshotTooOld?' · STALE SNAPSHOT — scoring disabled':snapshotDelayed?' · DELAYED DATA — scores still active':'';
   const boardRows=[
     {n:'ETF / institutional spot demand',sc:etfScore,note:etf5==null?'no ETF data':`5-session net ${usd(etf5)} · latest ${etf.latest_date||'—'}${staleSuffix}`,inv:false},
     {n:'U.S. spot-demand proxy',sc:spotScore,note:prem==null?'no premium data':`Coinbase + Kraken vs USDT-normalized OKX ${prem>=0?'+':''}${prem.toFixed(3)}%${staleSuffix}`,inv:false},
@@ -466,6 +475,7 @@ function connectPrice(){
 
 function paintPrice(){
   const el=$('px');el.textContent='$'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  $('headerBtcPrice').textContent='BTC $'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' · LIVE';
   el.classList.remove('up','dn');if(S.prev!=null)el.classList.add(S.price>=S.prev?'up':'dn');
   $('pxsub').textContent=S.ticks.length+' ticks · last '+hhmmss(now());drawSpark();
 }
@@ -482,7 +492,11 @@ function drawSpark(){
 loadSnapshot();
 setInterval(loadSnapshot,60000);
 connectPrice();
-setInterval(()=>$('clock').textContent=hhmmss(now())+' local',1000);
+setInterval(()=>{
+  $('clock').textContent=hhmmss(now())+' local';
+  $('headerDateTime').textContent=now().toLocaleString('en-US');
+},1000);
+$('headerDateTime').textContent=now().toLocaleString('en-US');
 addEventListener('resize',()=>{drawSpark();if(S.snapshot)renderSnapshot();});
 drawGauge(null);
 log('Bitcoin Real vs Paper opened · live demand dashboard');
