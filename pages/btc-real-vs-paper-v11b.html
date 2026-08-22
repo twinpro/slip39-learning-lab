@@ -130,6 +130,8 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 .unknown-note{color:var(--dimmer);font-family:var(--mono);font-size:10px;line-height:1.5}
 .source-pill{display:inline-block;border:1px solid var(--rule);padding:2px 6px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:9px;color:var(--dim)}
 .source-pill.ok{color:var(--green)} .source-pill.err{color:var(--red)}
+.trusted-time-note{margin-top:8px;font-family:var(--mono);font-size:9.5px;color:var(--dimmer);line-height:1.5}
+@media (min-width:820px) and (max-width:1082px){.sq-card{grid-column:span 2}}
 
 /* ===== V11-B education layer ===== */
 .learn{margin-top:14px;border:1px solid var(--rule);background:var(--panel)}
@@ -250,9 +252,9 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   </div>
 
   <div class="card">
-    <div class="card-hd"><span class="card-label">Partial futures OI</span><span class="chip n" id="s-oi">no data</span></div>
+    <div class="card-hd"><span class="card-label">Futures OI · 5 core venues</span><span class="chip n" id="s-oi">no data</span></div>
     <div class="card-val stale" id="v-oi">—</div>
-    <div class="card-unit">USD notional across working free venues</div>
+    <div class="card-unit">USD notional across the fixed five-venue core when complete</div>
     <div class="breakdown" id="b-oi">Never labeled global OI.</div>
     <div class="card-ft"><span id="oisrc">working venues</span><span id="t-oi">—</span></div>
   </div>
@@ -287,7 +289,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
     <div class="card-ft"><span>GitHub Actions</span><span id="t-health">—</span></div>
   </div>
 
-  <div class="card">
+  <div class="card sq-card">
     <div class="card-hd"><span class="card-label">Supply-squeeze confirmation</span><span class="chip n" id="s-sq">incomplete</span></div>
     <div class="card-val stale" id="v-sq">INCOMPLETE</div>
     <div class="card-unit">Exchange supply is a required confirmation input</div>
@@ -341,6 +343,14 @@ function interp(x,pts){if(x==null||!isFinite(x))return null;if(x<=pts[0][0])retu
 function setChip(id,st,tx){const c=$(id);c.className='chip '+st;c.textContent=tx;}
 function light(score,invert=false){if(score==null)return{e:'⚪',c:'var(--dimmer)'};const s=invert?100-score:score;return s>=65?{e:'🟢',c:'var(--green)'}:s>=40?{e:'🟡',c:'var(--amber)'}:{e:'🔴',c:'var(--red)'}}
 function scoreClass(s){return s==null?'n':s>=65?'g':s>=40?'a':'r'}
+function ageText(minutes){
+  if(!Number.isFinite(minutes))return 'unknown';
+  const m=Math.max(0,Math.round(minutes));
+  if(m<60)return m+'m';
+  const h=Math.floor(m/60),r=m%60;
+  return r?h+'h '+r+'m':h+'h';
+}
+function trustedClockSource(){return S.trustedClock?.source||'device clock fallback'}
 
 async function loadSnapshot(){
   try{
@@ -409,8 +419,10 @@ function renderSnapshot(){
 
   const src=d.sources||{};
   const names=['sosovalue','spot','kraken_spot','kraken_futures','okx','deribit','bitmex','hyperliquid'];
-  $('b-health').innerHTML=names.map(n=>`<span class="source-pill ${String(src[n]||'').startsWith('ok')?'ok':String(src[n]||'').startsWith('error')?'err':''}">${n}: ${src[n]||'—'}</span>`).join('');
-  setChip('s-health',snapshotTooOld?'r':snapshotDelayed?'a':'g',snapshotTooOld?'stale':snapshotDelayed?'delayed':'snapshot');
+  $('b-health').innerHTML=names.map(n=>`<span class="source-pill ${String(src[n]||'').startsWith('ok')?'ok':String(src[n]||'').startsWith('error')?'err':''}">${n}: ${src[n]||'—'}</span>`).join('')+
+    `<div class="trusted-time-note">Freshness clock: ${trustedClockSource()}</div>`;
+  const healthAge=ageText(snapshotMinutes);
+  setChip('s-health',snapshotTooOld?'r':snapshotDelayed?'a':'g',snapshotTooOld?`stale · ${healthAge}`:snapshotDelayed?`delayed · ${healthAge}`:`fresh · ${healthAge}`);
   $('t-health').textContent=hhmmss(new Date(d.generated_at));
 
   const state=demand==null?'unknown':demand>=68?'strong':demand>=40?'mixed':'weak';
