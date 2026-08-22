@@ -313,9 +313,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 <script>
 const SNAPSHOT_WARN_MINUTES = 60;
 const SNAPSHOT_MAX_MINUTES = 180;
-const REPO_SNAPSHOT_API = 'https://api.github.com/repos/twinpro/slip39-learning-lab/contents/data/btc-market.json?ref=main';
-const REPO_FALLBACK_COOLDOWN_MS = 5 * 60 * 1000;
-let lastRepoFallbackAt = 0;
+const REPO_SNAPSHOT_RAW = 'https://raw.githubusercontent.com/twinpro/slip39-learning-lab/main/data/btc-market.json';
 
 const A = {
   etf5d: [[-1e9,0],[0,50],[5e8,75],[1e9,90],[2e9,100]],
@@ -344,51 +342,53 @@ function snapshotTime(d){
   return Number.isFinite(t)?t:-Infinity;
 }
 
-async function loadRepoSnapshot(){
-  const sep=REPO_SNAPSHOT_API.includes('?')?'&':'?';
-  const r=await fetch(REPO_SNAPSHOT_API+sep+'v='+Date.now(),{cache:'no-store'});
-  if(!r.ok) throw new Error('GitHub API HTTP '+r.status);
-  const j=await r.json();
-  if(j?.encoding!=='base64'||!j?.content) throw new Error('GitHub API file content unavailable');
-  const bytes=Uint8Array.from(atob(j.content.replace(/\s/g,'')),c=>c.charCodeAt(0));
-  return JSON.parse(new TextDecoder().decode(bytes));
+async function fetchSnapshot(url,label){
+  const sep=url.includes('?')?'&':'?';
+  const r=await fetch(url+sep+'v='+Date.now(),{cache:'no-store'});
+  if(!r.ok) throw new Error(label+' HTTP '+r.status);
+  const d=await r.json();
+  if(!Number.isFinite(snapshotTime(d))) throw new Error(label+' invalid generated_at');
+  return {d,label};
 }
 
 async function loadSnapshot(){
-  try{
-    const r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const pageSnapshot=await r.json();
-    let d=pageSnapshot;
-    let source='GitHub Pages';
-    const pageAge=snapshotAgeMinutes(pageSnapshot);
+  const results=await Promise.allSettled([
+    fetchSnapshot(REPO_SNAPSHOT_RAW,'GitHub repository'),
+    fetchSnapshot('../data/btc-market.json','GitHub Pages')
+  ]);
 
-    if((!Number.isFinite(pageAge)||pageAge>SNAPSHOT_WARN_MINUTES) && Date.now()-lastRepoFallbackAt>=REPO_FALLBACK_COOLDOWN_MS){
-      lastRepoFallbackAt=Date.now();
-      try{
-        const repoSnapshot=await loadRepoSnapshot();
-        if(snapshotTime(repoSnapshot)>snapshotTime(d)){
-          d=repoSnapshot;
-          source='GitHub repository fallback';
-          log('Pages snapshot delayed; fresher repository snapshot loaded · '+new Date(d.generated_at).toLocaleString());
-        }
-      }catch(e){
-        log('repository fallback failed: '+e.message,true);
-      }
+  const good=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
+  results.filter(r=>r.status==='rejected').forEach(r=>log('snapshot source failed: '+r.reason.message,true));
+
+  if(!good.length){
+    if(S.snapshot){
+      renderSnapshot();
+      log('snapshot refresh failed; previous snapshot retained',true);
+      return;
     }
-
-    if(S.snapshot && snapshotTime(S.snapshot)>snapshotTime(d)){
-      d=S.snapshot;
-      source='fresher snapshot retained';
-    }
-
-    S.snapshot=d;
-    renderSnapshot();
-    log('snapshot loaded ('+source+') · '+new Date(d.generated_at).toLocaleString());
-  }catch(e){
-    log('snapshot failed: '+e.message,true);
     $('snapshotAge').textContent='snapshot unavailable';
+    return;
   }
+
+  good.sort((a,b)=>snapshotTime(b.d)-snapshotTime(a.d));
+  let {d, label:source}=good[0];
+
+  if(good.length>1){
+    const newest=snapshotTime(good[0].d), older=snapshotTime(good[1].d);
+    if(newest>older){
+      const lag=Math.round((newest-older)/60000);
+      log('snapshot source mismatch · using '+source+' · other source '+lag+'m older');
+    }
+  }
+
+  if(S.snapshot && snapshotTime(S.snapshot)>snapshotTime(d)){
+    d=S.snapshot;
+    source='fresher snapshot retained';
+  }
+
+  S.snapshot=d;
+  renderSnapshot();
+  log('snapshot loaded ('+source+') · '+new Date(d.generated_at).toLocaleString());
 }
 
 function renderSnapshot(){
