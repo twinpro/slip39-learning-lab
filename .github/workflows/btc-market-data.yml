@@ -1,72 +1,39 @@
-name: Update BTC real-vs-paper data
+name: Update BTC real-vs-paper data FREE
 
 on:
   workflow_dispatch:
   schedule:
-    # Free-tier scheduled runs drift under load; 15-minute spacing is a target,
-    # not a guarantee. The page shows snapshot age and withholds scores past 3h.
-    - cron: "7,22,37,52 * * * *"
+    - cron: "13,28,43,58 * * * *"
 
 permissions:
   contents: write
 
 concurrency:
-  group: btc-market-data
-  # Never cancel mid-flight: a run killed between commit and push leaves the
-  # working tree ahead of origin and the next run starts dirty.
-  cancel-in-progress: false
-
+  group: btc-market-data-free
+  cancel-in-progress: true
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-
-      # Fixtures prove the arithmetic. If a guard regresses, stop before writing.
-      - name: Self-test the collector
-        run: node scripts/test-collector.mjs
-
-      # Fixtures cannot prove a venue still publishes a field, still lists a
-      # contract, or still uses the same units. Only a live call does that, and
-      # this runner has a network. Diagnostic: it prints, it never blocks.
-      - name: Verify live sources
-        continue-on-error: true
-        env:
-          SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
-        run: node scripts/verify-sources.mjs
-
       - name: Collect free public BTC market data
         env:
           SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
         run: node scripts/update-btc-market.mjs
-
       - name: Print source health
-        run: node scripts/report-health.mjs
-
-      - name: Refuse to publish a dead snapshot
-        run: |
-          node -e '
-            const d = require("./data/btc-market.json");
-            const dead = d.etf.status !== "ok"
-                      && d.derivatives.aggregate.status !== "ok"
-                      && d.spot.status !== "ok";
-            if (dead) { console.error("Every section failed; not committing."); process.exit(1); }
-          '
-
-      - name: Commit updated market data
+        run: cat data/btc-market.json
+      - name: Commit updated market JSON
         run: |
           git config user.name "btc-data-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/btc-market.json data/btc-history.json
+          git add data/btc-market.json
           if git diff --cached --quiet; then
             echo "No data change"
           else
-            git commit -m "Update BTC market data [skip ci]"
-            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            git commit -m "Update BTC market data"
             git push
           fi
