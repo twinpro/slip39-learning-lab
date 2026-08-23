@@ -177,6 +177,38 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 .header-btc-price{font-size:16px;font-weight:600;color:var(--green);white-space:nowrap}
 .header-btc-time{font-size:10px;color:var(--dim);margin-top:4px;white-space:nowrap}
 @media(max-width:760px){.header-btc-live{margin-left:auto;text-align:right}}
+
+
+/* ===== V12.2B historical trend ===== */
+.history{margin-top:14px;border:1px solid var(--rule);background:var(--panel)}
+.history-hd{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end;padding:14px 16px;border-bottom:1px solid var(--rule)}
+.history-title{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--bone);font-weight:600}
+.history-sub{font-family:var(--mono);font-size:10px;color:var(--dim);line-height:1.55;margin-top:5px}
+.history-ranges{display:flex;gap:6px;flex-wrap:wrap}
+.history-range{background:transparent;border:1px solid var(--rule);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:6px 10px;cursor:pointer}
+.history-range:hover{border-color:var(--amber);color:var(--amber)}
+.history-range.active{border-color:var(--green);color:var(--green);background:#0B1712}
+.history-controls{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px;padding:13px 16px 8px}
+.history-control{display:flex;flex-direction:column;gap:5px;min-width:min(100%,310px)}
+.history-control label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dimmer)}
+.history-select{background:var(--panel2);border:1px solid var(--rule);color:var(--bone);font-family:var(--mono);font-size:11px;padding:7px 30px 7px 9px;min-width:280px;max-width:100%}
+.history-select:focus{outline:1px solid var(--amber);outline-offset:1px}
+.history-stat{text-align:right;font-family:var(--mono)}
+.history-latest{font-size:22px;color:var(--bone);line-height:1}
+.history-change{font-size:10px;color:var(--dim);margin-top:6px}
+.history-chart-wrap{position:relative;padding:0 10px 4px;min-height:270px}
+#historyChart{width:100%;height:260px;display:block}
+.history-empty{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--dimmer);pointer-events:none}
+.history-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:7px;border-top:1px solid var(--rule);padding:10px 16px 8px;font-family:var(--mono);font-size:9.5px;color:var(--dim)}
+.history-status.partial{color:var(--amber)}
+.history-status.full{color:var(--green)}
+.history-status.error{color:var(--red)}
+.history-note{padding:0 16px 12px;font-family:var(--mono);font-size:9.5px;line-height:1.65;color:var(--dimmer)}
+@media(max-width:620px){
+  .history-controls{align-items:stretch}.history-control{width:100%}.history-select{width:100%;min-width:0}.history-stat{text-align:left}
+  #historyChart{height:230px}.history-chart-wrap{min-height:240px;padding-left:4px;padding-right:4px}
+}
+
 </style>
 </head>
 <body>
@@ -298,6 +330,48 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   </div>
 </section>
 
+
+
+<section class="history" id="historySection" aria-labelledby="historyTitle">
+  <div class="history-hd">
+    <div>
+      <div class="history-title" id="historyTitle">Historical trend</div>
+      <div class="history-sub">Verified hourly UTC snapshots · collection started with V12.2A · no historical backfill</div>
+    </div>
+    <div class="history-ranges" aria-label="Historical range">
+      <button class="history-range" type="button" data-days="7">7D</button>
+      <button class="history-range active" type="button" data-days="30">30D</button>
+      <button class="history-range" type="button" data-days="90">90D</button>
+    </div>
+  </div>
+  <div class="history-controls">
+    <div class="history-control">
+      <label for="histMetric">Metric</label>
+      <select class="history-select" id="histMetric">
+        <option value="demand">Real-Demand Evidence</option>
+        <option value="etf">ETF Demand Score</option>
+        <option value="premium">U.S. Spot Premium</option>
+        <option value="oi">Core Futures OI · 5 Venues</option>
+        <option value="funding">Weighted Funding</option>
+        <option value="leverage">Leverage Health</option>
+        <option value="btc">BTC Price · Coinbase Snapshot</option>
+      </select>
+    </div>
+    <div class="history-stat">
+      <div class="history-latest" id="historyLatest">—</div>
+      <div class="history-change" id="historyChange">waiting for history</div>
+    </div>
+  </div>
+  <div class="history-chart-wrap">
+    <canvas id="historyChart" aria-label="Historical Bitcoin market signal chart"></canvas>
+    <div class="history-empty" id="historyEmpty">Loading verified history…</div>
+  </div>
+  <div class="history-meta">
+    <span class="history-status partial" id="historyStatus">LOADING HISTORY</span>
+    <span id="historyCoverage">—</span>
+  </div>
+  <div class="history-note" id="historyNote">Missing hourly observations are shown as breaks, never interpolated. Core OI and funding plot only when the fixed five-venue set is comparable. Derived scores use the existing V12 anchors; leverage remains separate from Real-Demand Evidence.</div>
+</section>
 
 
 <div class="log">
@@ -516,8 +590,186 @@ function drawSpark(){
   x.fillStyle='#48585B';x.font='10px "IBM Plex Mono",monospace';x.fillText('$'+mx.toFixed(0),0,10);x.fillText('$'+mn.toFixed(0),0,h-1);
 }
 
+
+/* ===== V12.2B historical trend ===== */
+const HISTORY_SCHEMA = 1;
+const HISTORY_METHOD = 12;
+const HISTORY_HOUR_MS = 60*60*1000;
+const HISTORY_CORE = ['okx','deribit','bitmex','hyperliquid','kraken'];
+const H = { rows:[], rangeDays:30, metric:'demand', error:null, loadedAt:null };
+
+function sameVenueSet(list,expected=HISTORY_CORE){
+  if(!Array.isArray(list)||list.length!==expected.length)return false;
+  const a=[...list].map(String).sort(),b=[...expected].sort();
+  return a.every((v,i)=>v===b[i]);
+}
+function historyCoreComplete(r){
+  const d=r?.derivatives||{};
+  return d.core_comparable_status==='ok' &&
+    sameVenueSet(d.core_expected_venues) && sameVenueSet(d.core_working_venues) &&
+    Array.isArray(d.core_missing_venues) && d.core_missing_venues.length===0 &&
+    Number.isFinite(Number(d.core_comparable_oi_usd));
+}
+function historyFundingComplete(r){
+  const d=r?.derivatives||{};
+  return d.funding_comparable===true && d.funding_venue_count===5 &&
+    sameVenueSet(d.funding_venues) && Number.isFinite(Number(d.weighted_funding_percent));
+}
+function historyEtfScore(r){
+  const e=r?.etf||{};
+  if(e.status!=='ok'||!Number.isFinite(Number(e.flow_5_sessions_usd)))return null;
+  return interp(Number(e.flow_5_sessions_usd),A.etf5d);
+}
+function historySpotScore(r){
+  const s=r?.spot||{};
+  if(s.status!=='ok'||s.premium_status!=='usdt_normalized'||!Number.isFinite(Number(s.us_spot_premium_percent)))return null;
+  return interp(Number(s.us_spot_premium_percent),A.premium);
+}
+function historyLeverage(r){
+  if(!historyFundingComplete(r))return null;
+  return interp(Math.abs(Number(r.derivatives.weighted_funding_percent)),A.funding);
+}
+function historyValue(r,key){
+  if(!r||r.history_schema!==HISTORY_SCHEMA||r.methodology_version!==HISTORY_METHOD)return null;
+  if(key==='demand'){
+    const e=historyEtfScore(r),s=historySpotScore(r);
+    return e==null||s==null?null:e*.65+s*.35;
+  }
+  if(key==='etf')return historyEtfScore(r);
+  if(key==='premium'){
+    const s=r.spot||{};
+    return s.status==='ok'&&s.premium_status==='usdt_normalized'&&Number.isFinite(Number(s.us_spot_premium_percent))?Number(s.us_spot_premium_percent):null;
+  }
+  if(key==='oi')return historyCoreComplete(r)?Number(r.derivatives.core_comparable_oi_usd):null;
+  if(key==='funding')return historyFundingComplete(r)?Number(r.derivatives.weighted_funding_percent):null;
+  if(key==='leverage')return historyLeverage(r);
+  if(key==='btc')return Number.isFinite(Number(r.btc_price_usd))?Number(r.btc_price_usd):null;
+  return null;
+}
+const HISTORY_METRICS={
+  demand:{label:'Real-Demand Evidence',axis:v=>Math.round(v),value:v=>Math.round(v)+'/100',change:(a,b)=>((b-a)>=0?'+':'')+(b-a).toFixed(1)+' pts',fixed:[0,100]},
+  etf:{label:'ETF Demand Score',axis:v=>Math.round(v),value:v=>Math.round(v)+'/100',change:(a,b)=>((b-a)>=0?'+':'')+(b-a).toFixed(1)+' pts',fixed:[0,100]},
+  premium:{label:'U.S. Spot Premium',axis:v=>v.toFixed(3)+'%',value:v=>(v>=0?'+':'')+v.toFixed(4)+'%',change:(a,b)=>((b-a)>=0?'+':'')+(b-a).toFixed(4)+' pp',includeZero:true},
+  oi:{label:'Core Futures OI · 5 Venues',axis:v=>'$'+(v/1e9).toFixed(2)+'B',value:v=>usd(v),change:(a,b)=>a===0?'—':((b-a)>=0?'+':'')+((b-a)/a*100).toFixed(2)+'%'},
+  funding:{label:'Weighted Funding',axis:v=>v.toFixed(3)+'%',value:v=>(v>=0?'+':'')+v.toFixed(4)+'%',change:(a,b)=>((b-a)>=0?'+':'')+(b-a).toFixed(4)+' pp',includeZero:true},
+  leverage:{label:'Leverage Health',axis:v=>Math.round(v),value:v=>Math.round(v)+'/100',change:(a,b)=>((b-a)>=0?'+':'')+(b-a).toFixed(1)+' pts',fixed:[0,100]},
+  btc:{label:'BTC Price · Coinbase Snapshot',axis:v=>'$'+(v/1000).toFixed(1)+'K',value:v=>'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),change:(a,b)=>a===0?'—':((b-a)>=0?'+':'')+((b-a)/a*100).toFixed(2)+'%'}
+};
+
+function parseHistory(text){
+  const lines=String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const rows=[];let prev=-Infinity;const seen=new Set();
+  for(let i=0;i<lines.length;i++){
+    let r;try{r=JSON.parse(lines[i])}catch{throw new Error('malformed JSONL at line '+(i+1))}
+    if(r.history_schema!==HISTORY_SCHEMA)throw new Error('unsupported history schema at line '+(i+1));
+    if(r.methodology_version!==HISTORY_METHOD)throw new Error('unsupported methodology at line '+(i+1));
+    const t=Date.parse(r.bucket_utc),g=Date.parse(r.generated_at);
+    if(!Number.isFinite(t)||!Number.isFinite(g))throw new Error('invalid history timestamp at line '+(i+1));
+    const d=new Date(t);
+    if(d.getUTCMinutes()!==0||d.getUTCSeconds()!==0||d.getUTCMilliseconds()!==0)throw new Error('non-hourly bucket at line '+(i+1));
+    if(seen.has(t))throw new Error('duplicate UTC hour at line '+(i+1));
+    if(t<=prev)throw new Error('history not chronological at line '+(i+1));
+    seen.add(t);prev=t;rows.push(r);
+  }
+  return rows;
+}
+async function loadHistory(){
+  try{
+    const r=await fetch('../data/btc-market-history.jsonl?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    H.rows=parseHistory(await r.text());H.error=null;H.loadedAt=Date.now();
+    renderHistory();log('history loaded · '+H.rows.length+' verified hourly samples');
+  }catch(e){
+    H.rows=[];H.error=e.message;renderHistory();log('history failed: '+e.message,true);
+  }
+}
+function historyWindow(){
+  if(!H.rows.length)return{rows:[],partial:true,missing:0,slots:0,incomparable:0};
+  const latestT=Date.parse(H.rows.at(-1).bucket_utc),cutoff=latestT-H.rangeDays*24*HISTORY_HOUR_MS;
+  const rows=H.rows.filter(r=>Date.parse(r.bucket_utc)>=cutoff);
+  if(!rows.length)return{rows:[],partial:true,missing:0,slots:0,incomparable:0};
+  const firstT=Date.parse(rows[0].bucket_utc),partial=firstT>cutoff;
+  const slots=Math.round((latestT-firstT)/HISTORY_HOUR_MS)+1;
+  const missing=Math.max(0,slots-rows.length);
+  const incomparable=rows.reduce((n,r)=>n+(historyValue(r,H.metric)==null?1:0),0);
+  return{rows,partial,missing,slots,incomparable,latestT,firstT};
+}
+function historyScale(values,metric){
+  const cfg=HISTORY_METRICS[metric];
+  if(cfg.fixed)return cfg.fixed;
+  let mn=Math.min(...values),mx=Math.max(...values);
+  if(cfg.includeZero){mn=Math.min(mn,0);mx=Math.max(mx,0)}
+  if(mn===mx){const p=Math.abs(mn||1)*.06||1;mn-=p;mx+=p}
+  else{const p=(mx-mn)*.10;mn-=p;mx+=p}
+  return[mn,mx];
+}
+function historyTickLabel(t,span){
+  const d=new Date(t);
+  if(span>72*HISTORY_HOUR_MS)return d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
+  return (d.getUTCMonth()+1)+'/'+d.getUTCDate()+' '+String(d.getUTCHours()).padStart(2,'0')+'Z';
+}
+function drawHistory(){
+  const c=$('historyChart');if(!c)return;
+  const dpr=devicePixelRatio||1,w=Math.max(1,c.clientWidth),h=window.innerWidth<=620?230:260;
+  c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+  const view=historyWindow(),cfg=HISTORY_METRICS[H.metric],empty=$('historyEmpty');
+  if(H.error||!view.rows.length){empty.style.display='flex';empty.textContent=H.error?'History unavailable · '+H.error:'No verified historical samples yet.';return}
+  const pts=view.rows.map(r=>({t:Date.parse(r.bucket_utc),v:historyValue(r,H.metric)}));
+  const valid=pts.filter(p=>Number.isFinite(p.v));
+  if(!valid.length){empty.style.display='flex';empty.textContent='No comparable '+cfg.label+' observations in this window.';return}
+  empty.style.display='none';
+  const m={l:w<540?58:70,r:14,t:17,b:33},pw=Math.max(1,w-m.l-m.r),ph=Math.max(1,h-m.t-m.b);
+  const t0=pts[0].t,t1=pts.at(-1).t===t0?t0+HISTORY_HOUR_MS:pts.at(-1).t,span=t1-t0;
+  const [y0,y1]=historyScale(valid.map(p=>p.v),H.metric),yr=(y1-y0)||1;
+  const px=t=>m.l+(t-t0)/(t1-t0)*pw,py=v=>m.t+(1-(v-y0)/yr)*ph;
+  x.font='9px "IBM Plex Mono",monospace';x.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const yy=m.t+i/4*ph,val=y1-i/4*yr;x.strokeStyle='#1E2C30';x.beginPath();x.moveTo(m.l,yy+.5);x.lineTo(w-m.r,yy+.5);x.stroke();
+    x.fillStyle='#7A8A8C';const lab=String(cfg.axis(val));x.fillText(lab,Math.max(2,m.l-8-x.measureText(lab).width),yy+3);
+  }
+  for(let i=0;i<=4;i++){
+    const tt=t0+i/4*(t1-t0),xx=m.l+i/4*pw;x.strokeStyle='#152226';x.beginPath();x.moveTo(xx+.5,m.t);x.lineTo(xx+.5,m.t+ph);x.stroke();
+    x.fillStyle='#7A8A8C';const lab=historyTickLabel(tt,span),tw=x.measureText(lab).width;
+    const lx=i===0?xx:i===4?xx-tw:xx-tw/2;x.fillText(lab,Math.max(2,Math.min(w-tw-2,lx)),h-9);
+  }
+  if(y0<0&&y1>0){const yy=py(0);x.strokeStyle='#48585B';x.setLineDash([3,4]);x.beginPath();x.moveTo(m.l,yy);x.lineTo(w-m.r,yy);x.stroke();x.setLineDash([])}
+  let prev=null;
+  for(const p of pts){
+    if(!Number.isFinite(p.v)){prev=null;continue}
+    if(prev&&p.t-prev.t<=HISTORY_HOUR_MS*1.5){
+      x.strokeStyle='#E4E0D4';x.lineWidth=1.6;x.beginPath();x.moveTo(px(prev.t),py(prev.v));x.lineTo(px(p.t),py(p.v));x.stroke();
+    }
+    prev=p;
+  }
+  const last=valid.at(-1);x.fillStyle='#E4E0D4';x.beginPath();x.arc(px(last.t),py(last.v),3.1,0,Math.PI*2);x.fill();
+  x.strokeStyle='#1E2C30';x.strokeRect(m.l+.5,m.t+.5,pw-1,ph-1);
+}
+function renderHistory(){
+  const st=$('historyStatus'),cov=$('historyCoverage'),latest=$('historyLatest'),chg=$('historyChange');
+  if(H.error){st.className='history-status error';st.textContent='HISTORY UNAVAILABLE';cov.textContent='verification failed';latest.textContent='—';chg.textContent=H.error;drawHistory();return}
+  if(!H.rows.length){st.className='history-status partial';st.textContent='NO HISTORY YET';cov.textContent='0 samples';latest.textContent='—';chg.textContent='waiting for first verified hourly sample';drawHistory();return}
+  const view=historyWindow(),cfg=HISTORY_METRICS[H.metric],valid=view.rows.map(r=>historyValue(r,H.metric)).filter(Number.isFinite);
+  st.className='history-status '+(view.partial?'partial':'full');
+  st.textContent=view.rows.length+' SAMPLES · '+(view.partial?'PARTIAL '+H.rangeDays+'D HISTORY':'FULL '+H.rangeDays+'D WINDOW');
+  const parts=[view.slots+' HOURLY BUCKET'+(view.slots===1?'':'S'),view.missing+' MISSING'];
+  if(view.incomparable)parts.push(view.incomparable+' INCOMPARABLE FOR THIS METRIC');
+  cov.textContent=parts.join(' · ');
+  if(valid.length){latest.textContent=cfg.value(valid.at(-1));chg.textContent=valid.length>1?cfg.change(valid[0],valid.at(-1))+' across visible comparable points':'first comparable point';}
+  else{latest.textContent='—';chg.textContent='no comparable observations';}
+  drawHistory();
+}
+
 loadSnapshot();
 setInterval(loadSnapshot,60000);
+loadHistory();
+setInterval(loadHistory,60*60*1000);
+document.querySelectorAll('.history-range').forEach(btn=>btn.addEventListener('click',()=>{
+  H.rangeDays=Number(btn.dataset.days)||30;
+  document.querySelectorAll('.history-range').forEach(b=>b.classList.toggle('active',b===btn));
+  renderHistory();
+}));
+$('histMetric').addEventListener('change',e=>{H.metric=e.target.value;renderHistory();});
+addEventListener('resize',()=>{if(H.rows.length)drawHistory();});
 connectPrice();
 setInterval(()=>{
   $('clock').textContent=hhmmss(now())+' local';
