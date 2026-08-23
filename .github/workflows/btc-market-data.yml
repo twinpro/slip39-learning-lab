@@ -25,6 +25,9 @@ jobs:
       - name: Run collector safety tests
         run: node scripts/test-collector.mjs
 
+      - name: Run history safety tests
+        run: node scripts/test-history.mjs
+
       - name: Collect free public BTC market data
         env:
           SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
@@ -36,11 +39,17 @@ jobs:
       - name: Verify generated snapshot before publish
         run: node scripts/verify-snapshot.mjs
 
+      - name: Update hourly verified history
+        run: node scripts/update-btc-history.mjs
+
+      - name: Verify history before publish
+        run: node scripts/verify-history.mjs
+
       - name: Commit updated market JSON
         run: |
           git config user.name "btc-data-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/btc-market.json
+          git add data/btc-market.json data/btc-market-history.jsonl
           if git diff --cached --quiet; then
             echo "No data change"
           else
