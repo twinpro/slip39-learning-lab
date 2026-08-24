@@ -129,7 +129,8 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 .live-tag{font-family:var(--mono);font-size:9px;color:var(--green);border:1px solid var(--green);padding:2px 6px;letter-spacing:.08em}
 .unknown-note{color:var(--dimmer);font-family:var(--mono);font-size:10px;line-height:1.5}
 .source-pill{display:inline-block;border:1px solid var(--rule);padding:2px 6px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:9px;color:var(--dim)}
-.source-pill.ok{color:var(--green)} .source-pill.err{color:var(--red)}
+.source-pill.verified{color:var(--green)} .source-pill.partial{color:var(--amber)}
+.source-pill.conflict{color:var(--red)} .source-pill.unknown{color:var(--dimmer)}
 .trusted-time-note{margin-top:8px;font-family:var(--mono);font-size:9.5px;color:var(--dimmer);line-height:1.5}
 @media (min-width:820px) and (max-width:1082px){.sq-card{grid-column:span 2}}
 
@@ -396,7 +397,7 @@ const A = {
   funding: [[0,100],[0.01,80],[0.02,60],[0.05,20],[0.10,0]]
 };
 
-const S = { snapshot:null, price:null, prev:null, ticks:[], trustedClock:null };
+const S = { snapshot:null, healthStatus:null, price:null, prev:null, ticks:[], trustedClock:null };
 function setTrustedClock(value,source){
   const ms=typeof value==='number'?value:Date.parse(value);
   if(!Number.isFinite(ms))return false;
@@ -425,14 +426,45 @@ function ageText(minutes){
   return r?h+'h '+r+'m':h+'h';
 }
 function trustedClockSource(){return S.trustedClock?.source||'device clock fallback'}
+function usableQuality(q){return q==='verified'||q==='partial'}
+function qualityChip(q){return q==='verified'?'g':q==='partial'?'a':q==='conflict'?'r':'n'}
+function freshnessState(minutes){
+  if(!Number.isFinite(minutes)||minutes>SNAPSHOT_MAX_MINUTES)return'stale';
+  return minutes>SNAPSHOT_WARN_MINUTES?'delayed':'fresh';
+}
+function unavailableHealthNote(section,label){
+  const q=section?.quality||'unknown';
+  return `${q.toUpperCase()} · ${label} scoring disabled`;
+}
+function legacyHealth(d){
+  const ag=d.derivatives?.aggregate||{},v=d.derivatives?.venues||{};
+  const core=(ag.core_working_venues||ag.venues||[]).length;
+  const funding=Number(ag.funding_venue_count)||0;
+  const sections={
+    etf:{quality:d.etf?.status==='ok'?'verified':'unknown',coverage:d.etf?.status==='ok'?'5/5 sessions · 1 source':'0 usable ETF series'},
+    spot:{quality:d.spot?.status==='ok'?'verified':'unknown',coverage:d.spot?.status==='ok'?'legacy validated snapshot':'unavailable'},
+    derivatives_oi:{quality:core===5?'verified':core>=2?'partial':'unknown',coverage:`${core}/5 core venues`},
+    funding:{quality:funding===5?'verified':funding>=2?'partial':'unknown',coverage:`${funding}/5 comparable venues`},
+    exchange_supply:{quality:'unknown',coverage:'not scored'},
+    bybit:{quality:v.bybit?.status==='ok'?'verified':'unknown',coverage:'optional'}
+  };
+  const order={verified:0,partial:1,unknown:2,conflict:3};
+  const overall=['etf','spot','derivatives_oi','funding'].reduce((w,k)=>order[sections[k].quality]>order[w]?sections[k].quality:w,'verified');
+  return{overall:{quality:overall},sections};
+}
 
 async function loadSnapshot(){
   try{
-    const r=await fetch('../data/btc-market.json?v='+Date.now(),{cache:'no-store'});
+    const nonce=Date.now();
+    const [r,healthResponse]=await Promise.all([
+      fetch('../data/btc-market.json?v='+nonce,{cache:'no-store'}),
+      fetch('../data/btc-market-health.json?v='+nonce,{cache:'no-store'}).catch(()=>null)
+    ]);
     if(!r.ok) throw new Error('HTTP '+r.status);
     const httpDate=r.headers.get('date');
     if(httpDate)setTrustedClock(httpDate,'GitHub Pages HTTP');
     const d=await r.json();
+    S.healthStatus=healthResponse?.ok?await healthResponse.json():null;
     S.snapshot=d;
     renderSnapshot();
     log('snapshot loaded · '+new Date(d.generated_at).toLocaleString());
@@ -445,12 +477,17 @@ async function loadSnapshot(){
 function renderSnapshot(){
   const d=S.snapshot;if(!d)return;
   const snapshotMinutes=(trustedNowMs()-Date.parse(d.generated_at))/60000;
-  const snapshotTooOld=!Number.isFinite(snapshotMinutes)||snapshotMinutes>SNAPSHOT_MAX_MINUTES;
-  const snapshotDelayed=Number.isFinite(snapshotMinutes)&&snapshotMinutes>SNAPSHOT_WARN_MINUTES;
+  const freshness=freshnessState(snapshotMinutes);
+  const snapshotTooOld=freshness==='stale';
+  const snapshotDelayed=freshness==='delayed';
   const etf=d.etf||{}, spot=d.spot||{}, ag=d.derivatives?.aggregate||{}, venues=ag.venues||[];
-  const etf5=etf.flow_5d_usd;
-  const prem=spot.us_spot_premium_percent ?? spot.coinbase_premium_percent;
-  const fund=ag.funding_rate_percent;
+  const sidecar=S.healthStatus;
+  const sidecarCurrent=sidecar?.schema===1&&Date.parse(sidecar.attempted_at)>=Date.parse(d.generated_at)&&sidecar.health?.schema===1;
+  const health=sidecarCurrent?sidecar.health:(d.health?.schema===1?d.health:legacyHealth(d)), hs=health.sections||{};
+  const publicationBlocked=hs.publication?.quality==='conflict';
+  const etf5=!publicationBlocked&&usableQuality(hs.etf?.quality)?etf.flow_5d_usd:null;
+  const prem=!publicationBlocked&&usableQuality(hs.spot?.quality)?(spot.us_spot_premium_percent ?? spot.coinbase_premium_percent):null;
+  const fund=!publicationBlocked&&usableQuality(hs.funding?.quality)?ag.funding_rate_percent:null;
   const etfScore=snapshotTooOld||etf5==null?null:interp(etf5,A.etf5d);
   const spotScore=snapshotTooOld||prem==null?null:interp(prem,A.premium);
   const levHealth=snapshotTooOld||fund==null||ag.venue_count<2?null:interp(Math.abs(fund),A.funding);
@@ -461,29 +498,29 @@ function renderSnapshot(){
 
   $('v-etf').textContent=usd(etf5); $('v-etf').classList.toggle('stale',etf5==null);
   $('b-etf').innerHTML=etf5==null?'No ETF data':`latest <b>${etf.latest_date||'—'}</b> · ${etf.row_count||'—'} rows`;
-  setChip('s-etf',scoreClass(etfScore),etfScore==null?'no data':Math.round(etfScore)+'/100');
+  setChip('s-etf',snapshotTooOld?'r':etfScore==null?qualityChip(hs.etf?.quality):scoreClass(etfScore),snapshotTooOld?'stale':etfScore==null?(hs.etf?.quality||'no data'):Math.round(etfScore)+'/100');
   $('t-etf').textContent=etf.latest_date||'—';
 
   $('v-prem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%'; $('v-prem').classList.toggle('stale',prem==null);
   $('b-prem').innerHTML=`Coinbase <b>${spot.coinbase_usd?('$'+Number(spot.coinbase_usd).toLocaleString()):'—'}</b> · Kraken <b>${spot.kraken_usd?('$'+Number(spot.kraken_usd).toLocaleString()):'—'}</b> · OKX <b>${spot.okx_usdt?('$'+Number(spot.okx_usdt).toLocaleString()):'—'}</b>`;
-  setChip('s-prem',scoreClass(spotScore),spotScore==null?'no data':Math.round(spotScore)+'/100');
+  setChip('s-prem',snapshotTooOld?'r':spotScore==null?qualityChip(hs.spot?.quality):scoreClass(spotScore),snapshotTooOld?'stale':spotScore==null?(hs.spot?.quality||'no data'):Math.round(spotScore)+'/100');
   $('t-prem').textContent=hhmmss(new Date(d.generated_at));
 
-  const displayOi=ag.core_comparable_oi_usd ?? ag.oi_usd;
+  const displayOi=!publicationBlocked&&usableQuality(hs.derivatives_oi?.quality)?(ag.core_comparable_oi_usd ?? ag.oi_usd):null;
   $('v-oi').textContent=usd(displayOi); $('v-oi').classList.toggle('stale',!displayOi);
   $('b-oi').innerHTML=venues.length?venues.map(v=>`<b>${v}</b>`).join(' · ')+(ag.core_comparable_status==='ok'?' · <b>fixed core complete</b>':' · core set incomplete'):'No working futures venues';
-  setChip('s-oi',venues.length>=2?'g':'n',venues.length?venues.length+' venues':'no data');
+  setChip('s-oi',snapshotTooOld?'r':qualityChip(hs.derivatives_oi?.quality),snapshotTooOld?'stale':hs.derivatives_oi?.quality||'no data');
   $('oisrc').textContent=venues.join(' · ')||'working venues';
   $('t-oi').textContent=hhmmss(new Date(d.generated_at));
 
   $('v-fund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%'; $('v-fund').classList.toggle('stale',fund==null);
   $('b-fund').textContent=ag.funding_venues?.length?`weighted across ${ag.funding_venues.length} comparable funding venues: ${ag.funding_venues.join(', ')}`:'No comparable funding data';
-  setChip('s-fund',scoreClass(levHealth),levHealth==null?'no data':levHealth>=65?'normal':levHealth>=40?'elevated':'crowded');
+  setChip('s-fund',snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),snapshotTooOld?'stale':levHealth==null?(hs.funding?.quality||'no data'):levHealth>=65?'normal':levHealth>=40?'elevated':'crowded');
   $('t-fund').textContent=hhmmss(new Date(d.generated_at));
 
   $('v-lev').textContent=levHealth==null?'—':Math.round(levHealth)+'/100'; $('v-lev').classList.toggle('stale',levHealth==null);
   $('b-lev').textContent=fund==null?'No leverage health score':`weighted funding ${fund.toFixed(4)}% · ${venues.length} venues`;
-  setChip('s-lev',scoreClass(levHealth),levHealth==null?'no data':levHealth>=65?'healthy':levHealth>=40?'mixed':'crowded');
+  setChip('s-lev',snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),snapshotTooOld?'stale':levHealth==null?(hs.funding?.quality||'no data'):levHealth>=65?'healthy':levHealth>=40?'mixed':'crowded');
   $('t-lev').textContent=hhmmss(new Date(d.generated_at));
 
   setChip('s-sq','n','incomplete');
@@ -491,13 +528,19 @@ function renderSnapshot(){
   $('b-sq').textContent='Real demand can be strong while exchange-supply confirmation is still missing.';
   $('t-sq').textContent=hhmmss(new Date(d.generated_at));
 
-  const src=d.sources||{};
-  const names=['sosovalue','spot','kraken_spot','kraken_futures','okx','deribit','bitmex','hyperliquid'];
-  $('b-health').innerHTML=names.map(n=>`<span class="source-pill ${String(src[n]||'').startsWith('ok')?'ok':String(src[n]||'').startsWith('error')?'err':''}">${n}: ${src[n]||'—'}</span>`).join('')+
-    `<div class="trusted-time-note">Freshness clock: ${trustedClockSource()}</div>`;
+  const healthRows=[
+    ['ETF',hs.etf],['U.S. SPOT',hs.spot],['CORE OI',hs.derivatives_oi],
+    ['FUNDING',hs.funding],['SUPPLY',hs.exchange_supply],['BYBIT',hs.bybit]
+  ];
+  if(hs.publication)healthRows.unshift(['VALIDATION',hs.publication]);
+  const attemptNote=sidecarCurrent&&sidecar.snapshot_valid===false?` · latest attempt rejected ${new Date(sidecar.attempted_at).toLocaleString()}`:'';
+  $('b-health').innerHTML=healthRows.map(([name,s])=>`<span class="source-pill ${s?.quality||'unknown'}" title="${String(s?.reason||'').replaceAll('&','&amp;').replaceAll('"','&quot;')}">${name}: ${(s?.quality||'unknown').toUpperCase()} · ${s?.coverage||'—'}</span>`).join('')+
+    `<div class="trusted-time-note">Quality and age are checked separately · freshness clock: ${trustedClockSource()}${attemptNote}</div>`;
   const healthAge=ageText(snapshotMinutes);
-  setChip('s-health',snapshotTooOld?'r':snapshotDelayed?'a':'g',snapshotTooOld?`stale · ${healthAge}`:snapshotDelayed?`delayed · ${healthAge}`:`fresh · ${healthAge}`);
-  $('t-health').textContent=hhmmss(new Date(d.generated_at));
+  const overallQuality=health.overall?.quality||'unknown';
+  const healthClass=snapshotTooOld||overallQuality==='conflict'?'r':overallQuality==='unknown'?'n':snapshotDelayed||overallQuality==='partial'?'a':'g';
+  setChip('s-health',healthClass,`${overallQuality} · ${freshness} · ${healthAge}`);
+  $('t-health').textContent=hhmmss(new Date(sidecarCurrent?sidecar.attempted_at:d.generated_at));
 
   const state=demand==null?'unknown':demand>=68?'strong':demand>=40?'mixed':'weak';
   $('demandNum').innerHTML=demand==null?'—<span>/100</span>':Math.round(demand)+'<span>/100</span>';
@@ -507,15 +550,15 @@ function renderSnapshot(){
     ?'ETF demand is strong. U.S. spot demand is softer. Supply squeeze remains unconfirmed because exchange BTC supply is unknown.'
     :state==='mixed'?'Real-demand signals are mixed. Exchange BTC supply is still unknown.'
     :state==='weak'?'Measured real-demand signals are weak. Exchange BTC supply is still unknown.'
-    :'Not enough fresh data.';
+    :snapshotTooOld?'Snapshot is stale. Scoring is disabled.':`Source health prevents scoring: ETF ${(hs.etf?.quality||'unknown').toUpperCase()} · U.S. spot ${(hs.spot?.quality||'unknown').toUpperCase()}.`;
 
   drawGauge(demand);
 
   const staleSuffix=snapshotTooOld?' · STALE SNAPSHOT — scoring disabled':snapshotDelayed?' · DELAYED DATA — scores still active':'';
   const boardRows=[
-    {n:'ETF / institutional spot demand',sc:etfScore,note:etf5==null?'no ETF data':`5-session net ${usd(etf5)} · latest ${etf.latest_date||'—'}${staleSuffix}`,inv:false},
-    {n:'U.S. spot-demand proxy',sc:spotScore,note:prem==null?'no premium data':`Coinbase + Kraken vs USDT-normalized OKX ${prem>=0?'+':''}${prem.toFixed(3)}%${staleSuffix}`,inv:false},
-    {n:'Leverage health',sc:levHealth,note:fund==null?'no funding data':`funding ${fund.toFixed(4)}% · ${ag.funding_venue_count||0} comparable funding venues${staleSuffix}`,inv:false},
+    {n:'ETF / institutional spot demand',sc:etfScore,note:etf5==null?unavailableHealthNote(hs.etf,'ETF'):`5-session net ${usd(etf5)} · latest ${etf.latest_date||'—'}${staleSuffix}`,inv:false},
+    {n:'U.S. spot-demand proxy',sc:spotScore,note:prem==null?unavailableHealthNote(hs.spot,'spot'):`Coinbase + Kraken vs USDT-normalized OKX ${prem>=0?'+':''}${prem.toFixed(3)}%${staleSuffix}`,inv:false},
+    {n:'Leverage health',sc:levHealth,note:fund==null?unavailableHealthNote(hs.funding,'funding'):`funding ${fund.toFixed(4)}% · ${ag.funding_venue_count||0} comparable funding venues${staleSuffix}`,inv:false},
     {n:'Exchange BTC supply',sc:null,note:'UNKNOWN · no verified free automated all-exchange balance feed',inv:false},
     {n:'Supply-squeeze confirmation',sc:null,note:'INCOMPLETE · exchange-supply confirmation missing',inv:false,total:true}
   ];

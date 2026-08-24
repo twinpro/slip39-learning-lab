@@ -99,6 +99,13 @@ function goodSnapshot(iso = "2026-08-22T19:07:00.000Z") {
 }
 
 {
+  const s = goodSnapshot();
+  s.health = { sections:{ spot:{ quality:"conflict" }, etf:{ quality:"verified" } } };
+  const row = buildHistoryRow(s);
+  check("conflicted spot health creates a history gap", row.spot.status === "conflict" && row.spot.us_spot_premium_percent === null);
+}
+
+{
   let rejected = false;
   try { parseHistory('{"ok":1}\n{bad json}\n'); } catch { rejected = true; }
   check("malformed JSONL is rejected", rejected);

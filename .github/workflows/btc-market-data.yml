@@ -37,22 +37,37 @@ jobs:
         run: node scripts/report-health.mjs
 
       - name: Verify generated snapshot before publish
+        id: snapshot_verify
+        continue-on-error: true
         run: node scripts/verify-snapshot.mjs
 
+      - name: Write source-health status for this attempt
+        run: node scripts/write-health-status.mjs
+
       - name: Update hourly verified history
+        if: steps.snapshot_verify.outcome == 'success'
         run: node scripts/update-btc-history.mjs
 
       - name: Verify history before publish
+        if: steps.snapshot_verify.outcome == 'success'
         run: node scripts/verify-history.mjs
+
+      - name: Restore rejected market snapshot
+        if: steps.snapshot_verify.outcome != 'success'
+        run: git restore data/btc-market.json
 
       - name: Commit updated market JSON
         run: |
           git config user.name "btc-data-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/btc-market.json data/btc-market-history.jsonl
+          git add data/btc-market.json data/btc-market-history.jsonl data/btc-market-health.json
           if git diff --cached --quiet; then
             echo "No data change"
           else
             git commit -m "Update BTC market data"
             git push
           fi
+
+      - name: Fail workflow after preserving rejected-attempt health
+        if: steps.snapshot_verify.outcome != 'success'
+        run: exit 1

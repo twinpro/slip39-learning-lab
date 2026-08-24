@@ -31,5 +31,10 @@ console.log(`OI ${money(ag.core_comparable_oi_usd ?? ag.oi_usd)}  weighted fundi
 console.log(`ETF ${d.etf?.status ?? "-"}  5-session=${money(d.etf?.flow_5d_usd)}  latest=${d.etf?.latest_date ?? "-"}`);
 console.log(`SPOT ${d.spot?.status ?? "-"}  premium=${d.spot?.us_spot_premium_percent ?? "-"}%  USDT/USD=${d.spot?.usdt_usd ?? "-"}`);
 console.log(`EXCHANGE SUPPLY ${d.exchange_supply?.status ?? "-"}  score=${d.exchange_supply?.score ?? "null (expected)"}`);
+const health = d.health ?? {};
+console.log(`SOURCE HEALTH ${String(health.overall?.quality ?? "unknown").toUpperCase()}  schema=${health.schema ?? "-"}`);
+for (const [name, section] of Object.entries(health.sections ?? {})) {
+  console.log(`  ${pad(name,20)}${pad(String(section.quality ?? "unknown").toUpperCase(),11)}${section.coverage ?? "-"}`);
+}
 if (d.sources?.unit_guard_rejected) console.log(`UNIT GUARD REJECTED: ${d.sources.unit_guard_rejected}`);
 console.log("");

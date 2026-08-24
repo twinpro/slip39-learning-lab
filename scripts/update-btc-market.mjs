@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { num, guardVenueUnits, fiveSessionSpanDays, CORE_VENUES, MAX_ETF_5_SESSION_SPAN_DAYS, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
+import { num, guardVenueUnits, fiveSessionSpanDays, computeSourceHealth, CORE_VENUES, MAX_ETF_5_SESSION_SPAN_DAYS, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
 
 const OUT = new URL("../data/btc-market.json", import.meta.url);
 const NOW = new Date();
@@ -12,6 +12,7 @@ const ETF_MIN_RECENT_MAGNITUDE_USD = 1_000_000;
 
 const out = {
   schema: SCHEMA,
+  release: "V12.3",
   generated_at: ISO,
   cost: "$0",
   api_keys_required: true,
@@ -416,6 +417,8 @@ try {
   out.sources.spot = "error";
   out.sources.usdt_usd = "error";
 }
+
+out.health = computeSourceHealth(out);
 
 await fs.mkdir(new URL("../data/", import.meta.url), { recursive: true });
 await fs.writeFile(OUT, JSON.stringify(out, null, 2) + "\n", "utf8");

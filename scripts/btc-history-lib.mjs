@@ -39,6 +39,11 @@ function normalizedFunding(aggregate = {}) {
   return { venues, comparable };
 }
 
+function healthAllows(snapshot, section) {
+  const quality = snapshot?.health?.sections?.[section]?.quality;
+  return quality == null || quality === "verified" || quality === "partial";
+}
+
 export function buildHistoryRow(snapshot) {
   if (!snapshot || typeof snapshot !== "object") throw new Error("snapshot must be an object");
   if (snapshot.schema !== METHODOLOGY_VERSION) throw new Error(`snapshot schema must be ${METHODOLOGY_VERSION}`);
@@ -48,9 +53,11 @@ export function buildHistoryRow(snapshot) {
   const core = normalizedCore(aggregate);
   const funding = normalizedFunding(aggregate);
 
-  const spotOk = snapshot.spot?.status === "ok";
+  const spotOk = snapshot.spot?.status === "ok" && healthAllows(snapshot, "spot");
   const premiumNormalized = spotOk && snapshot.spot?.premium_status === "usdt_normalized";
-  const etfOk = snapshot.etf?.status === "ok";
+  const etfOk = snapshot.etf?.status === "ok" && healthAllows(snapshot, "etf");
+  const etfStatus = etfOk ? "ok" : String(snapshot.health?.sections?.etf?.quality ?? snapshot.etf?.status ?? "unavailable");
+  const spotStatus = spotOk ? "ok" : String(snapshot.health?.sections?.spot?.quality ?? snapshot.spot?.status ?? "unavailable");
 
   return {
     history_schema: HISTORY_SCHEMA,
@@ -59,13 +66,13 @@ export function buildHistoryRow(snapshot) {
     generated_at: generatedAt,
     btc_price_usd: spotOk ? finiteOrNull(snapshot.spot?.coinbase_usd) : null,
     etf: {
-      status: String(snapshot.etf?.status ?? "unavailable"),
+      status: etfStatus,
       flow_5_sessions_usd: etfOk ? finiteOrNull(snapshot.etf?.flow_5d_usd) : null,
       latest_session_date: etfOk && typeof snapshot.etf?.latest_date === "string" ? snapshot.etf.latest_date : null
     },
     spot: {
-      status: String(snapshot.spot?.status ?? "unavailable"),
-      premium_status: String(snapshot.spot?.premium_status ?? "unavailable"),
+      status: spotStatus,
+      premium_status: premiumNormalized ? "usdt_normalized" : "unavailable",
       us_spot_premium_percent: premiumNormalized ? finiteOrNull(snapshot.spot?.us_spot_premium_percent) : null,
       usdt_usd: premiumNormalized ? finiteOrNull(snapshot.spot?.usdt_usd) : null
     },

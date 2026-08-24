@@ -2,6 +2,9 @@ import {
   num,
   guardVenueUnits,
   fiveSessionSpanDays,
+  computeSourceHealth,
+  classifyFreshness,
+  buildHealthStatus,
   validateSnapshot,
   CORE_VENUES
 } from "./btc-lib.mjs";
@@ -28,6 +31,9 @@ const day = 86_400_000;
 const rows = [0,1,2,3,4].map(i => ({ timestamp: i * day }));
 check("five-session span is four calendar days", fiveSessionSpanDays(rows) === 4);
 check("five-session span needs five rows", fiveSessionSpanDays(rows.slice(0,4)) === null);
+check("freshness is FRESH through exactly 60 minutes", classifyFreshness(60) === "fresh");
+check("freshness is DELAYED above 60 through exactly 180 minutes", classifyFreshness(60.01) === "delayed" && classifyFreshness(180) === "delayed");
+check("freshness is STALE above 180 minutes or with an invalid age", classifyFreshness(180.01) === "stale" && classifyFreshness(NaN) === "stale");
 
 {
   const venues = {
@@ -65,7 +71,7 @@ function goodSnapshot() {
     kraken: { status:"ok", oi_usd:3_400_000, open_interest_raw:3_400_000, mark_price:78_000, funding_rate_percent:-0.01, unit_check:"ok" }
   };
   const sum = Object.values(venueRows).reduce((a,v)=>a+v.oi_usd,0);
-  return {
+  const snapshot = {
     schema:12,
     generated_at:"2026-08-22T18:00:00Z",
     sources:{},
@@ -77,9 +83,17 @@ function goodSnapshot() {
       status:"ok", core_expected_venues:[...CORE_VENUES], core_working_venues:[...CORE_VENUES],
       core_missing_venues:[], core_comparable_status:"ok", core_comparable_oi_usd:sum
     }},
-    spot:{ status:"ok", premium_status:"usdt_normalized", usdt_usd:0.9998, us_spot_average_usd:78000, okx_usd_equivalent:77990, us_spot_premium_percent:+((78000/77990-1)*100).toFixed(4) },
+    spot:{
+      status:"ok", premium_status:"usdt_normalized",
+      coinbase_usd:78010, kraken_usd:77990, okx_usdt:78005,
+      coinbase_usdt_usd:0.9997, kraken_usdt_usd:0.9999, usdt_usd:0.9998,
+      us_spot_average_usd:78000, okx_usd_equivalent:78005*0.9998,
+      us_spot_premium_percent:+((78000/(78005*0.9998)-1)*100).toFixed(4)
+    },
     exchange_supply:{ status:"unavailable_free_reliable", score:null }
   };
+  snapshot.health = computeSourceHealth(snapshot);
+  return snapshot;
 }
 
 {
@@ -116,6 +130,76 @@ function goodSnapshot() {
   const d = goodSnapshot(); d.derivatives.aggregate.core_expected_venues=["okx"];
   const v = validateSnapshot(d);
   check("validator locks fixed five-venue core", !v.ok && v.errors.some(x=>x.includes("core_expected_venues")), v.errors.join(" | "));
+}
+
+{
+  const d = goodSnapshot();
+  check("all required source-health sections are verified", d.health.overall.quality === "verified", JSON.stringify(d.health));
+}
+{
+  const d = goodSnapshot();
+  d.spot.kraken_usdt_usd = null;
+  d.spot.usdt_usd = d.spot.coinbase_usdt_usd;
+  d.spot.okx_usd_equivalent = d.spot.okx_usdt * d.spot.usdt_usd;
+  d.spot.us_spot_premium_percent = +((d.spot.us_spot_average_usd/d.spot.okx_usd_equivalent-1)*100).toFixed(4);
+  d.health = computeSourceHealth(d);
+  check("one valid USDT quote is PARTIAL but usable", d.health.sections.spot.quality === "partial", JSON.stringify(d.health.sections.spot));
+  check("partial spot health still validates", validateSnapshot(d).ok, validateSnapshot(d).errors.join(" | "));
+}
+{
+  const d = goodSnapshot();
+  d.spot.coinbase_usdt_usd = 0.998;
+  d.spot.kraken_usdt_usd = 1.0025;
+  d.spot.usdt_usd = (d.spot.coinbase_usdt_usd + d.spot.kraken_usdt_usd) / 2;
+  d.spot.okx_usd_equivalent = d.spot.okx_usdt * d.spot.usdt_usd;
+  d.spot.us_spot_premium_percent = +((d.spot.us_spot_average_usd/d.spot.okx_usd_equivalent-1)*100).toFixed(4);
+  d.health = computeSourceHealth(d);
+  check("divergent USDT quotes produce CONFLICT", d.health.sections.spot.quality === "conflict", JSON.stringify(d.health.sections.spot));
+  check("a valid conflict snapshot is published with affected scoring gated", validateSnapshot(d).ok, validateSnapshot(d).errors.join(" | "));
+}
+{
+  const d = goodSnapshot();
+  d.derivatives.venues.kraken.funding_rate_percent = null;
+  d.health = computeSourceHealth(d);
+  check("missing Kraken funding does not invalidate Kraken OI", d.health.sections.derivatives_oi.quality === "verified");
+  check("missing Kraken funding makes funding PARTIAL", d.health.sections.funding.quality === "partial", JSON.stringify(d.health.sections.funding));
+}
+{
+  const d = goodSnapshot();
+  delete d.health;
+  const status = buildHealthStatus(d, { last_successful_at:"2026-08-22T17:00:00Z" });
+  check("unclassified snapshot is rejected into publication CONFLICT", !status.snapshot_valid && status.health.sections.publication?.quality === "conflict", JSON.stringify(status));
+  check("rejected attempt preserves last successful timestamp", status.last_successful_at === "2026-08-22T17:00:00Z");
+}
+{
+  const d = goodSnapshot();
+  d.sources.unit_guard_rejected = "kraken";
+  d.derivatives.venues.kraken.status = "rejected";
+  d.health = computeSourceHealth(d);
+  const status = buildHealthStatus(d);
+  check("unit rejection reports derivatives CONFLICT without a generic publication conflict", !status.snapshot_valid && status.health.sections.derivatives_oi.quality === "conflict" && !status.health.sections.publication, JSON.stringify(status));
+}
+{
+  const d = goodSnapshot();
+  d.derivatives.venues.bybit = { status:"error", core:false, error:"403" };
+  d.health = computeSourceHealth(d);
+  check("optional Bybit failure does not downgrade overall health", d.health.overall.quality === "verified", JSON.stringify(d.health));
+}
+{
+  const d = goodSnapshot();
+  d.derivatives.venues.kraken.status = "error";
+  d.derivatives.aggregate.core_working_venues = CORE_VENUES.slice(0,4);
+  d.derivatives.aggregate.core_missing_venues = ["kraken"];
+  d.derivatives.aggregate.core_comparable_status = "incomplete";
+  d.derivatives.aggregate.core_comparable_oi_usd = null;
+  d.health = computeSourceHealth(d);
+  check("four-of-five core coverage is PARTIAL", d.health.sections.derivatives_oi.quality === "partial", JSON.stringify(d.health.sections.derivatives_oi));
+}
+{
+  const d = goodSnapshot();
+  d.health.sections.spot.quality = "verified-but-tampered";
+  const v = validateSnapshot(d);
+  check("validator rejects tampered health classification", !v.ok && v.errors.some(x=>x.includes("health spot quality")), v.errors.join(" | "));
 }
 
 console.log(`\n${total-failed}/${total} collector safety tests passed`);
