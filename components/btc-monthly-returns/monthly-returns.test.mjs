@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {calculateMonthlyReturns,classifyCell,completedAggregates,lastDailyPrices} from './monthly-returns.mjs';
+import {calculateMonthlyReturns,classifyCell,completedAggregates,lastDailyPrices,renderTable} from './monthly-returns.mjs';
 
 const points=[
   {date:'2025-12-30',priceUSD:100},{date:'2025-12-31',priceUSD:100},
@@ -28,4 +28,30 @@ test('classifies positive, negative, zero, missing, future, and MTD cells',()=>{
   assert.equal(classifyCell({value:1}),'positive'); assert.equal(classifyCell({value:-1}),'negative');
   assert.equal(classifyCell({value:0}),'zero'); assert.equal(classifyCell({}),'missing');
   assert.equal(classifyCell({value:1,isFuture:true}),'future'); assert.equal(classifyCell({value:1,isCurrent:true}),'positive mtd');
+});
+
+test('renders newest year first, 2013 last, summaries at bottom, and preserves values and MTD',()=>{
+  const nodes={
+    'thead tr':{insertAdjacentHTML(){}},
+    'tbody':{innerHTML:''},
+    '#data-mode':{textContent:'',classList:{toggle(){}}},
+    '#as-of':{textContent:''}
+  };
+  const documentRef={querySelector:selector=>nodes[selector]};
+  const fixture={
+    mode:'live',startYear:2013,latestObservationDate:'2026-08-24',
+    returns:[
+      {month:'2013-01',status:'ok',isCurrent:false,value:51.42714272},
+      {month:'2026-08',status:'ok',isCurrent:true,value:25.47796972}
+    ],
+    aggregates:Array.from({length:12},()=>({average:null,median:null}))
+  };
+  renderTable(documentRef,fixture);
+  const html=nodes.tbody.innerHTML;
+  const labels=[...html.matchAll(/<tr[^>]*><td[^>]*>([^<]+)<\/td>/g)].map(match=>match[1]);
+  assert.equal(labels[0],'2026');
+  assert.equal(labels.at(-3),'2013');
+  assert.deepEqual(labels.slice(-2),['AVERAGE','MEDIAN']);
+  assert.match(html,/\+51\.4%/);
+  assert.match(html,/\+25\.5%<small>MTD<\/small>/);
 });

@@ -65,7 +65,7 @@ export function renderTable(documentRef,fixture){
   const header=documentRef.querySelector('thead tr');
   header.insertAdjacentHTML('beforeend',MONTHS.map(month=>`<th scope="col">${month}</th>`).join(''));
   const rows=[];
-  for(let year=startYear;year<=endYear;year++){
+  for(let year=endYear;year>=startYear;year--){
     const cells=MONTHS.map((_,index)=>{
       const key=`${year}-${String(index+1).padStart(2,'0')}`;
       const item=returns.get(key);
