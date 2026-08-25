@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bitcoin Monthly Returns</title>
+  <link rel="stylesheet" href="./monthly-returns.css?v=4">
+</head>
+<body>
+  <main class="returns-panel" aria-labelledby="returns-title">
+    <header class="panel-header">
+      <div>
+        <h1 id="returns-title">BITCOIN MONTHLY RETURNS</h1>
+        <p>MONTH-END USD RETURN · 2013–PRESENT · HISTORICAL PRICE CONTEXT · NOT SCORED</p>
+      </div>
+      <span class="fixture-badge" id="data-mode">LOADING</span>
+    </header>
+
+    <div class="table-scroll" tabindex="0" aria-label="Horizontally scrollable Bitcoin monthly returns table">
+      <table id="returns-table">
+        <caption class="sr-only">Bitcoin monthly USD returns by year and month</caption>
+        <thead><tr><th scope="col">YEAR</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <footer>
+      <p class="context-note">Historical context only · Not included in the Real-Demand Evidence score</p>
+      <p>Source: Coin Metrics Community API · PriceUSD · CC BY-NC 4.0</p>
+      <p id="as-of"></p>
+    </footer>
+    <p id="error" role="alert" hidden></p>
+  </main>
+  <script type="module" src="./monthly-returns.mjs"></script>
+</body>
+</html>
