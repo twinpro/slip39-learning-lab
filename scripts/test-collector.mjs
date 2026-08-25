@@ -2,6 +2,7 @@ import {
   num,
   guardVenueUnits,
   fiveSessionSpanDays,
+  assessEtfFreshness,
   computeSourceHealth,
   classifyFreshness,
   buildHealthStatus,
@@ -34,6 +35,20 @@ check("five-session span needs five rows", fiveSessionSpanDays(rows.slice(0,4)) 
 check("freshness is FRESH through exactly 60 minutes", classifyFreshness(60) === "fresh");
 check("freshness is DELAYED above 60 through exactly 180 minutes", classifyFreshness(60.01) === "delayed" && classifyFreshness(180) === "delayed");
 check("freshness is STALE above 180 minutes or with an invalid age", classifyFreshness(180.01) === "stale" && classifyFreshness(NaN) === "stale");
+
+const fridayEtf = Date.parse("2026-08-21T00:00:00Z");
+{
+  const freshness = assessEtfFreshness(fridayEtf, Date.parse("2026-08-25T00:24:00Z"));
+  check("Friday ETF data remains fresh through Tuesday 00:24 UTC", freshness.ok && freshness.weekdaysElapsed === 2, JSON.stringify(freshness));
+}
+{
+  const freshness = assessEtfFreshness(fridayEtf, Date.parse("2026-08-26T00:00:00Z"));
+  check("Friday ETF data is stale by Wednesday UTC", !freshness.ok && freshness.reason === "weekday_age" && freshness.weekdaysElapsed === 3, JSON.stringify(freshness));
+}
+{
+  const freshness = assessEtfFreshness(fridayEtf, Date.parse("2026-08-29T00:00:01Z"));
+  check("ETF freshness retains a seven-calendar-day absolute limit", !freshness.ok && freshness.reason === "absolute_age", JSON.stringify(freshness));
+}
 
 {
   const venues = {
@@ -76,7 +91,7 @@ function goodSnapshot() {
     generated_at:"2026-08-22T18:00:00Z",
     sources:{},
     etf:{
-      status:"ok", latest_age_days:1, flow_5d_usd:150,
+      status:"ok", latest_date:"2026-08-22", latest_age_days:0, flow_5d_usd:150,
       last_5_trading_sessions:[1,2,3,4,5].map((x,i)=>({date:`2026-08-${18+i}`,flow_usd:x*10}))
     },
     derivatives:{ venues:venueRows, aggregate:{
@@ -100,6 +115,24 @@ function goodSnapshot() {
   const d = goodSnapshot();
   const v = validateSnapshot(d);
   check("known-good snapshot validates", v.ok, v.errors.join(" | "));
+}
+{
+  const d = goodSnapshot();
+  d.generated_at = "2026-08-25T00:24:00Z";
+  d.etf.latest_date = "2026-08-21";
+  d.etf.latest_age_days = 4.02;
+  d.health = computeSourceHealth(d);
+  const v = validateSnapshot(d);
+  check("snapshot validator accepts Friday ETF data on Tuesday", v.ok, v.errors.join(" | "));
+}
+{
+  const d = goodSnapshot();
+  d.generated_at = "2026-08-26T00:00:00Z";
+  d.etf.latest_date = "2026-08-21";
+  d.etf.latest_age_days = 5;
+  d.health = computeSourceHealth(d);
+  const v = validateSnapshot(d);
+  check("snapshot validator rejects Friday ETF data on Wednesday", !v.ok && v.errors.some(x => x.includes("weekday_age")), v.errors.join(" | "));
 }
 {
   const d = goodSnapshot(); d.sources.unit_guard_rejected="kraken";

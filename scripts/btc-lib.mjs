@@ -5,6 +5,8 @@
 
 export const CORE_VENUES = ["okx", "deribit", "bitmex", "hyperliquid", "kraken"];
 export const MAX_ETF_5_SESSION_SPAN_DAYS = 9;
+export const MAX_ETF_WEEKDAYS_SINCE_LATEST = 2;
+export const MAX_ETF_ABSOLUTE_AGE_DAYS = 7;
 export const IMPLIED_BTC_MIN = 0.5;
 export const IMPLIED_BTC_MAX = 5_000_000;
 export const VENUE_OI_MAX_USD = 1_000_000_000_000;
@@ -26,6 +28,34 @@ export function fiveSessionSpanDays(rowsAscending) {
   const last5 = (rowsAscending || []).slice(-5);
   if (last5.length < 5) return null;
   return (last5.at(-1).timestamp - last5[0].timestamp) / 86_400_000;
+}
+
+export function assessEtfFreshness(latestTimestamp, nowTimestamp) {
+  if (!Number.isFinite(latestTimestamp) || !Number.isFinite(nowTimestamp)) {
+    return { ok: false, reason: "invalid_timestamp", ageDays: null, weekdaysElapsed: null };
+  }
+
+  const dayMs = 86_400_000;
+  const ageDays = (nowTimestamp - latestTimestamp) / dayMs;
+  if (ageDays < -1) return { ok: false, reason: "future", ageDays, weekdaysElapsed: 0 };
+
+  const latest = new Date(latestTimestamp);
+  const now = new Date(nowTimestamp);
+  const latestDay = Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth(), latest.getUTCDate());
+  const nowDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  let weekdaysElapsed = 0;
+  for (let day = latestDay + dayMs; day <= nowDay; day += dayMs) {
+    const weekday = new Date(day).getUTCDay();
+    if (weekday !== 0 && weekday !== 6) weekdaysElapsed++;
+  }
+
+  if (ageDays > MAX_ETF_ABSOLUTE_AGE_DAYS) {
+    return { ok: false, reason: "absolute_age", ageDays, weekdaysElapsed };
+  }
+  if (weekdaysElapsed > MAX_ETF_WEEKDAYS_SINCE_LATEST) {
+    return { ok: false, reason: "weekday_age", ageDays, weekdaysElapsed };
+  }
+  return { ok: true, reason: "fresh", ageDays, weekdaysElapsed };
 }
 
 function approxEqual(a, b, relTol = 1e-9, absTol = 1e-6) {
@@ -275,7 +305,10 @@ export function validateSnapshot(d) {
       if (!approxEqual(sum, num(etf.flow_5d_usd), 1e-10, 0.01)) fail("ETF flow_5d_usd does not equal the five session rows");
     }
     const age = num(etf.latest_age_days);
-    if (age == null || age < -1 || age > 4) fail(`ETF latest_age_days out of guard range: ${etf.latest_age_days}`);
+    if (age == null || age < -1 || age > MAX_ETF_ABSOLUTE_AGE_DAYS) fail(`ETF latest_age_days out of guard range: ${etf.latest_age_days}`);
+    const latestTimestamp = Date.parse(`${etf.latest_date}T00:00:00Z`);
+    const freshness = assessEtfFreshness(latestTimestamp, Date.parse(d.generated_at));
+    if (!freshness.ok) fail(`ETF latest_date failed ${freshness.reason} freshness guard`);
   } else {
     warn("ETF source unavailable in this snapshot");
   }

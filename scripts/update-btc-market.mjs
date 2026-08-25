@@ -1,12 +1,11 @@
 import fs from "node:fs/promises";
-import { num, guardVenueUnits, fiveSessionSpanDays, computeSourceHealth, CORE_VENUES, MAX_ETF_5_SESSION_SPAN_DAYS, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
+import { num, guardVenueUnits, fiveSessionSpanDays, assessEtfFreshness, computeSourceHealth, CORE_VENUES, MAX_ETF_5_SESSION_SPAN_DAYS, MAX_ETF_WEEKDAYS_SINCE_LATEST, MAX_ETF_ABSOLUTE_AGE_DAYS, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
 
 const OUT = new URL("../data/btc-market.json", import.meta.url);
 const NOW = new Date();
 const ISO = NOW.toISOString();
 
 const SCHEMA = 12;
-const MAX_ETF_CALENDAR_AGE_DAYS = 4;
 const ETF_DAILY_SANITY_USD = 25_000_000_000;
 const ETF_MIN_RECENT_MAGNITUDE_USD = 1_000_000;
 
@@ -90,11 +89,15 @@ function buildEtf(rows, source) {
   if (clean.length < 5) throw new Error(`only ${clean.length} usable ETF rows`);
 
   const latest = clean.at(-1);
-  const ageDays = (NOW.getTime() - latest.timestamp) / 86_400_000;
-  if (ageDays > MAX_ETF_CALENDAR_AGE_DAYS) {
-    throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${ageDays.toFixed(1)} calendar days old (max ${MAX_ETF_CALENDAR_AGE_DAYS})`);
+  const freshness = assessEtfFreshness(latest.timestamp, NOW.getTime());
+  const ageDays = freshness.ageDays;
+  if (freshness.reason === "absolute_age") {
+    throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${ageDays.toFixed(1)} calendar days old (absolute max ${MAX_ETF_ABSOLUTE_AGE_DAYS})`);
   }
-  if (ageDays < -1) throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is in the future`);
+  if (freshness.reason === "weekday_age") {
+    throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${freshness.weekdaysElapsed} UTC weekdays behind (max ${MAX_ETF_WEEKDAYS_SINCE_LATEST}; weekends ignored)`);
+  }
+  if (!freshness.ok) throw new Error(`latest ETF row ${isoDate(latest.timestamp)} failed freshness check: ${freshness.reason}`);
 
   const recent = clean.slice(-20).map(r => Math.abs(r.flow_usd)).filter(v => v > 0);
   const peak = recent.length ? Math.max(...recent) : 0;
