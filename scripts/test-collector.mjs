@@ -11,7 +11,9 @@ import {
   CORE_VENUES
 } from "./btc-lib.mjs";
 import {
+  assessAutomationHeartbeat,
   BTC_DISPLAY_TIME_ZONE,
+  classifyDashboardFreshness,
   formatEtDateTime,
   formatEtHistoryTick,
   formatEtTime,
@@ -34,6 +36,33 @@ check("compact dashboard timestamp is labeled ET", formatEtTime("2026-08-25T00:2
 check("hourly history tick converts UTC to ET", formatEtHistoryTick("2026-08-25T00:00:00Z") === "8/24 20:00 ET", formatEtHistoryTick("2026-08-25T00:00:00Z"));
 check("long-range history date is labeled ET", formatEtHistoryTick("2026-08-25T00:00:00Z", true) === "Aug 24 ET", formatEtHistoryTick("2026-08-25T00:00:00Z", true));
 check("invalid display timestamp is rejected safely", formatEtDateTime("not-a-date") === "—");
+const heartbeatNow = Date.parse("2026-08-25T01:00:00Z");
+const heartbeatBase = {
+  lastSuccessfulAt: "2026-08-25T00:25:00Z",
+  generatedAt: "2026-08-25T00:25:00Z",
+  nowMs: heartbeatNow,
+};
+{
+  const heartbeat = assessAutomationHeartbeat({ ...heartbeatBase, attemptedAt: "2026-08-25T00:30:00Z", snapshotValid: true });
+  check("fresh valid heartbeat reports automation running and data verified", heartbeat.state === "running_verified" && heartbeat.label === "AUTOMATION RUNNING · DATA VERIFIED", JSON.stringify(heartbeat));
+}
+{
+  const heartbeat = assessAutomationHeartbeat({ ...heartbeatBase, attemptedAt: "2026-08-25T00:30:00Z", snapshotValid: false });
+  check("fresh rejected heartbeat reports automation running and source degraded", heartbeat.state === "running_degraded" && heartbeat.label === "AUTOMATION RUNNING · SOURCE DEGRADED", JSON.stringify(heartbeat));
+}
+{
+  const heartbeat = assessAutomationHeartbeat({ ...heartbeatBase, attemptedAt: "2026-08-24T23:59:00Z", snapshotValid: true });
+  check("heartbeat above 60 through 180 minutes reports automation delayed", heartbeat.state === "delayed" && heartbeat.label === "AUTOMATION DELAYED", JSON.stringify(heartbeat));
+}
+{
+  const heartbeat = assessAutomationHeartbeat({ ...heartbeatBase, attemptedAt: "2026-08-24T21:59:59Z", snapshotValid: true });
+  check("heartbeat above 180 minutes reports automation stale", heartbeat.state === "stale" && heartbeat.label === "AUTOMATION STALE", JSON.stringify(heartbeat));
+}
+{
+  const heartbeat = assessAutomationHeartbeat({ ...heartbeatBase, attemptedAt: "2026-08-25T00:30:00Z", lastSuccessfulAt: "2026-08-25T00:20:00Z", snapshotValid: true });
+  check("fresh incoherent published timestamps report source degraded", heartbeat.state === "running_degraded" && !heartbeat.dataVerified, JSON.stringify(heartbeat));
+}
+check("heartbeat boundaries remain fresh through 60 and delayed through 180 minutes", classifyDashboardFreshness(60) === "fresh" && classifyDashboardFreshness(180) === "delayed" && classifyDashboardFreshness(180.01) === "stale");
 const dashboardSource = readFileSync(new URL("../pages/btc-real-vs-paper-v11b.html", import.meta.url), "utf8");
 check("live dashboard clock uses trusted server time", dashboardSource.includes("const now=()=>new Date(trustedNowMs());"));
 check("dashboard timestamp paths avoid browser-local formatting", !/new Date\([^\n]+\)\.toLocale|\.toTimeString\(/.test(dashboardSource));

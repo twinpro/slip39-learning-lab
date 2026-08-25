@@ -388,10 +388,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 </div>
 
 <script type="module">
-import { formatEtDateTime, formatEtHistoryTick, formatEtTime } from '../assets/js/btc-dashboard-time.mjs';
-
-const SNAPSHOT_WARN_MINUTES = 60;
-const SNAPSHOT_MAX_MINUTES = 180;
+import { assessAutomationHeartbeat, classifyDashboardFreshness, formatEtDateTime, formatEtHistoryTick, formatEtTime } from '../assets/js/btc-dashboard-time.mjs';
 
 const A = {
   etf5d: [[-1e9,0],[0,50],[5e8,75],[1e9,90],[2e9,100]],
@@ -429,10 +426,6 @@ function ageText(minutes){
 function trustedClockSource(){return S.trustedClock?.source||'device clock fallback'}
 function usableQuality(q){return q==='verified'||q==='partial'}
 function qualityChip(q){return q==='verified'?'g':q==='partial'?'a':q==='conflict'?'r':'n'}
-function freshnessState(minutes){
-  if(!Number.isFinite(minutes)||minutes>SNAPSHOT_MAX_MINUTES)return'stale';
-  return minutes>SNAPSHOT_WARN_MINUTES?'delayed':'fresh';
-}
 function unavailableHealthNote(section,label){
   const q=section?.quality||'unknown';
   return `${q.toUpperCase()} · ${label} scoring disabled`;
@@ -478,7 +471,7 @@ async function loadSnapshot(){
 function renderSnapshot(){
   const d=S.snapshot;if(!d)return;
   const snapshotMinutes=(trustedNowMs()-Date.parse(d.generated_at))/60000;
-  const freshness=freshnessState(snapshotMinutes);
+  const freshness=classifyDashboardFreshness(snapshotMinutes);
   const snapshotTooOld=freshness==='stale';
   const snapshotDelayed=freshness==='delayed';
   const etf=d.etf||{}, spot=d.spot||{}, ag=d.derivatives?.aggregate||{}, venues=ag.venues||[];
@@ -534,14 +527,23 @@ function renderSnapshot(){
     ['FUNDING',hs.funding],['SUPPLY',hs.exchange_supply],['BYBIT',hs.bybit]
   ];
   if(hs.publication)healthRows.unshift(['VALIDATION',hs.publication]);
-  const attemptNote=sidecarCurrent&&sidecar.snapshot_valid===false?` · latest attempt rejected ${formatEtDateTime(sidecar.attempted_at)}`:'';
-  $('b-health').innerHTML=healthRows.map(([name,s])=>`<span class="source-pill ${s?.quality||'unknown'}" title="${String(s?.reason||'').replaceAll('&','&amp;').replaceAll('"','&quot;')}">${name}: ${(s?.quality||'unknown').toUpperCase()} · ${s?.coverage||'—'}</span>`).join('')+
-    `<div class="trusted-time-note">Quality and age are checked separately · freshness clock: ${trustedClockSource()}${attemptNote}</div>`;
+  const heartbeat=assessAutomationHeartbeat({
+    attemptedAt:sidecar?.attempted_at,
+    lastSuccessfulAt:sidecar?.last_successful_at,
+    snapshotValid:sidecar?.snapshot_valid,
+    generatedAt:d.generated_at,
+    nowMs:trustedNowMs()
+  });
+  const heartbeatClass=heartbeat.state==='running_verified'?'verified':heartbeat.state==='stale'?'conflict':'partial';
+  const heartbeatTimes=`Latest attempt: ${formatEtDateTime(sidecar?.attempted_at)} · last verified: ${formatEtDateTime(sidecar?.last_successful_at)} · snapshot: ${formatEtDateTime(d.generated_at)}`;
+  $('b-health').innerHTML=`<span class="source-pill ${heartbeatClass}" title="${heartbeatTimes}">${heartbeat.label}</span>`+
+    healthRows.map(([name,s])=>`<span class="source-pill ${s?.quality||'unknown'}" title="${String(s?.reason||'').replaceAll('&','&amp;').replaceAll('"','&quot;')}">${name}: ${(s?.quality||'unknown').toUpperCase()} · ${s?.coverage||'—'}</span>`).join('')+
+    `<div class="trusted-time-note">${heartbeatTimes} · freshness clock: ${trustedClockSource()}</div>`;
   const healthAge=ageText(snapshotMinutes);
   const overallQuality=health.overall?.quality||'unknown';
   const healthClass=snapshotTooOld||overallQuality==='conflict'?'r':overallQuality==='unknown'?'n':snapshotDelayed||overallQuality==='partial'?'a':'g';
   setChip('s-health',healthClass,`${overallQuality} · ${freshness} · ${healthAge}`);
-  $('t-health').textContent=formatEtTime(sidecarCurrent?sidecar.attempted_at:d.generated_at);
+  $('t-health').textContent=formatEtTime(sidecar?.attempted_at||d.generated_at);
 
   const state=demand==null?'unknown':demand>=68?'strong':demand>=40?'mixed':'weak';
   $('demandNum').innerHTML=demand==null?'—<span>/100</span>':Math.round(demand)+'<span>/100</span>';
