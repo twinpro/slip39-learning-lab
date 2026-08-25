@@ -801,9 +801,14 @@ function renderHistory(){
   drawHistory();
 }
 
-loadSnapshot();
+async function startDashboard(){
+  await loadSnapshot();
+  loadHistory();
+  connectPrice();
+  log('Bitcoin Real vs Paper opened · live demand dashboard');
+}
+startDashboard();
 setInterval(loadSnapshot,60000);
-loadHistory();
 setInterval(loadHistory,60*60*1000);
 document.querySelectorAll('.history-range').forEach(btn=>btn.addEventListener('click',()=>{
   H.rangeDays=Number(btn.dataset.days)||30;
@@ -812,7 +817,6 @@ document.querySelectorAll('.history-range').forEach(btn=>btn.addEventListener('c
 }));
 $('histMetric').addEventListener('change',e=>{H.metric=e.target.value;renderHistory();});
 addEventListener('resize',()=>{if(H.rows.length)drawHistory();});
-connectPrice();
 setInterval(()=>{
   $('clock').textContent=formatEtTime(now());
   $('headerDateTime').textContent=formatEtDateTime(now());
@@ -820,7 +824,6 @@ setInterval(()=>{
 $('headerDateTime').textContent=formatEtDateTime(now());
 addEventListener('resize',()=>{drawSpark();if(S.snapshot)renderSnapshot();});
 drawGauge(null);
-log('Bitcoin Real vs Paper opened · live demand dashboard');
 </script>
 </body>
 </html>

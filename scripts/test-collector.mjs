@@ -37,6 +37,7 @@ check("invalid display timestamp is rejected safely", formatEtDateTime("not-a-da
 const dashboardSource = readFileSync(new URL("../pages/btc-real-vs-paper-v11b.html", import.meta.url), "utf8");
 check("live dashboard clock uses trusted server time", dashboardSource.includes("const now=()=>new Date(trustedNowMs());"));
 check("dashboard timestamp paths avoid browser-local formatting", !/new Date\([^\n]+\)\.toLocale|\.toTimeString\(/.test(dashboardSource));
+check("dashboard startup awaits trusted clock before logging", /async function startDashboard\(\)\{\s*await loadSnapshot\(\);[\s\S]*?log\('Bitcoin Real vs Paper opened/.test(dashboardSource));
 
 check("num rejects null", num(null) === null);
 check("num rejects undefined", num(undefined) === null);
