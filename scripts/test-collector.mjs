@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import {
   num,
   guardVenueUnits,
@@ -9,6 +10,12 @@ import {
   validateSnapshot,
   CORE_VENUES
 } from "./btc-lib.mjs";
+import {
+  BTC_DISPLAY_TIME_ZONE,
+  formatEtDateTime,
+  formatEtHistoryTick,
+  formatEtTime,
+} from "../assets/js/btc-dashboard-time.mjs";
 
 let total = 0, failed = 0;
 function check(name, ok, detail = "") {
@@ -19,6 +26,17 @@ function check(name, ok, detail = "") {
     console.error(`FAIL ${String(total).padStart(2, "0")} ${name}${detail ? ` :: ${detail}` : ""}`);
   }
 }
+
+check("dashboard display timezone is America/New_York", BTC_DISPLAY_TIME_ZONE === "America/New_York");
+check("summer UTC snapshot renders in ET", formatEtDateTime("2026-08-25T00:24:41Z") === "8/24/2026, 8:24:41 PM ET", formatEtDateTime("2026-08-25T00:24:41Z"));
+check("winter UTC snapshot observes Eastern standard offset", formatEtDateTime("2026-01-15T05:00:00Z") === "1/15/2026, 12:00:00 AM ET", formatEtDateTime("2026-01-15T05:00:00Z"));
+check("compact dashboard timestamp is labeled ET", formatEtTime("2026-08-25T00:24:41Z") === "8:24:41 PM ET", formatEtTime("2026-08-25T00:24:41Z"));
+check("hourly history tick converts UTC to ET", formatEtHistoryTick("2026-08-25T00:00:00Z") === "8/24 20:00 ET", formatEtHistoryTick("2026-08-25T00:00:00Z"));
+check("long-range history date is labeled ET", formatEtHistoryTick("2026-08-25T00:00:00Z", true) === "Aug 24 ET", formatEtHistoryTick("2026-08-25T00:00:00Z", true));
+check("invalid display timestamp is rejected safely", formatEtDateTime("not-a-date") === "—");
+const dashboardSource = readFileSync(new URL("../pages/btc-real-vs-paper-v11b.html", import.meta.url), "utf8");
+check("live dashboard clock uses trusted server time", dashboardSource.includes("const now=()=>new Date(trustedNowMs());"));
+check("dashboard timestamp paths avoid browser-local formatting", !/new Date\([^\n]+\)\.toLocale|\.toTimeString\(/.test(dashboardSource));
 
 check("num rejects null", num(null) === null);
 check("num rejects undefined", num(undefined) === null);

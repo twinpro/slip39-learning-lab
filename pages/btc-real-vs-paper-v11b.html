@@ -337,7 +337,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   <div class="history-hd">
     <div>
       <div class="history-title" id="historyTitle">Historical trend</div>
-      <div class="history-sub">Verified hourly UTC snapshots · collection started with V12.2A · no historical backfill</div>
+      <div class="history-sub">Verified hourly snapshots · displayed in ET · stored in UTC · collection started with V12.2A · no historical backfill</div>
     </div>
     <div class="history-ranges" aria-label="Historical range">
       <button class="history-range" type="button" data-days="7">7D</button>
@@ -387,7 +387,9 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 </footer>
 </div>
 
-<script>
+<script type="module">
+import { formatEtDateTime, formatEtHistoryTick, formatEtTime } from '../assets/js/btc-dashboard-time.mjs';
+
 const SNAPSHOT_WARN_MINUTES = 60;
 const SNAPSHOT_MAX_MINUTES = 180;
 
@@ -409,11 +411,10 @@ function trustedNowMs(){
   return Date.now();
 }
 const $=id=>document.getElementById(id);
-const now=()=>new Date();
-const hhmmss=d=>d.toTimeString().slice(0,8);
+const now=()=>new Date(trustedNowMs());
 const usd=n=>n==null?'—':(n<0?'-':'')+(Math.abs(n)>=1e9?'$'+(Math.abs(n)/1e9).toFixed(2)+'B':
   Math.abs(n)>=1e6?'$'+(Math.abs(n)/1e6).toFixed(1)+'M':'$'+Math.abs(n).toFixed(0));
-function log(m,err=false){const el=$('loglines'),l=document.createElement('div');l.className=err?'err':'ok';l.textContent=hhmmss(now())+'  '+m;el.prepend(l);while(el.children.length>50)el.lastChild.remove();}
+function log(m,err=false){const el=$('loglines'),l=document.createElement('div');l.className=err?'err':'ok';l.textContent=formatEtTime(now())+'  '+m;el.prepend(l);while(el.children.length>50)el.lastChild.remove();}
 function interp(x,pts){if(x==null||!isFinite(x))return null;if(x<=pts[0][0])return pts[0][1];if(x>=pts.at(-1)[0])return pts.at(-1)[1];for(let i=0;i<pts.length-1;i++){const[a,b]=pts[i],[c,d]=pts[i+1];if(x>=a&&x<=c)return b+(x-a)/(c-a)*(d-b)}return null}
 function setChip(id,st,tx){const c=$(id);c.className='chip '+st;c.textContent=tx;}
 function light(score,invert=false){if(score==null)return{e:'⚪',c:'var(--dimmer)'};const s=invert?100-score:score;return s>=65?{e:'🟢',c:'var(--green)'}:s>=40?{e:'🟡',c:'var(--amber)'}:{e:'🔴',c:'var(--red)'}}
@@ -467,7 +468,7 @@ async function loadSnapshot(){
     S.healthStatus=healthResponse?.ok?await healthResponse.json():null;
     S.snapshot=d;
     renderSnapshot();
-    log('snapshot loaded · '+new Date(d.generated_at).toLocaleString());
+    log('snapshot loaded · '+formatEtDateTime(d.generated_at));
   }catch(e){
     log('snapshot failed: '+e.message,true);
     $('snapshotAge').textContent='snapshot unavailable';
@@ -493,8 +494,8 @@ function renderSnapshot(){
   const levHealth=snapshotTooOld||fund==null||ag.venue_count<2?null:interp(Math.abs(fund),A.funding);
   const demand=(etfScore!=null&&spotScore!=null)?etfScore*.65+spotScore*.35:null;
 
-  $('snapshotAge').textContent=(snapshotTooOld?'STALE · ':snapshotDelayed?'DELAYED · ':'snapshot ')+new Date(d.generated_at).toLocaleString();
-  $('asof').textContent=new Date(d.generated_at).toLocaleString();
+  $('snapshotAge').textContent=(snapshotTooOld?'STALE · ':snapshotDelayed?'DELAYED · ':'snapshot ')+formatEtDateTime(d.generated_at);
+  $('asof').textContent=formatEtDateTime(d.generated_at);
 
   $('v-etf').textContent=usd(etf5); $('v-etf').classList.toggle('stale',etf5==null);
   $('b-etf').innerHTML=etf5==null?'No ETF data':`latest <b>${etf.latest_date||'—'}</b> · ${etf.row_count||'—'} rows`;
@@ -504,43 +505,43 @@ function renderSnapshot(){
   $('v-prem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%'; $('v-prem').classList.toggle('stale',prem==null);
   $('b-prem').innerHTML=`Coinbase <b>${spot.coinbase_usd?('$'+Number(spot.coinbase_usd).toLocaleString()):'—'}</b> · Kraken <b>${spot.kraken_usd?('$'+Number(spot.kraken_usd).toLocaleString()):'—'}</b> · OKX <b>${spot.okx_usdt?('$'+Number(spot.okx_usdt).toLocaleString()):'—'}</b>`;
   setChip('s-prem',snapshotTooOld?'r':spotScore==null?qualityChip(hs.spot?.quality):scoreClass(spotScore),snapshotTooOld?'stale':spotScore==null?(hs.spot?.quality||'no data'):Math.round(spotScore)+'/100');
-  $('t-prem').textContent=hhmmss(new Date(d.generated_at));
+  $('t-prem').textContent=formatEtTime(d.generated_at);
 
   const displayOi=!publicationBlocked&&usableQuality(hs.derivatives_oi?.quality)?(ag.core_comparable_oi_usd ?? ag.oi_usd):null;
   $('v-oi').textContent=usd(displayOi); $('v-oi').classList.toggle('stale',!displayOi);
   $('b-oi').innerHTML=venues.length?venues.map(v=>`<b>${v}</b>`).join(' · ')+(ag.core_comparable_status==='ok'?' · <b>fixed core complete</b>':' · core set incomplete'):'No working futures venues';
   setChip('s-oi',snapshotTooOld?'r':qualityChip(hs.derivatives_oi?.quality),snapshotTooOld?'stale':hs.derivatives_oi?.quality||'no data');
   $('oisrc').textContent=venues.join(' · ')||'working venues';
-  $('t-oi').textContent=hhmmss(new Date(d.generated_at));
+  $('t-oi').textContent=formatEtTime(d.generated_at);
 
   $('v-fund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%'; $('v-fund').classList.toggle('stale',fund==null);
   $('b-fund').textContent=ag.funding_venues?.length?`weighted across ${ag.funding_venues.length} comparable funding venues: ${ag.funding_venues.join(', ')}`:'No comparable funding data';
   setChip('s-fund',snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),snapshotTooOld?'stale':levHealth==null?(hs.funding?.quality||'no data'):levHealth>=65?'normal':levHealth>=40?'elevated':'crowded');
-  $('t-fund').textContent=hhmmss(new Date(d.generated_at));
+  $('t-fund').textContent=formatEtTime(d.generated_at);
 
   $('v-lev').textContent=levHealth==null?'—':Math.round(levHealth)+'/100'; $('v-lev').classList.toggle('stale',levHealth==null);
   $('b-lev').textContent=fund==null?'No leverage health score':`weighted funding ${fund.toFixed(4)}% · ${venues.length} venues`;
   setChip('s-lev',snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),snapshotTooOld?'stale':levHealth==null?(hs.funding?.quality||'no data'):levHealth>=65?'healthy':levHealth>=40?'mixed':'crowded');
-  $('t-lev').textContent=hhmmss(new Date(d.generated_at));
+  $('t-lev').textContent=formatEtTime(d.generated_at);
 
   setChip('s-sq','n','incomplete');
   $('v-sq').textContent='INCOMPLETE';
   $('b-sq').textContent='Real demand can be strong while exchange-supply confirmation is still missing.';
-  $('t-sq').textContent=hhmmss(new Date(d.generated_at));
+  $('t-sq').textContent=formatEtTime(d.generated_at);
 
   const healthRows=[
     ['ETF',hs.etf],['U.S. SPOT',hs.spot],['CORE OI',hs.derivatives_oi],
     ['FUNDING',hs.funding],['SUPPLY',hs.exchange_supply],['BYBIT',hs.bybit]
   ];
   if(hs.publication)healthRows.unshift(['VALIDATION',hs.publication]);
-  const attemptNote=sidecarCurrent&&sidecar.snapshot_valid===false?` · latest attempt rejected ${new Date(sidecar.attempted_at).toLocaleString()}`:'';
+  const attemptNote=sidecarCurrent&&sidecar.snapshot_valid===false?` · latest attempt rejected ${formatEtDateTime(sidecar.attempted_at)}`:'';
   $('b-health').innerHTML=healthRows.map(([name,s])=>`<span class="source-pill ${s?.quality||'unknown'}" title="${String(s?.reason||'').replaceAll('&','&amp;').replaceAll('"','&quot;')}">${name}: ${(s?.quality||'unknown').toUpperCase()} · ${s?.coverage||'—'}</span>`).join('')+
     `<div class="trusted-time-note">Quality and age are checked separately · freshness clock: ${trustedClockSource()}${attemptNote}</div>`;
   const healthAge=ageText(snapshotMinutes);
   const overallQuality=health.overall?.quality||'unknown';
   const healthClass=snapshotTooOld||overallQuality==='conflict'?'r':overallQuality==='unknown'?'n':snapshotDelayed||overallQuality==='partial'?'a':'g';
   setChip('s-health',healthClass,`${overallQuality} · ${freshness} · ${healthAge}`);
-  $('t-health').textContent=hhmmss(new Date(sidecarCurrent?sidecar.attempted_at:d.generated_at));
+  $('t-health').textContent=formatEtTime(sidecarCurrent?sidecar.attempted_at:d.generated_at);
 
   const state=demand==null?'unknown':demand>=68?'strong':demand>=40?'mixed':'weak';
   $('demandNum').innerHTML=demand==null?'—<span>/100</span>':Math.round(demand)+'<span>/100</span>';
@@ -621,7 +622,7 @@ function paintPrice(){
   const el=$('px');el.textContent='$'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   $('headerBtcPrice').textContent='BTC $'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' · LIVE';
   el.classList.remove('up','dn');if(S.prev!=null)el.classList.add(S.price>=S.prev?'up':'dn');
-  $('pxsub').textContent=S.ticks.length+' ticks · last '+hhmmss(now());drawSpark();
+  $('pxsub').textContent=S.ticks.length+' ticks · last '+formatEtTime(now());drawSpark();
 }
 
 function drawSpark(){
@@ -747,9 +748,7 @@ function historyScale(values,metric){
   return[mn,mx];
 }
 function historyTickLabel(t,span){
-  const d=new Date(t);
-  if(span>72*HISTORY_HOUR_MS)return d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
-  return (d.getUTCMonth()+1)+'/'+d.getUTCDate()+' '+String(d.getUTCHours()).padStart(2,'0')+'Z';
+  return formatEtHistoryTick(t,span>72*HISTORY_HOUR_MS);
 }
 function drawHistory(){
   const c=$('historyChart');if(!c)return;
@@ -815,10 +814,10 @@ $('histMetric').addEventListener('change',e=>{H.metric=e.target.value;renderHist
 addEventListener('resize',()=>{if(H.rows.length)drawHistory();});
 connectPrice();
 setInterval(()=>{
-  $('clock').textContent=hhmmss(now())+' local';
-  $('headerDateTime').textContent=now().toLocaleString('en-US');
+  $('clock').textContent=formatEtTime(now());
+  $('headerDateTime').textContent=formatEtDateTime(now());
 },1000);
-$('headerDateTime').textContent=now().toLocaleString('en-US');
+$('headerDateTime').textContent=formatEtDateTime(now());
 addEventListener('resize',()=>{drawSpark();if(S.snapshot)renderSnapshot();});
 drawGauge(null);
 log('Bitcoin Real vs Paper opened · live demand dashboard');
