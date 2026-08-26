@@ -1,0 +1,35 @@
+name: Update Bitcoin daily history
+
+on:
+  schedule:
+    - cron: '41 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btc-daily-history
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Fetch keyless Coin Metrics PriceUSD history
+        run: node scripts/update-btc-daily-history.mjs
+      - name: Validate daily history and Time Machine logic
+        run: node --test tests/btc-daily-history.test.mjs tests/btc-time-machine.test.mjs
+      - name: Commit daily-history data only
+        run: |
+          if git diff --quiet -- data/btc-daily-history.json; then exit 0; fi
+          test "$(git diff --name-only | tr -d '\r')" = "data/btc-daily-history.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/btc-daily-history.json
+          git commit -m "data: update Bitcoin daily history"
+          git push
