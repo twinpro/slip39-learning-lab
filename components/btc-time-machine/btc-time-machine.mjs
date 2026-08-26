@@ -64,14 +64,15 @@ export function liveDisplayState({status='connecting',price=null,lastMessageAt=n
 }
 
 const usd=value=>value==null?'N/A':`$${value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-const percent=value=>value==null?'N/A':`${value>=0?'+':''}${value.toFixed(1)}%`;
-const multiple=value=>value==null?'N/A':`${value.toFixed(2)}×`;
+export const formatHistoricalPrice=value=>value==null?'N/A':`$${value.toLocaleString('en-US',value>=1?{minimumFractionDigits:2,maximumFractionDigits:2}:{minimumFractionDigits:4,maximumFractionDigits:8})}`;
+export const formatPercent=value=>value==null?'N/A':`${value>=0?'+':''}${value.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}%`;
+export const formatMultiple=value=>value==null?'N/A':`${value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}×`;
 
 export function renderRows(rows,currentPrice){
   return rows.map(row=>{
     const comparison=calculateComparison(currentPrice,row.priceUSD);
     const unavailable=row.status!=='available';
-    return `<tr class="${unavailable?'unavailable-row':''}"><th scope="row">${row.year}</th><td>${row.date}</td><td>${unavailable?'N/A':usd(row.priceUSD)}</td><td>${unavailable?'N/A':percent(comparison.percentageChange)}</td><td>${unavailable?'N/A':multiple(comparison.growthMultiple)}</td></tr>`;
+    return `<tr class="${unavailable?'unavailable-row':''}"><th scope="row">${row.year}</th><td>${row.date}</td><td>${unavailable?'N/A':formatHistoricalPrice(row.priceUSD)}</td><td>${unavailable?'N/A':formatPercent(comparison.percentageChange)}</td><td>${unavailable?'N/A':formatMultiple(comparison.growthMultiple)}</td></tr>`;
   }).join('');
 }
 
