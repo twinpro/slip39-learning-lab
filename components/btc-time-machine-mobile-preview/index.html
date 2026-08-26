@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bitcoin Time Machine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./btc-time-machine.css">
+</head>
+<body>
+  <main class="machine" aria-labelledby="title">
+    <header>
+      <div><h1 id="title">BITCOIN TIME MACHINE</h1><p>See Bitcoin’s price on the same calendar date in prior years.</p></div>
+      <div class="source-state"><span>COIN METRICS</span><strong>PriceUSD</strong></div>
+    </header>
+    <section class="controls" aria-label="Time Machine controls">
+      <label for="selected-date">SELECT CALENDAR DATE<input id="selected-date" type="date" required></label>
+      <div><span>SELECTED DATE</span><strong id="selected-label">—</strong></div>
+      <div><span>CURRENT BTC PRICE</span><strong id="current-price">—</strong><em class="status" id="live-status">CONNECTING</em></div>
+    </section>
+    <section class="mobile-date-card mobile-only" aria-label="Selected date">
+      <span>Selected date</span>
+      <strong id="mobile-selected-label">—</strong>
+    </section>
+    <section class="mobile-current mobile-only" aria-labelledby="mobile-current-title">
+      <div><span id="mobile-current-title">2026 daily close</span><strong id="mobile-current-price">Pending</strong><em id="mobile-current-note">Today’s daily candle has not closed yet.</em></div>
+      <div id="mobile-live-box" hidden><span>Live BTC</span><strong id="mobile-live-price">—</strong><em>Not a daily close</em></div>
+    </section>
+    <section class="mobile-summary mobile-only" aria-label="Same-date summary">
+      <div><span>Highest prior price</span><strong id="summary-high">—</strong></div>
+      <div><span>Lowest prior price</span><strong id="summary-low">—</strong></div>
+      <div><span>Years available</span><strong id="summary-count">—</strong></div>
+    </section>
+    <section class="chart-panel" aria-labelledby="chart-title">
+      <h2 id="chart-title">Same-date BTC price by year</h2>
+      <p class="chart-sub">Logarithmic USD scale · USD per BTC</p>
+      <canvas id="history-chart" role="img" aria-label="Same-date Bitcoin PriceUSD by year on a logarithmic USD scale"></canvas>
+      <div class="chart-tooltip" id="chart-tooltip" hidden></div>
+    </section>
+    <p class="table-hint">Swipe table to see price and comparison →</p>
+    <div class="table-scroll" tabindex="0" aria-label="Horizontally scrollable historical daily price table">
+      <table><thead><tr><th>YEAR</th><th>DATE</th><th>HISTORICAL DAILY PRICE</th><th>CHANGE TO CURRENT BTC PRICE</th><th>GROWTH MULTIPLE</th></tr></thead><tbody id="history-body"></tbody></table>
+    </div>
+    <section class="mobile-list mobile-only" aria-labelledby="mobile-list-title">
+      <h2 id="mobile-list-title">Historical prices for <span id="mobile-list-date">—</span></h2>
+      <p id="mobile-list-note">Showing valid Coin Metrics daily closes only; missing observations are omitted.</p>
+      <div id="mobile-history-list"></div>
+    </section>
+    <details class="mobile-how mobile-only">
+      <summary>How to read this</summary>
+      <div>
+        <p>These are daily historical prices for the same calendar date.</p>
+        <p>The current year may be pending if today’s daily candle has not closed.</p>
+        <p>Historical performance does not predict future performance.</p>
+        <p>Live BTC price and Coin Metrics daily close are different measurements.</p>
+      </div>
+    </details>
+    <p id="data-error" class="error" role="alert" hidden></p>
+    <footer>
+      <p>Source: Coin Metrics Community API · Metric: PriceUSD · Historical daily price</p>
+      <p>Historical data through <span id="data-through">—</span> · Last updated <span id="updated-at">—</span></p>
+      <p class="context">Historical context only · Not included in the Real-Demand Evidence score</p>
+    </footer>
+  </main>
+  <script type="module" src="./btc-time-machine.mjs"></script>
+</body>
+</html>
