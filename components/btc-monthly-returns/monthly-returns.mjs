@@ -46,11 +46,20 @@ export function completedAggregates(returns,startYear,endYear){
 
 const format=value=>`${value>=0?'+':''}${value.toFixed(1)}%`;
 const FRAME_ID='monthly';
+// Safari can round the iframe content box a hair short; keep this allowance tiny.
+const SAFARI_HEIGHT_ALLOWANCE=2;
 const frameHeightCleanup=[];
+let lastPostedFrameHeight=null;
+let pendingHeightPost=0;
 
-function documentHeight(){
-  const root=document.documentElement,body=document.body;
-  return Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight));
+function contentHeight(){
+  const body=document.body,content=document.querySelector('.returns-panel');
+  if(!body||!content) return null;
+  const rect=content.getBoundingClientRect();
+  const styles=getComputedStyle(body);
+  const paddingBottom=parseFloat(styles.paddingBottom)||0;
+  const height=Math.ceil(rect.bottom+paddingBottom+SAFARI_HEIGHT_ALLOWANCE);
+  return Number.isFinite(height)&&height>0?height:null;
 }
 function frameMessagingTarget(){
   if(typeof window==='undefined'||typeof document==='undefined'||typeof location==='undefined') return null;
@@ -60,32 +69,43 @@ function frameMessagingTarget(){
 function postFrameHeight(){
   const target=frameMessagingTarget();
   if(!target) return;
-  target.postMessage({type:'btc-dashboard-frame-height',frameId:FRAME_ID,height:documentHeight()},location.origin);
+  const height=contentHeight();
+  if(!height||height===lastPostedFrameHeight) return;
+  lastPostedFrameHeight=height;
+  target.postMessage({type:'btc-dashboard-frame-height',frameId:FRAME_ID,height},location.origin);
+}
+function scheduleFrameHeightPost(){
+  if(pendingHeightPost) return;
+  pendingHeightPost=setTimeout(()=>{
+    pendingHeightPost=0;
+    postFrameHeight();
+  },80);
 }
 function setupFrameHeightPosting(){
   if(typeof window==='undefined'||typeof document==='undefined'||!document.body) return;
   if(!frameMessagingTarget()) return;
   const onMessage=event=>{
-    if(event.origin===location.origin&&event.data?.type==='btc-dashboard-request-height'&&event.data.frameId===FRAME_ID)postFrameHeight();
+    if(event.origin===location.origin&&event.data?.type==='btc-dashboard-request-height'&&event.data.frameId===FRAME_ID)scheduleFrameHeightPost();
   };
-  const onResize=()=>{
-    const timerId=setTimeout(postFrameHeight,80);
-    frameHeightCleanup.push(()=>clearTimeout(timerId));
-  };
+  const onResize=()=>scheduleFrameHeightPost();
   window.addEventListener('message',onMessage);
   frameHeightCleanup.push(()=>window.removeEventListener('message',onMessage));
   if('ResizeObserver' in window&&typeof window.ResizeObserver==='function'){
-    const observer=new window.ResizeObserver(()=>postFrameHeight());
-    observer.observe(document.body);
-    frameHeightCleanup.push(()=>observer.disconnect());
+    const target=document.querySelector('.returns-panel');
+    if(target){
+      const observer=new window.ResizeObserver(()=>scheduleFrameHeightPost());
+      observer.observe(target);
+      frameHeightCleanup.push(()=>observer.disconnect());
+    }
   }else{
-    const intervalId=setInterval(postFrameHeight,700);
+    const intervalId=setInterval(scheduleFrameHeightPost,700);
     frameHeightCleanup.push(()=>clearInterval(intervalId));
   }
-  window.addEventListener('load',postFrameHeight);
+  window.addEventListener('load',scheduleFrameHeightPost);
   window.addEventListener('resize',onResize);
-  frameHeightCleanup.push(()=>window.removeEventListener('load',postFrameHeight));
+  frameHeightCleanup.push(()=>window.removeEventListener('load',scheduleFrameHeightPost));
   frameHeightCleanup.push(()=>window.removeEventListener('resize',onResize));
+  frameHeightCleanup.push(()=>clearTimeout(pendingHeightPost));
 }
 
 export function teardownFrameHeightPosting(){
@@ -127,7 +147,7 @@ export function renderTable(documentRef,fixture){
   documentRef.querySelector('#data-mode').textContent=isPreview?'PREVIEW DATA · NOT LIVE':'LIVE DATA';
   documentRef.querySelector('#data-mode').classList.toggle('preview-warning',isPreview);
   documentRef.querySelector('#as-of').textContent=`Data through ${asOf} · Current month is provisional (MTD).`;
-  if(frameMessagingTarget()) setTimeout(postFrameHeight,0);
+  if(frameMessagingTarget()) scheduleFrameHeightPost();
 }
 
 async function init(){
