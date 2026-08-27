@@ -1,6 +1,7 @@
 export const TIME_ZONE='America/New_York';
 export const MONTH_DAY_RE=/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const FRAME_ID='time-machine';
+const frameHeightCleanup=[];
 
 export const datePart=time=>String(time||'').slice(0,10);
 
@@ -73,19 +74,50 @@ function documentHeight(){
   const root=document.documentElement,body=document.body;
   return Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight));
 }
+function frameMessagingTarget(){
+  if(typeof window==='undefined'||typeof document==='undefined'||typeof location==='undefined') return null;
+  if(!window.parent||window.parent===window||typeof window.parent.postMessage!=='function') return null;
+  return window.parent;
+}
 function postFrameHeight(){
-  if(!parent||parent===window)return;
-  parent.postMessage({type:'btc-preview-frame-height',frameId:FRAME_ID,height:documentHeight()},location.origin);
+  const target=frameMessagingTarget();
+  if(!target) return;
+  target.postMessage({type:'btc-preview-frame-height',frameId:FRAME_ID,height:documentHeight()},location.origin);
 }
 function setupFrameHeightPosting(){
-  addEventListener('message',event=>{
+  if(typeof window==='undefined'||typeof document==='undefined'||!document.body) return;
+  if(!frameMessagingTarget()) return;
+  const onMessage=event=>{
     if(event.origin===location.origin&&event.data?.type==='btc-preview-request-height'&&event.data.frameId===FRAME_ID)postFrameHeight();
-  });
-  if('ResizeObserver' in window)new ResizeObserver(()=>postFrameHeight()).observe(document.body);
-  else setInterval(postFrameHeight,700);
-  addEventListener('load',postFrameHeight);
-  addEventListener('resize',()=>setTimeout(postFrameHeight,80));
-  document.addEventListener('toggle',()=>setTimeout(postFrameHeight,80),true);
+  };
+  const onResize=()=>{
+    const timerId=setTimeout(postFrameHeight,80);
+    frameHeightCleanup.push(()=>clearTimeout(timerId));
+  };
+  const onToggle=()=>{
+    const timerId=setTimeout(postFrameHeight,80);
+    frameHeightCleanup.push(()=>clearTimeout(timerId));
+  };
+  window.addEventListener('message',onMessage);
+  frameHeightCleanup.push(()=>window.removeEventListener('message',onMessage));
+  if('ResizeObserver' in window&&typeof window.ResizeObserver==='function'){
+    const observer=new window.ResizeObserver(()=>postFrameHeight());
+    observer.observe(document.body);
+    frameHeightCleanup.push(()=>observer.disconnect());
+  }else{
+    const intervalId=setInterval(postFrameHeight,700);
+    frameHeightCleanup.push(()=>clearInterval(intervalId));
+  }
+  window.addEventListener('load',postFrameHeight);
+  window.addEventListener('resize',onResize);
+  document.addEventListener('toggle',onToggle,true);
+  frameHeightCleanup.push(()=>window.removeEventListener('load',postFrameHeight));
+  frameHeightCleanup.push(()=>window.removeEventListener('resize',onResize));
+  frameHeightCleanup.push(()=>document.removeEventListener('toggle',onToggle,true));
+}
+
+export function teardownFrameHeightPosting(){
+  while(frameHeightCleanup.length) frameHeightCleanup.pop()();
 }
 
 export function renderRows(rows,currentPrice){
@@ -190,9 +222,9 @@ function init(){
     $('mobile-history-list').innerHTML=renderMobileList(state.rows);
     $('data-through').textContent=state.dataset.latestObservationDate;$('updated-at').textContent=new Intl.DateTimeFormat('en-US',{timeZone:TIME_ZONE,year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'}).format(new Date(state.dataset.generatedAt));
     drawChart($('history-chart'),state.rows);
-    setTimeout(postFrameHeight,0);
+    if(frameMessagingTarget()) setTimeout(postFrameHeight,0);
   };
-  input.addEventListener('change',()=>{if(input.value&&input.value<=state.today){paint();setTimeout(postFrameHeight,80);}});
+  input.addEventListener('change',()=>{if(input.value&&input.value<=state.today){paint();if(frameMessagingTarget())setTimeout(postFrameHeight,80);}});
   addEventListener('resize',()=>paint());
   const tooltip=$('chart-tooltip'),canvas=$('history-chart');
   const showTip=event=>{

@@ -46,23 +46,50 @@ export function completedAggregates(returns,startYear,endYear){
 
 const format=value=>`${value>=0?'+':''}${value.toFixed(1)}%`;
 const FRAME_ID='monthly';
+const frameHeightCleanup=[];
 
 function documentHeight(){
   const root=document.documentElement,body=document.body;
   return Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight));
 }
+function frameMessagingTarget(){
+  if(typeof window==='undefined'||typeof document==='undefined'||typeof location==='undefined') return null;
+  if(!window.parent||window.parent===window||typeof window.parent.postMessage!=='function') return null;
+  return window.parent;
+}
 function postFrameHeight(){
-  if(!parent||parent===window)return;
-  parent.postMessage({type:'btc-preview-frame-height',frameId:FRAME_ID,height:documentHeight()},location.origin);
+  const target=frameMessagingTarget();
+  if(!target) return;
+  target.postMessage({type:'btc-preview-frame-height',frameId:FRAME_ID,height:documentHeight()},location.origin);
 }
 function setupFrameHeightPosting(){
-  addEventListener('message',event=>{
+  if(typeof window==='undefined'||typeof document==='undefined'||!document.body) return;
+  if(!frameMessagingTarget()) return;
+  const onMessage=event=>{
     if(event.origin===location.origin&&event.data?.type==='btc-preview-request-height'&&event.data.frameId===FRAME_ID)postFrameHeight();
-  });
-  if('ResizeObserver' in window)new ResizeObserver(()=>postFrameHeight()).observe(document.body);
-  else setInterval(postFrameHeight,700);
-  addEventListener('load',postFrameHeight);
-  addEventListener('resize',()=>setTimeout(postFrameHeight,80));
+  };
+  const onResize=()=>{
+    const timerId=setTimeout(postFrameHeight,80);
+    frameHeightCleanup.push(()=>clearTimeout(timerId));
+  };
+  window.addEventListener('message',onMessage);
+  frameHeightCleanup.push(()=>window.removeEventListener('message',onMessage));
+  if('ResizeObserver' in window&&typeof window.ResizeObserver==='function'){
+    const observer=new window.ResizeObserver(()=>postFrameHeight());
+    observer.observe(document.body);
+    frameHeightCleanup.push(()=>observer.disconnect());
+  }else{
+    const intervalId=setInterval(postFrameHeight,700);
+    frameHeightCleanup.push(()=>clearInterval(intervalId));
+  }
+  window.addEventListener('load',postFrameHeight);
+  window.addEventListener('resize',onResize);
+  frameHeightCleanup.push(()=>window.removeEventListener('load',postFrameHeight));
+  frameHeightCleanup.push(()=>window.removeEventListener('resize',onResize));
+}
+
+export function teardownFrameHeightPosting(){
+  while(frameHeightCleanup.length) frameHeightCleanup.pop()();
 }
 
 function cellMarkup(item,isFuture=false){
@@ -100,7 +127,7 @@ export function renderTable(documentRef,fixture){
   documentRef.querySelector('#data-mode').textContent=isPreview?'PREVIEW DATA · NOT LIVE':'LIVE DATA';
   documentRef.querySelector('#data-mode').classList.toggle('preview-warning',isPreview);
   documentRef.querySelector('#as-of').textContent=`Data through ${asOf} · Current month is provisional (MTD).`;
-  setTimeout(postFrameHeight,0);
+  if(frameMessagingTarget()) setTimeout(postFrameHeight,0);
 }
 
 async function init(){
