@@ -1,0 +1,243 @@
+import fs from "node:fs/promises";
+
+const OUT = new URL("../data/btc-macro.json", import.meta.url);
+const MARKET = new URL("../data/btc-market.json", import.meta.url);
+const MARKET_HISTORY = new URL("../data/btc-market-history.jsonl", import.meta.url);
+const NOW = new Date();
+const ISO = NOW.toISOString();
+const DAY = 86400000;
+
+const FRED = {
+  dollar_exchange: ["DTWEXBGS", "Dollar exchange strength", "index", "FRED: Nominal Broad U.S. Dollar Index", "https://fred.stlouisfed.org/series/DTWEXBGS", "Higher dollar exchange strength can tighten global liquidity for BTC."],
+  cpi: ["CPIAUCSL", "CPI inflation", "index", "FRED: CPIAUCSL", "https://fred.stlouisfed.org/series/CPIAUCSL", "Higher consumer inflation can pressure policy rates and liquidity."],
+  pce_core: ["PCEPILFE", "PCE/Core PCE", "index", "FRED: PCEPILFE", "https://fred.stlouisfed.org/series/PCEPILFE", "Core PCE is the Fed's preferred inflation gauge."],
+  fed_funds: ["FEDFUNDS", "Federal-funds rate", "%", "FRED: FEDFUNDS", "https://fred.stlouisfed.org/series/FEDFUNDS", "Higher policy rates usually make liquidity less supportive."],
+  treasury_2y: ["DGS2", "2-year Treasury yield", "%", "FRED: DGS2", "https://fred.stlouisfed.org/series/DGS2", "The 2-year yield tracks expected near-term Fed policy."],
+  treasury_10y: ["DGS10", "10-year Treasury yield", "%", "FRED: DGS10", "https://fred.stlouisfed.org/series/DGS10", "Higher long yields can pressure long-duration risk assets."],
+  real_yield_10y: ["DFII10", "10-year real yield", "%", "FRED: DFII10", "https://fred.stlouisfed.org/series/DFII10", "Higher inflation-adjusted yields can compete with scarce assets."],
+  m2: ["M2SL", "M2 money supply", "USD billions", "FRED: M2SL", "https://fred.stlouisfed.org/series/M2SL", "Expanding money supply is a liquidity tailwind; contraction is a headwind."],
+  fed_assets: ["WALCL", "Federal Reserve assets", "USD millions", "FRED: WALCL", "https://fred.stlouisfed.org/series/WALCL", "A larger Fed balance sheet can indicate easier liquidity conditions."],
+  reverse_repo: ["RRPONTSYD", "Reverse repo", "USD billions", "FRED: RRPONTSYD", "https://fred.stlouisfed.org/series/RRPONTSYD", "Lower reverse repo balances can release cash into markets."],
+  nasdaq: ["NASDAQCOM", "Nasdaq/risk appetite", "index", "FRED: NASDAQCOM", "https://fred.stlouisfed.org/series/NASDAQCOM", "A rising Nasdaq often signals stronger risk appetite."],
+  vix: ["VIXCLS", "VIX", "index", "FRED: VIXCLS", "https://fred.stlouisfed.org/series/VIXCLS", "Higher volatility usually means weaker risk appetite."],
+  unemployment: ["UNRATE", "Unemployment", "%", "FRED: UNRATE", "https://fred.stlouisfed.org/series/UNRATE", "Rising unemployment can signal macro stress."],
+  gold: ["GOLDPMGBD228NLBM", "Gold", "USD/oz", "FRED: GOLDPMGBD228NLBM", "https://fred.stlouisfed.org/series/GOLDPMGBD228NLBM", "Gold is a parallel hard-asset reference, not a BTC signal."],
+  oil: ["DCOILWTICO", "Oil", "USD/bbl", "FRED: DCOILWTICO", "https://fred.stlouisfed.org/series/DCOILWTICO", "Higher oil can feed inflation pressure."],
+};
+
+const INVERSE = new Set(["dollar_exchange", "cpi", "pce_core", "fed_funds", "treasury_2y", "treasury_10y", "real_yield_10y", "vix", "unemployment", "oil"]);
+const DIRECT = new Set(["m2", "fed_assets", "nasdaq"]);
+const POSITIVE_SERIES = new Set(["dollar_exchange", "cpi", "dollar_purchasing_power", "pce_core", "m2", "fed_assets", "reverse_repo", "nasdaq", "vix", "gold", "oil"]);
+
+async function fetchText(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const r = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "btc-macro-weather/1", "Accept": "*/*" } });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return await r.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchJson(url) {
+  return JSON.parse(await fetchText(url));
+}
+
+function parseFredCsv(text) {
+  const lines = text.trim().split(/\r?\n/).slice(1);
+  return lines.map(line => {
+    const [date, raw] = line.split(",");
+    const value = raw === "." ? null : Number(raw);
+    return { date, value };
+  }).filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.date) && Number.isFinite(r.value));
+}
+
+function nearestAtOrBefore(rows, targetMs) {
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (Date.parse(`${rows[i].date}T00:00:00Z`) <= targetMs) return rows[i];
+  }
+  return null;
+}
+
+function pct(a, b) {
+  return Number.isFinite(a) && Number.isFinite(b) && b !== 0 ? ((a - b) / Math.abs(b)) * 100 : null;
+}
+
+function round(value, digits = 2) {
+  return Number.isFinite(value) ? Number(value.toFixed(digits)) : null;
+}
+
+function downsample(rows, max = 420) {
+  if (rows.length <= max) return rows;
+  const step = Math.ceil(rows.length / max);
+  return rows.filter((_, i) => i % step === 0 || i === rows.length - 1);
+}
+
+function weatherFor(id, d30, latest) {
+  if (!Number.isFinite(d30)) return "Neutral";
+  if (id === "vix") {
+    if (latest <= 18 && d30 <= 0) return "Tailwind";
+    if (latest >= 25 || d30 > 10) return "Headwind";
+    return "Neutral";
+  }
+  if (id === "unemployment") {
+    if (d30 > 0.2) return "Headwind";
+    if (d30 < -0.2) return "Tailwind";
+    return "Neutral";
+  }
+  if (INVERSE.has(id)) return d30 > 0 ? "Headwind" : d30 < 0 ? "Tailwind" : "Neutral";
+  if (DIRECT.has(id)) return d30 > 0 ? "Tailwind" : d30 < 0 ? "Headwind" : "Neutral";
+  return "Neutral";
+}
+
+function buildSeries(id, name, unit, source, sourceUrl, note, rows, transform = null) {
+  let clean = transform ? rows.map(transform).filter(r => Number.isFinite(r.value)) : rows;
+  if (POSITIVE_SERIES.has(id)) clean = clean.filter(r => r.value > 0);
+  const latest = clean.at(-1);
+  if (!latest) throw new Error("no usable observations");
+  const latestMs = Date.parse(`${latest.date}T00:00:00Z`);
+  const d30 = nearestAtOrBefore(clean, latestMs - 30 * DAY);
+  const y1 = nearestAtOrBefore(clean, latestMs - 365 * DAY);
+  const delta30 = d30 ? latest.value - d30.value : null;
+  const change1y = y1 ? pct(latest.value, y1.value) : null;
+  return {
+    id, name, status: "ok", latest_value: round(latest.value, unit === "%" ? 3 : 2), unit,
+    observation_date: latest.date,
+    direction_30d: Number.isFinite(delta30) ? (delta30 > 0 ? "up" : delta30 < 0 ? "down" : "flat") : "unknown",
+    change_30d: round(delta30, 3),
+    change_1y_percent: round(change1y, 2),
+    weather: weatherFor(id, delta30, latest.value),
+    explanation: note,
+    source, source_url: sourceUrl,
+    data_start_date: clean[0].date,
+    history: downsample(clean.map(r => ({ date: r.date, value: round(r.value, 4) })))
+  };
+}
+
+function unavailable(id, name, reason, source = "Not available from approved free sources") {
+  return { id, name, status: "unavailable", latest_value: null, observation_date: null, direction_30d: "unknown", change_1y_percent: null, weather: "Neutral", explanation: reason, source, data_start_date: null, history: [] };
+}
+
+async function fredSeries(id, config) {
+  const [fredId, name, unit, source, sourceUrl, note] = config;
+  const text = await fetchText(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(fredId)}`);
+  return buildSeries(id, name, unit, source, sourceUrl, note, parseFredCsv(text));
+}
+
+async function treasuryTga() {
+  const start = new Date(NOW.getTime() - 430 * DAY).toISOString().slice(0, 10);
+  const url = `https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/dts/operating_cash_balance?filter=record_date:gte:${start},account_type:eq:Treasury%20General%20Account%20(TGA)%20Closing%20Balance&sort=record_date&page[size]=10000`;
+  const json = await fetchJson(url);
+  const rows = (json.data || []).map(r => ({ date: r.record_date, value: Number(r.open_today_bal || r.close_today_bal || r.amount) })).filter(r => r.date && Number.isFinite(r.value));
+  return buildSeries("tga", "Treasury General Account", "USD millions", "U.S. Treasury Fiscal Data", "https://fiscaldata.treasury.gov/datasets/daily-treasury-statement/operating-cash-balance", "A rising TGA can drain reserves; a falling TGA can add liquidity.", rows);
+}
+
+async function coinMetrics() {
+  const url = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=SplyCur,HashRate,DiffMean,FeeTotUSD&frequency=1d&page_size=10000";
+  const json = await fetchJson(url);
+  const data = json.data || [];
+  const byMetric = metric => data.map(r => ({ date: String(r.time).slice(0, 10), value: Number(r[metric]) })).filter(r => r.date && Number.isFinite(r.value));
+  const supply = byMetric("SplyCur");
+  const latest = supply.at(-1), prior = latest ? nearestAtOrBefore(supply, Date.parse(`${latest.date}T00:00:00Z`) - 30 * DAY) : null;
+  const issuanceRows = supply.map((r, i) => i ? ({ date: r.date, value: r.value - supply[i - 1].value }) : null).filter(Boolean).filter(r => Number.isFinite(r.value));
+  const out = [
+    buildSeries("btc_supply", "BTC supply/issuance", "BTC/day", "Coin Metrics Community API", "https://community-api.coinmetrics.io/", "Bitcoin issuance is programmatic; lower issuance is structural context, not a price prediction.", issuanceRows),
+    buildSeries("btc_hash", "BTC hash rate/difficulty", "TH/s", "Coin Metrics Community API", "https://community-api.coinmetrics.io/", "Hash rate and difficulty reflect mining security and cost pressure.", byMetric("HashRate")),
+    buildSeries("btc_fees", "BTC fees/activity", "USD/day", "Coin Metrics Community API", "https://community-api.coinmetrics.io/", "Fees show settlement demand and blockspace pressure.", byMetric("FeeTotUSD"))
+  ];
+  out[0].latest_supply = latest ? round(latest.value, 4) : null;
+  out[0].supply_change_30d = latest && prior ? round(latest.value - prior.value, 4) : null;
+  return out;
+}
+
+async function existingDashboardCards() {
+  const market = JSON.parse(await fs.readFile(MARKET, "utf8"));
+  const historyText = await fs.readFile(MARKET_HISTORY, "utf8").catch(() => "");
+  const fundingHistory = historyText.trim().split(/\r?\n/).filter(Boolean).map(line => {
+    try {
+      const r = JSON.parse(line);
+      return { date: String(r.bucket_utc || "").slice(0, 10), value: Number(r.derivatives?.weighted_funding_percent) };
+    } catch {
+      return null;
+    }
+  }).filter(r => r?.date && Number.isFinite(r.value));
+  const cards = [];
+  const etf = market.etf?.flow_5d_usd;
+  const etfHistory = (market.etf?.history || []).map(r => ({
+    date: r.date || (Number.isFinite(r.timestamp) ? new Date(r.timestamp).toISOString().slice(0, 10) : null),
+    value: r.flow_usd
+  })).filter(r => r.date && Number.isFinite(r.value));
+  cards.push({
+    id: "etf_flows", name: "ETF flows", status: Number.isFinite(etf) ? "ok" : "unavailable",
+    latest_value: Number.isFinite(etf) ? round(etf, 2) : null, unit: "USD 5-session net",
+    observation_date: market.etf?.latest_date || null, direction_30d: "unknown", change_1y_percent: null,
+    weather: Number.isFinite(etf) ? etf > 0 ? "Tailwind" : etf < 0 ? "Headwind" : "Neutral" : "Neutral",
+    explanation: "Uses the existing verified dashboard ETF snapshot; this does not alter scoring.",
+    source: market.etf?.source || "Existing BTC dashboard data", source_url: "data/btc-market.json",
+    data_start_date: etfHistory[0]?.date || null, history: etfHistory
+  });
+  const agg = market.derivatives?.aggregate || {};
+  const funding = Number.isFinite(agg.funding_rate_percent) ? agg.funding_rate_percent : agg.weighted_funding_percent;
+  cards.push({
+    id: "futures_funding", name: "Futures/funding", status: Number.isFinite(funding) ? "ok" : "unavailable",
+    latest_value: Number.isFinite(funding) ? round(funding, 4) : null, unit: "% weighted funding",
+    observation_date: market.generated_at?.slice(0, 10) || null, direction_30d: "unknown", change_1y_percent: null,
+    weather: Number.isFinite(funding) ? funding > 0.03 ? "Headwind" : "Neutral" : "Neutral",
+    explanation: "Uses the existing verified dashboard futures/funding snapshot; this does not alter scoring.",
+    source: "Existing BTC dashboard data", source_url: "data/btc-market.json", data_start_date: fundingHistory[0]?.date || market.generated_at?.slice(0, 10) || null, history: fundingHistory
+  });
+  return cards;
+}
+
+function events() {
+  const all = [
+    { id: "fomc", name: "FOMC decision", datetime: "2026-09-16T14:00:00-04:00", source: "Federal Reserve FOMC calendar", source_url: "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm" },
+    { id: "cpi", name: "CPI release", datetime: "2026-09-11T08:30:00-04:00", source: "BLS CPI release schedule", source_url: "https://www.bls.gov/schedule/news_release/cpi.htm" },
+    { id: "pce", name: "PCE release", datetime: "2026-09-30T08:30:00-04:00", source: "BEA release schedule", source_url: "https://www.bea.gov/news/schedule/full" },
+    { id: "employment", name: "Employment report", datetime: "2026-09-04T08:30:00-04:00", source: "BLS release schedule", source_url: "https://www.bls.gov/schedule/2026/" }
+  ];
+  return all.map(e => ({ ...e, countdown_days: Math.max(0, Math.ceil((Date.parse(e.datetime) - NOW.getTime()) / DAY)) }));
+}
+
+const series = [];
+const errors = {};
+for (const [id, cfg] of Object.entries(FRED)) {
+  try {
+    const s = await fredSeries(id, cfg);
+    series.push(s);
+    if (id === "cpi") {
+      const rows = parseFredCsv(await fetchText("https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL"));
+      series.push(buildSeries("dollar_purchasing_power", "Dollar purchasing power", "1982-84 dollars", "Calculated from FRED CPIAUCSL", "https://fred.stlouisfed.org/series/CPIAUCSL", "Calculated as 100 divided by CPI; this is separate from dollar exchange strength.", rows, r => ({ date: r.date, value: 100 / r.value })));
+    }
+  } catch (e) {
+    errors[id] = String(e.message || e);
+    series.push(unavailable(id, cfg[1], String(e.message || e), cfg[3]));
+  }
+}
+
+try { series.push(await treasuryTga()); } catch (e) { series.push(unavailable("tga", "Treasury General Account", String(e.message || e), "U.S. Treasury Fiscal Data")); }
+try { series.push(...await coinMetrics()); } catch (e) {
+  series.push(unavailable("btc_supply", "BTC supply/issuance", String(e.message || e), "Coin Metrics Community API"));
+  series.push(unavailable("btc_hash", "BTC hash rate/difficulty", String(e.message || e), "Coin Metrics Community API"));
+  series.push(unavailable("btc_fees", "BTC fees/activity", String(e.message || e), "Coin Metrics Community API"));
+}
+series.push(unavailable("stablecoin_supply", "Stablecoin supply", "No approved keyless free broad stablecoin supply series is implemented; unavailable rather than substituted.", "Unavailable"));
+series.push(...await existingDashboardCards());
+
+const out = {
+  schema: 1,
+  generated_at: ISO,
+  note: "Macro conditions can influence Bitcoin but do not predict its price. No macro score is produced.",
+  cost: "$0",
+  api_keys_required: false,
+  sources_used: ["Federal Reserve/FRED", "U.S. Treasury Fiscal Data", "Coin Metrics Community API", "Existing verified dashboard data"],
+  unavailable_policy: "Missing data is represented as unavailable and is never converted to zero.",
+  series,
+  events: events(),
+  errors
+};
+
+await fs.writeFile(OUT, JSON.stringify(out, null, 2) + "\n");
+console.log(`Wrote ${OUT.pathname} with ${series.length} macro cards`);

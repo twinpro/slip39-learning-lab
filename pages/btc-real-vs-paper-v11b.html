@@ -210,6 +210,25 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   #historyChart{height:230px}.history-chart-wrap{min-height:240px;padding-left:4px;padding-right:4px}
 }
 
+/* ===== BTC Macro Weather ===== */
+.macro-intro{font-family:var(--mono);font-size:11px;line-height:1.65;color:var(--dim);margin:0 0 12px}
+.macro-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.macro-range{background:transparent;border:1px solid var(--rule);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.08em;min-height:44px;padding:7px 10px;cursor:pointer}
+.macro-range.active{border-color:var(--green);color:var(--green);background:#0B1712}
+.macro-select{background:var(--panel2);border:1px solid var(--rule);color:var(--bone);font-family:var(--mono);font-size:11px;min-height:44px;padding:7px 9px;max-width:100%}
+.macro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.macro-card{background:var(--panel2);padding:12px 13px;min-width:0}
+.macro-card h3{margin:0 0 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.macro-val{font-family:var(--mono);font-size:22px;line-height:1.1;overflow-wrap:anywhere}
+.macro-meta,.macro-text,.macro-source{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim);overflow-wrap:anywhere}
+.macro-text{margin-top:7px;color:#A9B8BA}.macro-source{margin-top:8px;color:var(--dimmer);border-top:1px solid var(--rule);padding-top:7px}
+.macro-weather{display:inline-block;margin-top:8px}.macro-chart-wrap{border:1px solid var(--rule);border-top:0;background:var(--panel2);padding:10px;min-height:250px}
+#macroChart{display:block;width:100%;height:230px}.macro-empty{font-family:var(--mono);font-size:11px;color:var(--dimmer);padding:20px;text-align:center}
+.macro-events{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-top:0}
+.macro-event{background:var(--panel2);padding:12px;font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim);overflow-wrap:anywhere}
+.macro-event strong{display:block;color:var(--bone);font-family:var(--cond);font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
+@media(max-width:600px){.macro-grid{grid-template-columns:1fr}.macro-toolbar{align-items:stretch}.macro-range,.macro-select{flex:1 1 auto}.macro-chart-wrap{padding:7px}#macroChart{height:210px}}
+
 .btc-time-machine-frame{width:100%;height:1020px;border:0;display:block}
 .preview-resize-frame{width:100%;border:0;display:block;overflow:hidden}
 @media(max-width:600px){.btc-time-machine-frame{height:1260px}.preview-resize-frame{height:320px}}
@@ -475,7 +494,29 @@ html{scroll-padding-bottom:120px}
   </div>
 </section>
 
-
+<details class="detail-shell macro-shell" id="macroDetail">
+  <summary>BTC MACRO WEATHER</summary>
+  <div class="detail-shell-body">
+    <p class="macro-intro">Macro conditions can influence Bitcoin but do not predict its price. This context section does not affect the Real-vs-Paper score.</p>
+    <div class="macro-toolbar" aria-label="BTC macro weather controls">
+      <button class="macro-range active" type="button" data-macro-range="1y">1Y</button>
+      <button class="macro-range" type="button" data-macro-range="5y">5Y</button>
+      <button class="macro-range" type="button" data-macro-range="btc">Since Bitcoin</button>
+      <button class="macro-range" type="button" data-macro-range="max">Maximum</button>
+      <select class="macro-select" id="macroCompare" aria-label="Optional normalized BTC comparison">
+        <option value="">BTC comparison off</option>
+      </select>
+    </div>
+    <div class="macro-grid" id="macroCards" aria-live="polite">
+      <div class="macro-card"><h3>Loading macro weather</h3><div class="macro-meta">Reading generated macro context.</div></div>
+    </div>
+    <div class="macro-chart-wrap">
+      <canvas id="macroChart" aria-label="Normalized BTC macro comparison chart"></canvas>
+      <div class="macro-empty" id="macroEmpty">Choose a macro series to compare with BTC. Both lines rebase to 100 at the selected period start; correlation does not prove causation.</div>
+    </div>
+    <div class="macro-events" id="macroEvents"></div>
+  </div>
+</details>
 
 <div class="desktop-flow" id="history"></div>
 <details class="detail-shell" id="trendDetail">
@@ -1136,6 +1177,91 @@ function renderHistory(){
   drawHistory();
 }
 
+const M={data:null,btc:[],range:'1y',compare:''};
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function macroFmt(card){
+  if(card.status!=='ok'||card.latest_value==null)return 'Unavailable';
+  const v=Number(card.latest_value);
+  if(card.unit?.includes('USD')&&Math.abs(v)>=1e9)return usd(v);
+  if(card.unit?.includes('USD')&&Math.abs(v)>=1e6)return '$'+(v/1e6).toFixed(1)+'M';
+  if(card.unit?.includes('USD')&&Math.abs(v)<1e6)return '$'+v.toLocaleString(undefined,{maximumFractionDigits:2});
+  if(card.unit==='%')return v.toFixed(2)+'%';
+  return v.toLocaleString(undefined,{maximumFractionDigits:2})+(card.unit?' '+card.unit:'');
+}
+function macroWeatherClass(w){return w==='Tailwind'?'g':w==='Headwind'?'r':'a'}
+function macroRangeStart(){
+  const t=trustedNowMs();
+  if(M.range==='1y')return t-365*24*60*60*1000;
+  if(M.range==='5y')return t-5*365*24*60*60*1000;
+  if(M.range==='btc')return Date.parse('2009-01-03T00:00:00Z');
+  return 0;
+}
+function macroRowsInRange(rows){
+  const start=macroRangeStart();
+  return (rows||[]).filter(r=>Number.isFinite(Number(r.value))&&Date.parse((r.date||'')+'T00:00:00Z')>=start);
+}
+function rebaseRows(rows){
+  const clean=rows.filter(r=>Number(r.value)>0);
+  const base=Number(clean[0]?.value);
+  return Number.isFinite(base)&&base>0?clean.map(r=>({date:r.date,value:Number(r.value)/base*100})):[];
+}
+function drawMacroChart(){
+  const c=$('macroChart'),empty=$('macroEmpty');if(!c||!empty)return;
+  const ctx=c.getContext('2d'),dpr=devicePixelRatio||1,w=Math.max(300,c.clientWidth),h=Math.max(190,c.clientHeight);
+  c.width=w*dpr;c.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  const card=M.data?.series?.find(s=>s.id===M.compare);
+  const macro=rebaseRows(macroRowsInRange(card?.history||[]));
+  const btc=rebaseRows(macroRowsInRange(M.btc));
+  if(!card||macro.length<2||btc.length<2){empty.style.display='block';return}
+  empty.style.display='none';
+  const pts=[...macro,...btc],times=pts.map(p=>Date.parse(p.date+'T00:00:00Z')),vals=pts.map(p=>p.value);
+  const x0=Math.min(...times),x1=Math.max(...times),y0=Math.min(...vals)*.96,y1=Math.max(...vals)*1.04,yr=(y1-y0)||1;
+  const m={l:34,r:10,t:12,b:24},pw=w-m.l-m.r,ph=h-m.t-m.b;
+  const px=t=>m.l+(t-x0)/(x1-x0||1)*pw,py=v=>m.t+(1-(v-y0)/yr)*ph;
+  ctx.strokeStyle='#1E2C30';ctx.lineWidth=1;for(let i=0;i<4;i++){const y=m.t+i/3*ph;ctx.beginPath();ctx.moveTo(m.l,y);ctx.lineTo(w-m.r,y);ctx.stroke()}
+  function line(rows,color){ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.beginPath();rows.forEach((p,i)=>{const x=px(Date.parse(p.date+'T00:00:00Z')),y=py(p.value);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}
+  line(btc,'#E8A33D');line(macro,'#3FCF6B');
+  ctx.fillStyle='#7A8A8C';ctx.font='10px IBM Plex Mono, monospace';ctx.fillText('BTC 100',m.l,m.t+10);ctx.fillStyle='#3FCF6B';ctx.fillText(card.name+' 100',m.l,m.t+24);
+}
+function renderMacro(){
+  const cards=$('macroCards'),events=$('macroEvents'),sel=$('macroCompare');if(!cards||!M.data)return;
+  cards.innerHTML=M.data.series.map(card=>{
+    const unavailable=card.status!=='ok';
+    const meta=unavailable?esc(card.explanation||'Reliable free series unavailable.'):
+      `${esc(card.observation_date)} · 30D ${esc(card.direction_30d)} · 1Y ${card.change_1y_percent==null?'—':esc(card.change_1y_percent+'%')}`;
+    return `<article class="macro-card">
+      <h3>${esc(card.name)}</h3>
+      <div class="macro-val ${unavailable?'stale':''}">${esc(macroFmt(card))}</div>
+      <div class="macro-meta">${meta}</div>
+      <span class="chip ${macroWeatherClass(card.weather)} macro-weather">${esc(card.weather||'Neutral')}</span>
+      <div class="macro-text">${esc(card.explanation||'No explanation available.')}</div>
+      <div class="macro-source">Source: ${esc(card.source||'—')} · Start: ${esc(card.data_start_date||'Unavailable')}</div>
+    </article>`;
+  }).join('');
+  if(sel&&sel.options.length<=1){
+    M.data.series.filter(s=>s.status==='ok'&&s.history?.length>1).forEach(s=>sel.append(new Option(s.name,s.id)));
+  }
+  if(events)events.innerHTML=(M.data.events||[]).map(e=>{
+    const date=new Date(e.datetime);
+    return `<div class="macro-event"><strong>${esc(e.name)}</strong>${esc(formatEtDateTime(date))}<br>${esc(e.countdown_days)} days<br>Source: ${esc(e.source)}</div>`;
+  }).join('');
+  drawMacroChart();
+}
+async function loadMacro(){
+  try{
+    const [macro,btc]=await Promise.all([
+      fetch('../data/btc-macro.json?v='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('macro '+r.status);return r.json()}),
+      fetch('../data/btc-daily-history.json?v='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
+    ]);
+    M.data=macro;
+    M.btc=(btc?.observations||[]).map(r=>({date:String(r.time).slice(0,10),value:Number(r.PriceUSD)})).filter(r=>r.date&&Number.isFinite(r.value));
+    renderMacro();log('macro weather loaded · context only');
+  }catch(e){
+    const cards=$('macroCards');if(cards)cards.innerHTML='<div class="macro-card"><h3>Macro unavailable</h3><div class="macro-meta">'+esc(e.message||e)+'</div></div>';
+    log('macro weather failed: '+(e.message||e),true);
+  }
+}
+
 function setupMobilePreviewControls(){
   document.querySelectorAll('.mobile-toggle').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -1202,6 +1328,7 @@ function syncDetailDefaults(){
 async function startDashboard(){
   await loadSnapshot();
   loadHistory();
+  loadMacro();
   connectPrice();
   log('Bitcoin Real vs Paper opened · live demand dashboard');
 }
@@ -1216,8 +1343,14 @@ document.querySelectorAll('.history-range').forEach(btn=>btn.addEventListener('c
   document.querySelectorAll('.history-range').forEach(b=>b.classList.toggle('active',b===btn));
   renderHistory();
 }));
+document.querySelectorAll('.macro-range').forEach(btn=>btn.addEventListener('click',()=>{
+  M.range=btn.dataset.macroRange||'1y';
+  document.querySelectorAll('.macro-range').forEach(b=>b.classList.toggle('active',b===btn));
+  drawMacroChart();
+}));
+$('macroCompare')?.addEventListener('change',e=>{M.compare=e.target.value;drawMacroChart();});
 $('histMetric').addEventListener('change',e=>{H.metric=e.target.value;renderHistory();});
-addEventListener('resize',()=>{syncDetailDefaults();if(H.rows.length)drawHistory();});
+addEventListener('resize',()=>{syncDetailDefaults();if(H.rows.length)drawHistory();drawMacroChart();});
 setInterval(()=>{
   $('clock').textContent=formatEtTime(now());
   $('headerDateTime').textContent=formatEtDateTime(now());

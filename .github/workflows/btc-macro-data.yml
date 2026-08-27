@@ -1,0 +1,45 @@
+name: Update BTC macro weather data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "18 5 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btc-macro-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Update keyless macro context
+        run: node scripts/update-btc-macro.mjs
+
+      - name: Test macro schema
+        run: node scripts/test-macro.mjs
+
+      - name: Test macro dashboard render contract
+        run: node scripts/test-macro-render.mjs
+
+      - name: Commit updated macro JSON
+        run: |
+          git config user.name "btc-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/btc-macro.json
+          if git diff --cached --quiet; then
+            echo "No macro data change"
+          else
+            git commit -m "Update BTC macro weather data"
+            git push
+          fi
