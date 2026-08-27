@@ -211,7 +211,94 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 }
 
 .btc-time-machine-frame{width:100%;height:1020px;border:0;display:block}
-@media(max-width:600px){.btc-time-machine-frame{height:1260px}}
+.preview-resize-frame{width:100%;border:0;display:block;overflow:hidden}
+@media(max-width:600px){.btc-time-machine-frame{height:1260px}.preview-resize-frame{height:320px}}
+
+/* ===== Isolated mobile preview layer ===== */
+.btc-dashboard,.mobile-nav{display:none}
+html{scroll-padding-bottom:120px}
+.detail-shell{margin-top:14px}
+.detail-shell>summary{
+  min-height:44px;padding:13px 16px;border:1px solid var(--rule);background:var(--panel);
+  cursor:pointer;font-weight:600;font-size:14px;letter-spacing:.08em;text-transform:uppercase;list-style:none
+}
+.detail-shell>summary::-webkit-details-marker{display:none}
+.detail-shell>summary::before{content:"+";display:inline-block;width:18px;font-family:var(--mono);color:var(--dim)}
+.detail-shell[open]>summary::before{content:"-"}
+.detail-shell-body{border:1px solid var(--rule);border-top:0;background:var(--panel2);padding:12px 14px;overflow-x:auto}
+.score-method{font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--dim)}
+.score-method strong{color:var(--bone);font-weight:500}
+.safe-wrap{overflow-wrap:anywhere;word-break:normal}
+
+@media(max-width:600px){
+  html{scroll-padding-top:8px;scroll-padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))}
+  body{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px));overflow-x:hidden}
+  .wrap{padding:0 10px;max-width:100%}
+  header{padding:10px 0;margin-bottom:10px;gap:8px;align-items:flex-start}
+  h1{font-size:13px;letter-spacing:.11em}
+  .public-subtitle{display:none}
+  .header-btc-live{width:100%;display:grid;grid-template-columns:1fr auto;gap:4px 8px;text-align:left;margin-left:0}
+  .header-btc-price{font-size:15px}
+  .header-btc-time{font-size:10px;grid-column:1/3}
+  .btc-dashboard{display:block}
+  .desktop-flow{display:none}
+  .board,.hero,.strip,.grid{display:none}
+  .mobile-verdict,.mobile-signal,.mobile-snap{
+    border:1px solid var(--rule);background:var(--panel);padding:12px;margin-bottom:10px
+  }
+  .mobile-kicker{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+  .mobile-verdict-word{font-weight:700;font-size:24px;line-height:1.05;text-transform:uppercase;margin-top:8px}
+  .mobile-score-row{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-top:10px}
+  .mobile-score{font-family:var(--mono);font-size:36px;line-height:1}
+  .mobile-score small{font-size:11px;color:var(--dimmer)}
+  .mobile-bar{height:9px;background:#0A1113;border:1px solid var(--rule);overflow:hidden;flex:1;min-width:86px}
+  .mobile-bar i{display:block;height:100%;width:0;background:var(--dimmer)}
+  .mobile-conclusion{font-family:var(--mono);font-size:12px;line-height:1.55;color:var(--bone);margin-top:10px}
+  .mobile-section-title{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;margin:0 0 8px}
+  .mobile-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .mobile-signal{min-width:0;margin:0;padding:10px;display:flex;flex-direction:column;gap:8px}
+  .mobile-signal h2,.mobile-snap h2{font-size:12px;line-height:1.2;margin:0;color:var(--bone)}
+  .mobile-signal-top{display:flex;justify-content:space-between;gap:6px;align-items:flex-start}
+  .mobile-signal-score{font-family:var(--mono);font-size:22px;line-height:1;white-space:nowrap}
+  .mobile-signal-score small{font-size:9px;color:var(--dimmer)}
+  .mobile-signal p,.mobile-snap p{font-family:var(--mono);font-size:11px;line-height:1.45;color:var(--dim);margin:0}
+  .mobile-toggle{
+    min-height:44px;border:1px solid var(--rule);background:#0A1113;color:var(--bone);
+    font-family:var(--mono);font-size:11px;text-align:left;padding:8px 10px;cursor:pointer
+  }
+  .mobile-toggle[aria-expanded="true"]{border-color:var(--amber);color:var(--amber)}
+  .mobile-numbers{display:none}
+  .mobile-signal-detail{display:none;margin:0 0 10px;border:1px solid var(--rule);background:var(--panel2);padding:12px;overflow-wrap:anywhere}
+  .mobile-signal-detail.open{display:block}
+  .mobile-detail-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+  .mobile-detail-head h2{margin:0;font-size:15px;line-height:1.2}
+  .mobile-detail-score{font-family:var(--mono);font-size:24px;white-space:nowrap}
+  .mobile-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+  .mobile-detail-stat{border-top:1px solid var(--rule);padding-top:8px;min-width:0}
+  .mobile-detail-stat span{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+  .mobile-detail-stat strong{display:block;margin-top:4px;font-family:var(--mono);font-size:12px;color:var(--bone);line-height:1.35;overflow-wrap:anywhere}
+  .mobile-detail-copy{font-family:var(--mono);font-size:12px;line-height:1.6;color:#b8c4c5;margin:8px 0 0}
+  .mobile-snapshot{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .mobile-snap{margin:0;min-width:0}
+  .mobile-snap-value{font-family:var(--mono);font-size:18px;margin:6px 0 4px;overflow-wrap:anywhere}
+  .detail-shell{margin-top:10px;scroll-margin-top:10px;scroll-margin-bottom:calc(124px + env(safe-area-inset-bottom,0px))}
+  .detail-shell>summary{font-size:12px;letter-spacing:.1em}
+  .detail-shell-body{padding:10px;max-width:100%}
+  .detail-shell-body{overflow-x:visible}
+  .detail-shell-body .history{margin-top:0;border:0}
+  .detail-shell-body iframe{max-width:100%}
+  .log{margin-top:10px}
+  footer{font-size:10px;overflow-wrap:anywhere}
+  .mobile-nav{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:1px;position:fixed;left:0;right:0;bottom:0;z-index:20;
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:#071012;border-top:1px solid var(--rule);box-shadow:0 -10px 22px rgba(0,0,0,.32)
+  }
+  .mobile-nav a{
+    min-height:44px;display:flex;align-items:center;justify-content:center;color:var(--bone);text-decoration:none;
+    font-family:var(--mono);font-size:11px;border:1px solid var(--rule);background:var(--panel2)
+  }
+  .mobile-nav a.active{border-color:var(--green);color:var(--green);background:#0b1712}
+}
 
 </style>
 </head>
@@ -221,7 +308,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 <header>
   <div><h1>BITCOIN — REAL <em>VS</em> PAPER</h1><div class="public-subtitle">Is Bitcoin demand coming from real buyers or leveraged trading?</div></div>
   <div class="header-btc-live">
-    <div class="header-btc-price" id="headerBtcPrice">BTC — · LIVE</div>
+    <div class="header-btc-price" id="headerBtcPrice">BTC — · CONNECTING</div>
     <div class="header-btc-time" id="headerDateTime">—</div>
   </div>
   <div class="hdr-meta" style="display:none">
@@ -230,6 +317,60 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
     <span id="clock">—</span>
   </div>
 </header>
+
+<main class="btc-dashboard" id="today">
+  <section class="mobile-verdict" aria-labelledby="mobileVerdictTitle">
+    <div class="mobile-kicker" id="mobileVerdictTitle">Overall verdict</div>
+    <div class="mobile-verdict-word" id="mVerdictWord">Waiting for snapshot</div>
+    <div class="mobile-score-row">
+      <div class="mobile-score" id="mDemandScore">—<small>/100</small></div>
+      <div class="mobile-bar" aria-label="Overall score bar"><i id="mDemandBar"></i></div>
+    </div>
+    <div class="mobile-conclusion" id="mConclusion">ETF demand, U.S. spot demand and leverage health are loading from the current dashboard snapshot.</div>
+  </section>
+
+  <section id="signals" aria-label="Compact signals">
+    <div class="mobile-section-title">Four signals that decide the score</div>
+    <div class="mobile-grid">
+      <article class="mobile-signal">
+        <div class="mobile-signal-top"><h2>ETF institutional spot demand</h2><span class="chip n" id="mEtfBadge">no data</span></div>
+        <div class="mobile-signal-score" id="mEtfScore">—<small>/100</small></div>
+        <p id="mEtfPlain">Loading ETF demand.</p>
+        <button class="mobile-toggle" type="button" aria-expanded="false" aria-controls="mobileSignalDetail" data-signal="etf">See numbers</button>
+        <div class="mobile-numbers safe-wrap" id="mEtfNumbers"></div>
+      </article>
+      <article class="mobile-signal">
+        <div class="mobile-signal-top"><h2>U.S. spot exchange buying</h2><span class="chip n" id="mSpotBadge">no data</span></div>
+        <div class="mobile-signal-score" id="mSpotScore">—<small>/100</small></div>
+        <p id="mSpotPlain">Loading U.S. spot demand.</p>
+        <button class="mobile-toggle" type="button" aria-expanded="false" aria-controls="mobileSignalDetail" data-signal="spot">See numbers</button>
+        <div class="mobile-numbers safe-wrap" id="mSpotNumbers"></div>
+      </article>
+      <article class="mobile-signal">
+        <div class="mobile-signal-top"><h2>Leverage health</h2><span class="chip n" id="mLevBadge">no data</span></div>
+        <div class="mobile-signal-score" id="mLevScore">—<small>/100</small></div>
+        <p id="mLevPlain">Loading leverage health.</p>
+        <button class="mobile-toggle" type="button" aria-expanded="false" aria-controls="mobileSignalDetail" data-signal="lev">See numbers</button>
+        <div class="mobile-numbers safe-wrap" id="mLevNumbers"></div>
+      </article>
+      <article class="mobile-signal">
+        <div class="mobile-signal-top"><h2>Exchange BTC supply</h2><span class="chip n" id="mSupplyBadge">unknown</span></div>
+        <div class="mobile-signal-score" id="mSupplyScore">—<small>/100</small></div>
+        <p id="mSupplyPlain">Exchange BTC supply is unknown and not scored.</p>
+        <button class="mobile-toggle" type="button" aria-expanded="false" aria-controls="mobileSignalDetail" data-signal="supply">See numbers</button>
+        <div class="mobile-numbers safe-wrap" id="mSupplyNumbers">No verified free automated all-exchange BTC balance source. This is incomplete, not zero.</div>
+      </article>
+    </div>
+    <aside class="mobile-signal-detail" id="mobileSignalDetail" aria-live="polite"></aside>
+  </section>
+
+  <section class="mobile-snapshot" aria-label="Compact market snapshot">
+    <article class="mobile-snap"><h2>ETF net flow</h2><div class="mobile-snap-value" id="mSnapEtf">—</div><p id="mSnapEtfTime">—</p></article>
+    <article class="mobile-snap"><h2>Funding rate</h2><div class="mobile-snap-value" id="mSnapFunding">—</div><p id="mSnapFundingTime">—</p></article>
+    <article class="mobile-snap"><h2>Futures open interest</h2><div class="mobile-snap-value" id="mSnapOi">—</div><p id="mSnapOiTime">—</p></article>
+    <article class="mobile-snap"><h2>Tether peg</h2><div class="mobile-snap-value" id="mSnapTether">Not tracked</div><p id="mSnapTetherTime">No current dashboard source.</p></article>
+  </section>
+</main>
 
 <section class="board">
   <div class="board-hd">
@@ -336,6 +477,10 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 
 
 
+<div class="desktop-flow" id="history"></div>
+<details class="detail-shell" id="trendDetail">
+  <summary>90-day score trend</summary>
+  <div class="detail-shell-body">
 <section class="history" id="historySection" aria-labelledby="historyTitle">
   <div class="history-hd">
     <div>
@@ -376,23 +521,50 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   </div>
   <div class="history-note" id="historyNote">Missing hourly observations are shown as breaks, never interpolated. Core OI and funding plot only when the fixed five-venue set is comparable. Derived scores use the existing V12 anchors; leverage remains separate from Real-Demand Evidence.</div>
 </section>
+</div>
+</details>
 
-
+<details class="detail-shell" id="monthlyDetail">
+  <summary>Bitcoin monthly returns</summary>
+  <div class="detail-shell-body">
 <iframe
+  class="preview-resize-frame"
+  data-resize-frame="monthly"
   src="../components/btc-monthly-returns/index.html"
   title="Bitcoin Monthly Returns"
   loading="lazy"
-  style="width:100%;height:720px;border:0;display:block;"
+  scrolling="no"
+  style="height:720px;"
 ></iframe>
+</div>
+</details>
 
+<details class="detail-shell" id="timeMachineDetail">
+  <summary>Bitcoin Time Machine</summary>
+  <div class="detail-shell-body">
 <iframe
-  class="btc-time-machine-frame"
+  class="btc-time-machine-frame preview-resize-frame"
+  data-resize-frame="time-machine"
   src="../components/btc-time-machine/index.html"
   title="Bitcoin Time Machine"
   loading="lazy"
+  scrolling="no"
 ></iframe>
+</div>
+</details>
 
+<details class="detail-shell" id="scoreDetail">
+  <summary>How the score works</summary>
+  <div class="detail-shell-body score-method">
+    <p><strong>Real-demand evidence:</strong> 65% ETF demand + 35% U.S. spot-demand proxy. This is NOT a complete supply-squeeze score.</p>
+    <p>Green means the named signal supports real-demand or lower-crowding conditions. Yellow means mixed. Red means weak real demand or crowded leverage. Grey means unknown, never a neutral guess.</p>
+    <p>Exchange BTC supply remains unscored until a verified free automated source exists. The detailed signal explanations remain in the verdict board above on desktop and inside each mobile "See numbers" control.</p>
+  </div>
+</details>
 
+<details class="detail-shell" id="sources">
+  <summary>Sources and data health</summary>
+  <div class="detail-shell-body">
 <div class="log">
   <h2>Source log</h2>
   <div id="loglines"></div>
@@ -404,6 +576,15 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
   Exchange BTC supply remains unknown and unscored. Not investment advice.
 </footer>
 </div>
+</details>
+
+<nav class="mobile-nav" aria-label="Mobile dashboard sections">
+  <a href="#today">Today</a>
+  <a href="#signals">Signals</a>
+  <a href="#history">History</a>
+  <a href="#sources">Sources</a>
+</nav>
+</div>
 
 <script type="module">
 import { assessAutomationHeartbeat, classifyDashboardFreshness, formatEtDateTime, formatEtHistoryTick, formatEtTime } from '../assets/js/btc-dashboard-time.mjs';
@@ -414,7 +595,7 @@ const A = {
   funding: [[0,100],[0.01,80],[0.02,60],[0.05,20],[0.10,0]]
 };
 
-const S = { snapshot:null, healthStatus:null, price:null, prev:null, ticks:[], trustedClock:null };
+const S = { snapshot:null, healthStatus:null, price:null, prev:null, ticks:[], trustedClock:null, priceState:'connecting', priceTimer:null, mobileSignals:null };
 function setTrustedClock(value,source){
   const ms=typeof value==='number'?value:Date.parse(value);
   if(!Number.isFinite(ms))return false;
@@ -447,6 +628,116 @@ function qualityChip(q){return q==='verified'?'g':q==='partial'?'a':q==='conflic
 function unavailableHealthNote(section,label){
   const q=section?.quality||'unknown';
   return `${q.toUpperCase()} · ${label} scoring disabled`;
+}
+function safeText(id,text){const el=$(id);if(el)el.textContent=text;}
+function safeHtml(id,html){const el=$(id);if(el)el.innerHTML=html;}
+function setMobileBadge(id,st,tx){const c=$(id);if(c){c.className='chip '+st;c.textContent=tx;}}
+function scoreText(score){return score==null?'—<small>/100</small>':Math.round(score)+'<small>/100</small>'}
+function scoreColor(score){return score==null?'var(--dimmer)':score>=65?'var(--green)':score>=40?'var(--amber)':'var(--red)'}
+function statusWord(score){return score==null?'Unknown':score>=65?'Green':score>=40?'Yellow':'Red'}
+function updateHeaderPriceState(state=S.priceState){
+  S.priceState=state;
+  const label=state==='live'&&Number.isFinite(S.price)
+    ?'$'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' · LIVE'
+    :state==='delayed'?'BTC — · DELAYED':'BTC — · CONNECTING';
+  safeText('headerBtcPrice',label);
+}
+function mobileSignalSentence(score,strong,mixed,weak,unknown){
+  if(score==null)return unknown;
+  return score>=65?strong:score>=40?mixed:weak;
+}
+function renderMobileSignalDetail(key){
+  const panel=$('mobileSignalDetail'),data=S.mobileSignals?.[key];
+  if(!panel||!data){return}
+  panel.classList.add('open');
+  panel.innerHTML=`<div class="mobile-detail-head">
+      <div><div class="mobile-kicker">${data.name}</div><h2>${data.title}</h2></div>
+      <span class="chip ${data.badgeClass}">${data.badge}</span>
+    </div>
+    <div class="mobile-detail-score" style="color:${scoreColor(data.score)}">${scoreText(data.score)}</div>
+    <div class="mobile-detail-grid">
+      <div class="mobile-detail-stat"><span>Actual values</span><strong>${data.values}</strong></div>
+      <div class="mobile-detail-stat"><span>Source</span><strong>${data.source}</strong></div>
+      <div class="mobile-detail-stat"><span>Timestamp</span><strong>${data.timestamp}</strong></div>
+      <div class="mobile-detail-stat"><span>State</span><strong>${data.state}</strong></div>
+    </div>
+    <p class="mobile-detail-copy">${data.explain}</p>`;
+}
+function closeMobileSignalDetail(){
+  const panel=$('mobileSignalDetail');
+  document.querySelectorAll('.mobile-toggle').forEach(btn=>btn.setAttribute('aria-expanded','false'));
+  if(panel){panel.classList.remove('open');panel.innerHTML=''}
+}
+function frameAllowedSource(iframe){
+  try{return new URL(iframe.getAttribute('src'),location.href).origin===location.origin}catch{return false}
+}
+function requestFrameResize(iframe){
+  if(!iframe?.contentWindow||!frameAllowedSource(iframe))return;
+  measureFrameHeight(iframe);
+  iframe.contentWindow.postMessage({type:'btc-dashboard-request-height',frameId:iframe.dataset.resizeFrame},location.origin);
+}
+function measureFrameHeight(iframe){
+  try{
+    const doc=iframe.contentDocument;
+    if(!doc)return;
+    const root=doc.documentElement,body=doc.body;
+    const height=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight));
+    if(Number.isFinite(height)&&height>=120&&height<=8000)iframe.style.height=height+'px';
+  }catch{}
+}
+function requestOpenFrameResizes(){
+  document.querySelectorAll('.detail-shell[open] iframe[data-resize-frame]').forEach(requestFrameResize);
+}
+function setupFrameResizing(){
+  const frames=[...document.querySelectorAll('iframe[data-resize-frame]')];
+  addEventListener('message',event=>{
+    if(event.origin!==location.origin||!event.data||event.data.type!=='btc-dashboard-frame-height')return;
+    const iframe=frames.find(frame=>frame.dataset.resizeFrame===event.data.frameId&&frame.contentWindow===event.source);
+    const height=Number(event.data.height);
+    if(!iframe||!Number.isFinite(height)||height<120||height>8000)return;
+    iframe.style.height=Math.ceil(height)+'px';
+  });
+  frames.forEach(frame=>frame.addEventListener('load',()=>setTimeout(()=>requestFrameResize(frame),80)));
+  addEventListener('resize',()=>setTimeout(requestOpenFrameResizes,80));
+  setInterval(requestOpenFrameResizes,1200);
+}
+function syncMobileSnapshot(model){
+  const bar=$('mDemandBar');
+  safeText('mVerdictWord',model.verdictWord);
+  safeHtml('mDemandScore',scoreText(model.demand));
+  if(bar){bar.style.width=(model.demand==null?0:Math.max(0,Math.min(100,model.demand)))+'%';bar.style.background=scoreColor(model.demand)}
+  const vw=$('mVerdictWord');if(vw)vw.style.color=scoreColor(model.demand);
+  safeText('mConclusion',model.verdictSub);
+
+  safeHtml('mEtfScore',scoreText(model.etfScore));setMobileBadge('mEtfBadge',model.etfBadgeClass,model.etfBadge);
+  safeText('mEtfPlain',mobileSignalSentence(model.etfScore,'ETF flows show strong institutional spot demand.','ETF flows are mixed right now.','ETF flows are weak right now.',model.etfMissing));
+  safeHtml('mEtfNumbers',`${model.etfNote}<br>${$('b-etf')?.innerHTML||''}<br>Source time: ${$('t-etf')?.textContent||'—'}`);
+
+  safeHtml('mSpotScore',scoreText(model.spotScore));setMobileBadge('mSpotBadge',model.spotBadgeClass,model.spotBadge);
+  safeText('mSpotPlain',mobileSignalSentence(model.spotScore,'U.S. spot exchanges are showing stronger buying pressure.','U.S. spot buying pressure is mixed.','U.S. spot buying pressure is weak.',model.spotMissing));
+  safeHtml('mSpotNumbers',`${model.spotNote}<br>${$('b-prem')?.innerHTML||''}<br>Source time: ${$('t-prem')?.textContent||'—'}`);
+
+  safeHtml('mLevScore',scoreText(model.levHealth));setMobileBadge('mLevBadge',model.levBadgeClass,model.levBadge);
+  safeText('mLevPlain',mobileSignalSentence(model.levHealth,'Leverage looks relatively healthy.','Leverage is elevated but not extreme.','Leverage looks crowded.',model.levMissing));
+  safeHtml('mLevNumbers',`${model.levNote}<br>${$('b-lev')?.textContent||''}<br>Source time: ${$('t-lev')?.textContent||'—'}`);
+
+  setMobileBadge('mSupplyBadge','n','unknown');
+  safeHtml('mSupplyScore','—<small>/100</small>');
+  safeText('mSupplyPlain','Exchange BTC supply is unknown and not scored.');
+  safeText('mSnapEtf',$('v-etf')?.textContent||'—');safeText('mSnapEtfTime','SoSoValue · '+($('t-etf')?.textContent||'—'));
+  safeText('mSnapFunding',$('v-fund')?.textContent||'—');safeText('mSnapFundingTime','Free public APIs · '+($('t-fund')?.textContent||'—'));
+  safeText('mSnapOi',$('v-oi')?.textContent||'—');safeText('mSnapOiTime',($('oisrc')?.textContent||'working venues')+' · '+($('t-oi')?.textContent||'—'));
+  const usdt=Number(model.usdtUsd);
+  safeText('mSnapTether',Number.isFinite(usdt)?'$'+usdt.toFixed(6):'—');
+  safeText('mSnapTetherTime',Number.isFinite(usdt)?'Coinbase + Kraken · '+($('t-prem')?.textContent||'—'):'No current dashboard value.');
+  S.mobileSignals={
+    etf:{name:'ETF institutional spot demand',title:model.etfBadge,score:model.etfScore,badgeClass:model.etfBadgeClass,badge:model.etfBadge,values:model.etfNote,source:'SoSoValue',timestamp:$('t-etf')?.textContent||'—',state:model.etfScore==null?model.etfMissing:statusWord(model.etfScore),explain:$('mEtfPlain')?.textContent||''},
+    spot:{name:'U.S. spot exchange buying',title:model.spotBadge,score:model.spotScore,badgeClass:model.spotBadgeClass,badge:model.spotBadge,values:model.spotNote,source:'Coinbase · Kraken · OKX',timestamp:$('t-prem')?.textContent||'—',state:model.spotScore==null?model.spotMissing:statusWord(model.spotScore),explain:$('mSpotPlain')?.textContent||''},
+    lev:{name:'Leverage health',title:model.levBadge,score:model.levHealth,badgeClass:model.levBadgeClass,badge:model.levBadge,values:model.levNote,source:'Free public futures APIs',timestamp:$('t-lev')?.textContent||'—',state:model.levHealth==null?model.levMissing:statusWord(model.levHealth),explain:$('mLevPlain')?.textContent||''},
+    supply:{name:'Exchange BTC supply',title:'unknown',score:null,badgeClass:'n',badge:'unknown',values:'UNKNOWN · no verified free automated all-exchange balance feed',source:'Verification needed',timestamp:'—',state:'Incomplete, not zero',explain:'Exchange BTC supply is unknown and not scored.'}
+  };
+  const open=document.querySelector('.mobile-toggle[aria-expanded="true"]')?.dataset.signal;
+  if(open)renderMobileSignalDetail(open);
 }
 function legacyHealth(d){
   const ag=d.derivatives?.aggregate||{},v=d.derivatives?.venues||{};
@@ -573,9 +864,27 @@ function renderSnapshot(){
     :state==='weak'?'Measured real-demand signals are weak. Exchange BTC supply is still unknown.'
     :snapshotTooOld?'Snapshot is stale. Scoring is disabled.':`Source health prevents scoring: ETF ${(hs.etf?.quality||'unknown').toUpperCase()} · U.S. spot ${(hs.spot?.quality||'unknown').toUpperCase()}.`;
 
+  const staleSuffix=snapshotTooOld?' · STALE SNAPSHOT — scoring disabled':snapshotDelayed?' · DELAYED DATA — scores still active':'';
+  syncMobileSnapshot({
+    demand, verdictWord:$('verdictWord').textContent, verdictSub:$('verdictSub').textContent,
+    etfScore, spotScore, levHealth,
+    etfBadgeClass:snapshotTooOld?'r':etfScore==null?qualityChip(hs.etf?.quality):scoreClass(etfScore),
+    etfBadge:snapshotTooOld?'stale':etfScore==null?(hs.etf?.quality||'no data'):statusWord(etfScore),
+    spotBadgeClass:snapshotTooOld?'r':spotScore==null?qualityChip(hs.spot?.quality):scoreClass(spotScore),
+    spotBadge:snapshotTooOld?'stale':spotScore==null?(hs.spot?.quality||'no data'):statusWord(spotScore),
+    levBadgeClass:snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),
+    levBadge:snapshotTooOld?'stale':levHealth==null?(hs.funding?.quality||'no data'):statusWord(levHealth),
+    etfNote:etf5==null?unavailableHealthNote(hs.etf,'ETF'):`5-session net ${usd(etf5)} · latest ${etf.latest_date||'—'}${staleSuffix}`,
+    spotNote:prem==null?unavailableHealthNote(hs.spot,'spot'):`Coinbase + Kraken vs USDT-normalized OKX ${prem>=0?'+':''}${prem.toFixed(3)}%${staleSuffix}`,
+    levNote:fund==null?unavailableHealthNote(hs.funding,'funding'):`funding ${fund.toFixed(4)}% · ${ag.funding_venue_count||0} comparable funding venues${staleSuffix}`,
+    etfMissing:snapshotTooOld?'Snapshot stale; ETF score disabled.':etf5==null?'ETF data is incomplete and is not scored as zero.':'ETF data loaded.',
+    spotMissing:snapshotTooOld?'Snapshot stale; U.S. spot score disabled.':prem==null?'U.S. spot data is incomplete and is not scored as zero.':'Spot data loaded.',
+    levMissing:snapshotTooOld?'Snapshot stale; leverage score disabled.':levHealth==null?'Leverage data is incomplete and is not scored as zero.':'Leverage data loaded.',
+    usdtUsd:spot.usdt_usd
+  });
+
   drawGauge(demand);
 
-  const staleSuffix=snapshotTooOld?' · STALE SNAPSHOT — scoring disabled':snapshotDelayed?' · DELAYED DATA — scores still active':'';
   const boardRows=[
     {n:'ETF / institutional spot demand',sc:etfScore,note:etf5==null?unavailableHealthNote(hs.etf,'ETF'):`5-session net ${usd(etf5)} · latest ${etf.latest_date||'—'}${staleSuffix}`,inv:false},
     {n:'U.S. spot-demand proxy',sc:spotScore,note:prem==null?unavailableHealthNote(hs.spot,'spot'):`Coinbase + Kraken vs USDT-normalized OKX ${prem>=0?'+':''}${prem.toFixed(3)}%${staleSuffix}`,inv:false},
@@ -626,21 +935,26 @@ function drawGauge(v){
 function connectPrice(){
   let ws,retry=0;
   function go(){
-    try{ws=new WebSocket('wss://ws-feed.exchange.coinbase.com')}catch(e){log('price socket refused: '+e.message,true);return}
-    ws.onopen=()=>{retry=0;$('wsdot').className='dot on';$('wstext').textContent='Coinbase ticker live';ws.send(JSON.stringify({type:'subscribe',product_ids:['BTC-USD'],channels:['ticker']}));log('price stream open');};
+    updateHeaderPriceState(S.price?'delayed':'connecting');
+    if(S.priceTimer)clearTimeout(S.priceTimer);
+    S.priceTimer=setTimeout(()=>{if(!S.price)updateHeaderPriceState('delayed')},20000);
+    try{ws=new WebSocket('wss://ws-feed.exchange.coinbase.com')}catch(e){updateHeaderPriceState('delayed');log('price socket refused: '+e.message,true);return}
+    ws.onopen=()=>{retry=0;$('wsdot').className='dot on';$('wstext').textContent='Coinbase ticker connected';ws.send(JSON.stringify({type:'subscribe',product_ids:['BTC-USD'],channels:['ticker']}));log('price stream open');};
     ws.onmessage=ev=>{const m=JSON.parse(ev.data);if(m.type!=='ticker'||!m.price)return;
       const wasCoinbase=S.trustedClock?.source==='Coinbase ticker';
       if(m.time&&!wasCoinbase&&setTrustedClock(m.time,'Coinbase ticker')&&S.snapshot)renderSnapshot();
-      S.prev=S.price;S.price=parseFloat(m.price);S.ticks.push(S.price);if(S.ticks.length>300)S.ticks.shift();paintPrice();};
-    ws.onerror=()=>log('price stream error',true);
-    ws.onclose=()=>{$('wsdot').className='dot off';$('wstext').textContent='price stream down';const wait=Math.min(30000,1000*Math.pow(2,retry++));setTimeout(go,wait);};
+      const next=parseFloat(m.price);if(!Number.isFinite(next)||next<=0)return;
+      if(S.priceTimer)clearTimeout(S.priceTimer);
+      S.prev=S.price;S.price=next;S.ticks.push(S.price);if(S.ticks.length>300)S.ticks.shift();paintPrice();};
+    ws.onerror=()=>{updateHeaderPriceState('delayed');log('price stream error',true);};
+    ws.onclose=()=>{$('wsdot').className='dot off';$('wstext').textContent='price stream delayed';updateHeaderPriceState('delayed');const wait=Math.min(30000,1000*Math.pow(2,retry++));setTimeout(go,wait);};
   }
   go();
 }
 
 function paintPrice(){
   const el=$('px');el.textContent='$'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  $('headerBtcPrice').textContent='BTC $'+S.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' · LIVE';
+  updateHeaderPriceState('live');
   el.classList.remove('up','dn');if(S.prev!=null)el.classList.add(S.price>=S.prev?'up':'dn');
   $('pxsub').textContent=S.ticks.length+' ticks · last '+formatEtTime(now());drawSpark();
 }
@@ -661,6 +975,7 @@ const HISTORY_METHOD = 12;
 const HISTORY_HOUR_MS = 60*60*1000;
 const HISTORY_CORE = ['okx','deribit','bitmex','hyperliquid','kraken'];
 const H = { rows:[], rangeDays:30, metric:'demand', error:null, loadedAt:null };
+let lastMobileLayout=null;
 
 function sameVenueSet(list,expected=HISTORY_CORE){
   if(!Array.isArray(list)||list.length!==expected.length)return false;
@@ -821,12 +1136,78 @@ function renderHistory(){
   drawHistory();
 }
 
+function setupMobilePreviewControls(){
+  document.querySelectorAll('.mobile-toggle').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const open=btn.getAttribute('aria-expanded')==='true';
+      closeMobileSignalDetail();
+      if(!open){
+        btn.setAttribute('aria-expanded','true');
+        renderMobileSignalDetail(btn.dataset.signal);
+      }
+    });
+  });
+  const shells=[...document.querySelectorAll('.detail-shell')];
+  shells.forEach(shell=>shell.addEventListener('toggle',()=>{
+    if(!matchMedia('(max-width:600px)').matches||!shell.open)return;
+    shells.forEach(other=>{if(other!==shell)other.removeAttribute('open')});
+    setActiveNav(shell.id==='sources'?'sources':shell.id==='trendDetail'?'history':'history');
+    setTimeout(requestOpenFrameResizes,80);
+  }));
+  document.querySelectorAll('.mobile-nav a').forEach(link=>link.addEventListener('click',event=>{
+    if(!matchMedia('(max-width:600px)').matches)return;
+    event.preventDefault();
+    const target=link.getAttribute('href')?.slice(1);
+    if(target==='today'||target==='signals'){
+      shells.forEach(shell=>shell.removeAttribute('open'));
+      document.getElementById(target)?.scrollIntoView({block:'start'});
+      setActiveNav(target);
+      return;
+    }
+    const shell=target==='sources'?$('sources'):$('trendDetail');
+    shells.forEach(other=>{if(other!==shell)other.removeAttribute('open')});
+    if(shell)shell.open=true;
+    setTimeout(()=>shell?.scrollIntoView({block:'start'}),0);
+    setTimeout(requestOpenFrameResizes,120);
+    setActiveNav(target||'history');
+  }));
+  setupActiveNavObserver();
+}
+function setActiveNav(target){
+  document.querySelectorAll('.mobile-nav a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+target));
+}
+function setupActiveNavObserver(){
+  if(!('IntersectionObserver' in window))return;
+  const targets=[['today',$('today')],['signals',$('signals')],['history',$('trendDetail')],['history',$('monthlyDetail')],['history',$('timeMachineDetail')],['sources',$('sources')]].filter(([,el])=>el);
+  const observer=new IntersectionObserver(entries=>{
+    if(!matchMedia('(max-width:600px)').matches)return;
+    const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top))[0];
+    if(!visible)return;
+    const hit=targets.find(([,el])=>el===visible.target);
+    if(hit)setActiveNav(hit[0]);
+  },{rootMargin:'-10% 0px -55% 0px',threshold:[0,.1,.35]});
+  targets.forEach(([,el])=>observer.observe(el));
+}
+function syncDetailDefaults(){
+  const mobile=matchMedia('(max-width:600px)').matches;
+  if(lastMobileLayout===mobile)return;
+  lastMobileLayout=mobile;
+  document.querySelectorAll('.detail-shell').forEach(d=>{
+    if(mobile)d.removeAttribute('open');
+    else d.setAttribute('open','');
+  });
+  if(mobile)setActiveNav('today');
+}
+
 async function startDashboard(){
   await loadSnapshot();
   loadHistory();
   connectPrice();
   log('Bitcoin Real vs Paper opened · live demand dashboard');
 }
+setupMobilePreviewControls();
+setupFrameResizing();
+syncDetailDefaults();
 startDashboard();
 setInterval(loadSnapshot,60000);
 setInterval(loadHistory,60*60*1000);
@@ -836,7 +1217,7 @@ document.querySelectorAll('.history-range').forEach(btn=>btn.addEventListener('c
   renderHistory();
 }));
 $('histMetric').addEventListener('change',e=>{H.metric=e.target.value;renderHistory();});
-addEventListener('resize',()=>{if(H.rows.length)drawHistory();});
+addEventListener('resize',()=>{syncDetailDefaults();if(H.rows.length)drawHistory();});
 setInterval(()=>{
   $('clock').textContent=formatEtTime(now());
   $('headerDateTime').textContent=formatEtDateTime(now());
