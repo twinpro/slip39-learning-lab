@@ -224,7 +224,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 .macro-text{margin-top:7px;color:#A9B8BA}.macro-source{margin-top:8px;color:var(--dimmer);border-top:1px solid var(--rule);padding-top:7px}
 .macro-regime{grid-column:1/-1}.macro-corr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:10px}.macro-corr{background:#0D1518;padding:9px;font-family:var(--mono);font-size:10px;line-height:1.55;color:var(--dim)}.macro-corr strong{display:block;color:var(--bone);font-family:var(--cond);font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}.macro-corr span{display:block;color:#A9B8BA}
 .macro-weather{display:inline-block;margin-top:8px}.macro-chart-wrap{border:1px solid var(--rule);border-top:0;background:var(--panel2);padding:10px;min-height:250px}
-#macroChart{display:block;width:100%;height:230px}.macro-empty{font-family:var(--mono);font-size:11px;color:var(--dimmer);padding:20px;text-align:center}
+#macroChart{display:block;width:100%;height:230px}.macro-line{fill:none;stroke-width:1.8;vector-effect:non-scaling-stroke}.macro-grid-line{stroke:#1E2C30;stroke-width:1}.macro-axis-label{fill:#7A8A8C;font-family:var(--mono);font-size:10px}.macro-legend{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap;margin-top:7px}.macro-legend span{display:inline-flex;align-items:center;gap:6px}.macro-swatch{width:18px;height:2px;display:inline-block;background:currentColor}.macro-empty{font-family:var(--mono);font-size:11px;color:var(--dimmer);padding:20px;text-align:center}
 .macro-events{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-top:0}
 .macro-event{background:var(--panel2);padding:12px;font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim);overflow-wrap:anywhere}
 .macro-event strong{display:block;color:var(--bone);font-family:var(--cond);font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
@@ -512,7 +512,8 @@ html{scroll-padding-bottom:120px}
       <div class="macro-card"><h3>Loading macro weather</h3><div class="macro-meta">Reading generated macro context.</div></div>
     </div>
     <div class="macro-chart-wrap">
-      <canvas id="macroChart" aria-label="Normalized BTC macro comparison chart"></canvas>
+      <svg id="macroChart" aria-label="Normalized BTC macro comparison chart" role="img"></svg>
+      <div class="macro-legend" id="macroLegend" hidden></div>
       <div class="macro-empty" id="macroEmpty">Choose a macro series to compare with BTC. Both lines rebase to 100 at the selected period start; correlation does not prove causation.</div>
     </div>
     <div class="macro-events" id="macroEvents"></div>
@@ -1237,22 +1238,30 @@ function pairedMacroRows(macroRows,btcRows){
   }:{macro:[],btc:[]};
 }
 function drawMacroChart(){
-  const c=$('macroChart'),empty=$('macroEmpty');if(!c||!empty)return;
-  const ctx=c.getContext('2d'),dpr=devicePixelRatio||1,w=Math.max(300,c.clientWidth),h=Math.max(190,c.clientHeight);
-  c.width=w*dpr;c.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  const c=$('macroChart'),empty=$('macroEmpty'),legend=$('macroLegend');if(!c||!empty)return;
+  const w=Math.max(300,c.clientWidth||300),h=Math.max(190,c.clientHeight||230);
+  c.setAttribute('viewBox',`0 0 ${w} ${h}`);c.replaceChildren();
+  if(legend){legend.hidden=true;legend.replaceChildren();}
   const card=M.data?.series?.find(s=>s.id===M.compare);
-  const paired=pairedMacroRows(macroRowsInRange(card?.history||[]),macroRowsInRange(M.btc));
+  const macroRangeRows=macroRowsInRange(card?.history||[]),btcRangeRows=macroRowsInRange(M.btc);
+  const paired=pairedMacroRows(macroRangeRows,btcRangeRows);
   const macro=paired.macro,btc=paired.btc;
   if(!card||macro.length<2||btc.length<2){empty.style.display='block';return}
   empty.style.display='none';
-  const pts=[...macro,...btc],times=pts.map(p=>Date.parse(p.date+'T00:00:00Z')),vals=pts.map(p=>p.value);
+  const pts=[...macro,...btc],domainPts=[...macroRangeRows,...btcRangeRows],times=domainPts.map(p=>Date.parse(p.date+'T00:00:00Z')).filter(Number.isFinite),vals=pts.map(p=>p.value);
   const x0=Math.min(...times),x1=Math.max(...times),y0=Math.min(...vals)*.96,y1=Math.max(...vals)*1.04,yr=(y1-y0)||1;
   const m={l:34,r:10,t:12,b:24},pw=w-m.l-m.r,ph=h-m.t-m.b;
   const px=t=>m.l+(t-x0)/(x1-x0||1)*pw,py=v=>m.t+(1-(v-y0)/yr)*ph;
-  ctx.strokeStyle='#1E2C30';ctx.lineWidth=1;for(let i=0;i<4;i++){const y=m.t+i/3*ph;ctx.beginPath();ctx.moveTo(m.l,y);ctx.lineTo(w-m.r,y);ctx.stroke()}
-  function line(rows,color){ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.beginPath();rows.forEach((p,i)=>{const x=px(Date.parse(p.date+'T00:00:00Z')),y=py(p.value);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}
-  line(btc,'#E8A33D');line(macro,'#3FCF6B');
-  ctx.fillStyle='#7A8A8C';ctx.font='10px IBM Plex Mono, monospace';ctx.fillText('BTC 100',m.l,m.t+10);ctx.fillStyle='#3FCF6B';ctx.fillText(card.name+' 100',m.l,m.t+24);
+  const ns='http://www.w3.org/2000/svg';
+  function el(name,attrs={}){const node=document.createElementNS(ns,name);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));c.append(node);return node}
+  for(let i=0;i<4;i++){const y=m.t+i/3*ph;el('line',{class:'macro-grid-line',x1:m.l,y1:y,x2:w-m.r,y2:y});}
+  function pathFor(rows){return rows.map((p,i)=>`${i?'L':'M'}${px(Date.parse(p.date+'T00:00:00Z')).toFixed(1)} ${py(p.value).toFixed(1)}`).join(' ')}
+  const btcPath=pathFor(btc),macroPath=pathFor(macro);
+  el('path',{class:'macro-line macro-line-btc',stroke:'#E8A33D',d:btcPath,'data-series':'BTC','data-points':String(btc.length),'data-range':M.range});
+  el('path',{class:'macro-line macro-line-selected',stroke:'#3FCF6B',d:macroPath,'data-series':card.id,'data-points':String(macro.length),'data-range':M.range});
+  el('text',{class:'macro-axis-label',x:m.l,y:m.t+10}).textContent='BTC 100';
+  el('text',{class:'macro-axis-label',x:m.l,y:m.t+24,fill:'#3FCF6B'}).textContent=card.name+' 100';
+  if(legend){legend.hidden=false;legend.innerHTML=`<span style="color:#E8A33D"><i class="macro-swatch"></i>BTC</span><span style="color:#3FCF6B"><i class="macro-swatch"></i>${esc(card.name)}</span>`;}
 }
 function renderMacro(){
   const cards=$('macroCards'),events=$('macroEvents'),sel=$('macroCompare');if(!cards||!M.data)return;
