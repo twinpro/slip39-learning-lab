@@ -60,13 +60,14 @@ export function liveDisplayState({status='connecting',price=null,lastMessageAt=n
   if(status==='live'&&validPrice&&age<=20000) return {label:'LIVE',className:'live',price,usable:true};
   if(validPrice&&age<=120000) return {label:'DELAYED',className:'delayed',price,usable:false};
   if(status==='connecting') return {label:'CONNECTING',className:'delayed',price:null,usable:false};
+  if(status==='unavailable') return {label:'UNAVAILABLE',className:'delayed',price:null,usable:false};
   return {label:'DELAYED',className:'delayed',price:null,usable:false};
 }
 
 const usd=value=>value==null?'N/A':`$${value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 export const formatHistoricalPrice=value=>value==null?'N/A':`$${value.toLocaleString('en-US',value>=1?{minimumFractionDigits:2,maximumFractionDigits:2}:{minimumFractionDigits:4,maximumFractionDigits:8})}`;
 export const formatPercent=value=>value==null?'N/A':`${value>=0?'+':''}${value.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}%`;
-export const formatMultiple=value=>value==null?'N/A':`${value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}x`;
+export const formatMultiple=value=>value==null?'N/A':`${value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}×`;
 const monthDayLabel=monthDay=>new Intl.DateTimeFormat('en-US',{timeZone:'UTC',month:'long',day:'numeric'}).format(new Date(`2000-${monthDay}T00:00:00Z`));
 const compactUsd=value=>value==null?'—':value>=100000?`$${Math.round(value/1000)}K`:value>=1000?`$${Math.round(value).toLocaleString('en-US')}`:value>=1?`$${Math.round(value).toLocaleString('en-US')}`:`$${value.toFixed(4)}`;
 

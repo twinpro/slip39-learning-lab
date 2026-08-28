@@ -1189,7 +1189,7 @@ function macroFmt(card){
   if(card.unit==='%')return v.toFixed(2)+'%';
   return v.toLocaleString(undefined,{maximumFractionDigits:2})+(card.unit?' '+card.unit:'');
 }
-function macroWeatherClass(w){return w==='Tailwind'?'g':w==='Headwind'?'r':'a'}
+function macroWeatherClass(w){return w==='FAVORS BTC'?'g':w==='AGAINST BTC'?'r':'a'}
 function macroRegimeClass(r){return r==='RISK-ASSET'?'g':r==='MONETARY/DEBASEMENT'?'a':'y'}
 function macroCorrFmt(v){return Number.isFinite(Number(v))?Number(v).toFixed(2):'—'}
 function renderMacroRegime(card){
@@ -1256,7 +1256,7 @@ function renderMacro(){
       <h3>${esc(card.name)}</h3>
       <div class="macro-val ${unavailable?'stale':''}">${esc(macroFmt(card))}</div>
       <div class="macro-meta">${meta}</div>
-      <span class="chip ${macroWeatherClass(card.weather)} macro-weather">${esc(card.weather||'Neutral')}</span>
+      <span class="chip ${macroWeatherClass(card.weather)} macro-weather">${esc(card.weather||'UNCLEAR FOR BTC')}</span>
       <div class="macro-text">${esc(card.explanation||'No explanation available.')}</div>
       <div class="macro-source">Source: ${esc(card.source||'—')} · Start: ${esc(card.data_start_date||'Unavailable')}</div>
     </article>`;

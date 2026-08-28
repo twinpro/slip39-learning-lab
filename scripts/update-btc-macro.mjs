@@ -16,7 +16,7 @@ const FRED = {
   treasury_2y: ["DGS2", "2-year Treasury yield", "%", "FRED: DGS2", "https://fred.stlouisfed.org/series/DGS2", "The 2-year yield tracks expected near-term Fed policy."],
   treasury_10y: ["DGS10", "10-year Treasury yield", "%", "FRED: DGS10", "https://fred.stlouisfed.org/series/DGS10", "Higher long yields can pressure long-duration risk assets."],
   real_yield_10y: ["DFII10", "10-year real yield", "%", "FRED: DFII10", "https://fred.stlouisfed.org/series/DFII10", "Higher inflation-adjusted yields can compete with scarce assets."],
-  m2: ["M2SL", "M2 money supply", "USD billions", "FRED: M2SL", "https://fred.stlouisfed.org/series/M2SL", "Expanding money supply is a liquidity tailwind; contraction is a headwind."],
+  m2: ["M2SL", "M2 money supply", "USD billions", "FRED: M2SL", "https://fred.stlouisfed.org/series/M2SL", "Expanding money supply can support Bitcoin; contraction can work against it."],
   fed_assets: ["WALCL", "Federal Reserve assets", "USD millions", "FRED: WALCL", "https://fred.stlouisfed.org/series/WALCL", "A larger Fed balance sheet can indicate easier liquidity conditions."],
   reverse_repo: ["RRPONTSYD", "Reverse repo", "USD billions", "FRED: RRPONTSYD", "https://fred.stlouisfed.org/series/RRPONTSYD", "Lower reverse repo balances can release cash into markets."],
   nasdaq: ["NASDAQCOM", "Nasdaq/risk appetite", "index", "FRED: NASDAQCOM", "https://fred.stlouisfed.org/series/NASDAQCOM", "A rising Nasdaq often signals stronger risk appetite."],
@@ -167,7 +167,7 @@ function buildMacroRegime(series) {
   if (Number.isFinite(c90.gold) && c90.gold >= 0.35 && (!Number.isFinite(c90.nasdaq) || c90.gold > c90.nasdaq) && (!Number.isFinite(c90.dxy) || c90.dxy <= 0.2)) regime = "MONETARY/DEBASEMENT";
   return {
     id: "btc_macro_regime", name: "BTC macro regime", status: Object.values(correlations).some(c => c.status === "ok") ? "ok" : "unavailable",
-    latest_value: null, unit: "correlation", observation_date: latestDate || null, direction_30d: "unknown", change_1y_percent: null, weather: "Neutral",
+    latest_value: null, unit: "correlation", observation_date: latestDate || null, direction_30d: "unknown", change_1y_percent: null, weather: "UNCLEAR FOR BTC",
     regime, correlations,
     explanation: "Correlations compare daily BTC returns with dollar strength, gold, and Nasdaq returns. Positive means they have tended to move together; negative means they have tended to move opposite.",
     source: "Existing BTC daily history + FRED keyless series", source_url: "data/btc-daily-history.json and FRED CSV",
@@ -176,20 +176,20 @@ function buildMacroRegime(series) {
 }
 
 function weatherFor(id, d30, latest) {
-  if (!Number.isFinite(d30)) return "Neutral";
+  if (!Number.isFinite(d30)) return "UNCLEAR FOR BTC";
   if (id === "vix") {
-    if (latest <= 18 && d30 <= 0) return "Tailwind";
-    if (latest >= 25 || d30 > 10) return "Headwind";
-    return "Neutral";
+    if (latest <= 18 && d30 <= 0) return "FAVORS BTC";
+    if (latest >= 25 || d30 > 10) return "AGAINST BTC";
+    return "UNCLEAR FOR BTC";
   }
   if (id === "unemployment") {
-    if (d30 > 0.2) return "Headwind";
-    if (d30 < -0.2) return "Tailwind";
-    return "Neutral";
+    if (d30 > 0.2) return "AGAINST BTC";
+    if (d30 < -0.2) return "FAVORS BTC";
+    return "UNCLEAR FOR BTC";
   }
-  if (INVERSE.has(id)) return d30 > 0 ? "Headwind" : d30 < 0 ? "Tailwind" : "Neutral";
-  if (DIRECT.has(id)) return d30 > 0 ? "Tailwind" : d30 < 0 ? "Headwind" : "Neutral";
-  return "Neutral";
+  if (INVERSE.has(id)) return d30 > 0 ? "AGAINST BTC" : d30 < 0 ? "FAVORS BTC" : "UNCLEAR FOR BTC";
+  if (DIRECT.has(id)) return d30 > 0 ? "FAVORS BTC" : d30 < 0 ? "AGAINST BTC" : "UNCLEAR FOR BTC";
+  return "UNCLEAR FOR BTC";
 }
 
 function buildSeries(id, name, unit, source, sourceUrl, note, rows, transform = null) {
@@ -219,7 +219,7 @@ function buildSeries(id, name, unit, source, sourceUrl, note, rows, transform = 
 }
 
 function unavailable(id, name, reason, source = "Not available from approved free sources") {
-  return { id, name, status: "unavailable", latest_value: null, observation_date: null, direction_30d: "unknown", change_1y_percent: null, weather: "Neutral", explanation: reason, source, data_start_date: null, history: [] };
+  return { id, name, status: "unavailable", latest_value: null, observation_date: null, direction_30d: "unknown", change_1y_percent: null, weather: "UNCLEAR FOR BTC", explanation: reason, source, data_start_date: null, history: [] };
 }
 
 async function fredSeries(id, config) {
@@ -285,7 +285,7 @@ async function existingDashboardCards() {
     id: "etf_flows", name: "ETF flows", status: Number.isFinite(etf) ? "ok" : "unavailable",
     latest_value: Number.isFinite(etf) ? round(etf, 2) : null, unit: "USD 5-session net",
     observation_date: market.etf?.latest_date || null, direction_30d: "unknown", change_1y_percent: null,
-    weather: Number.isFinite(etf) ? etf > 0 ? "Tailwind" : etf < 0 ? "Headwind" : "Neutral" : "Neutral",
+    weather: Number.isFinite(etf) ? etf > 0 ? "FAVORS BTC" : etf < 0 ? "AGAINST BTC" : "UNCLEAR FOR BTC" : "UNCLEAR FOR BTC",
     explanation: "Uses the existing verified dashboard ETF snapshot; this does not alter scoring.",
     source: market.etf?.source || "Existing BTC dashboard data", source_url: "data/btc-market.json",
     data_start_date: etfHistory[0]?.date || null, history: etfHistory
@@ -296,7 +296,7 @@ async function existingDashboardCards() {
     id: "futures_funding", name: "Futures/funding", status: Number.isFinite(funding) ? "ok" : "unavailable",
     latest_value: Number.isFinite(funding) ? round(funding, 4) : null, unit: "% weighted funding",
     observation_date: market.generated_at?.slice(0, 10) || null, direction_30d: "unknown", change_1y_percent: null,
-    weather: Number.isFinite(funding) ? funding > 0.03 ? "Headwind" : "Neutral" : "Neutral",
+    weather: Number.isFinite(funding) ? funding > 0.03 ? "AGAINST BTC" : "UNCLEAR FOR BTC" : "UNCLEAR FOR BTC",
     explanation: "Uses the existing verified dashboard futures/funding snapshot; this does not alter scoring.",
     source: "Existing BTC dashboard data", source_url: "data/btc-market.json", data_start_date: fundingHistory[0]?.date || market.generated_at?.slice(0, 10) || null, history: fundingHistory
   });

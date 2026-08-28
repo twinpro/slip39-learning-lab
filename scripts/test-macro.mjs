@@ -36,7 +36,7 @@ for (const id of required) {
   ok(!!s, `missing series ${id}`);
   if (!s) continue;
   ok(["ok", "unavailable"].includes(s.status), `${id} has invalid status`);
-  ok(["Tailwind", "Neutral", "Headwind"].includes(s.weather), `${id} has invalid weather`);
+  ok(["FAVORS BTC", "AGAINST BTC", "UNCLEAR FOR BTC"].includes(s.weather), `${id} has invalid weather`);
   ok(typeof s.explanation === "string" && s.explanation.length > 8, `${id} needs explanation`);
   ok(typeof s.source === "string" && s.source.length > 2, `${id} needs source`);
   if (s.status === "ok") {
