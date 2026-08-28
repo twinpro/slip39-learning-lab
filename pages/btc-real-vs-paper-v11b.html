@@ -1227,13 +1227,22 @@ function rebaseRows(rows){
   const base=Number(clean[0]?.value);
   return Number.isFinite(base)&&base>0?clean.map(r=>({date:r.date,value:Number(r.value)/base*100})):[];
 }
+function pairedMacroRows(macroRows,btcRows){
+  const btcByDate=new Map((btcRows||[]).filter(r=>Number(r.value)>0).map(r=>[r.date,Number(r.value)]));
+  const pairs=(macroRows||[]).filter(r=>Number(r.value)>0&&btcByDate.has(r.date)).map(r=>({date:r.date,macro:Number(r.value),btc:btcByDate.get(r.date)}));
+  const base=pairs[0];
+  return base&&base.macro>0&&base.btc>0?{
+    macro:pairs.map(r=>({date:r.date,value:r.macro/base.macro*100})),
+    btc:pairs.map(r=>({date:r.date,value:r.btc/base.btc*100}))
+  }:{macro:[],btc:[]};
+}
 function drawMacroChart(){
   const c=$('macroChart'),empty=$('macroEmpty');if(!c||!empty)return;
   const ctx=c.getContext('2d'),dpr=devicePixelRatio||1,w=Math.max(300,c.clientWidth),h=Math.max(190,c.clientHeight);
   c.width=w*dpr;c.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
   const card=M.data?.series?.find(s=>s.id===M.compare);
-  const macro=rebaseRows(macroRowsInRange(card?.history||[]));
-  const btc=rebaseRows(macroRowsInRange(M.btc));
+  const paired=pairedMacroRows(macroRowsInRange(card?.history||[]),macroRowsInRange(M.btc));
+  const macro=paired.macro,btc=paired.btc;
   if(!card||macro.length<2||btc.length<2){empty.style.display='block';return}
   empty.style.display='none';
   const pts=[...macro,...btc],times=pts.map(p=>Date.parse(p.date+'T00:00:00Z')),vals=pts.map(p=>p.value);

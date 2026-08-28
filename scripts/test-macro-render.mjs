@@ -14,6 +14,8 @@ ok(page.includes("macroEvents"), "page must include macro event container");
 ok(page.includes("btc-macro.json"), "page must load generated macro data");
 ok(page.includes("macro-regime"), "page must render BTC macro regime correlations");
 ok(page.includes("MIXED/TRANSITION"), "page must include macro regime labels");
+ok(page.includes("pairedMacroRows"), "macro comparison chart must pair BTC and macro dates");
+ok(page.includes("btcByDate.has"), "macro comparison chart must require matching BTC dates");
 ok(page.includes("does not affect the Real-vs-Paper score"), "page must state score separation");
 ok(page.includes("correlation does not prove causation"), "page must state correlation caveat");
 ok(!page.includes("macroScore"), "page must not create a macro score");
