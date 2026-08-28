@@ -223,6 +223,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 .macro-meta,.macro-text,.macro-source{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim);overflow-wrap:anywhere}
 .macro-text{margin-top:7px;color:#A9B8BA}.macro-source{margin-top:8px;color:var(--dimmer);border-top:1px solid var(--rule);padding-top:7px}
 .macro-regime{grid-column:1/-1}.macro-corr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:10px}.macro-corr{background:#0D1518;padding:9px;font-family:var(--mono);font-size:10px;line-height:1.55;color:var(--dim)}.macro-corr strong{display:block;color:var(--bone);font-family:var(--cond);font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}.macro-corr span{display:block;color:#A9B8BA}
+.macro-gold{grid-column:1/-1}.macro-gold-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:10px}.macro-gold-cell{background:#0D1518;padding:9px;font-family:var(--mono);font-size:10px;line-height:1.55;color:var(--dim);overflow-wrap:anywhere}.macro-gold-cell strong{display:block;color:var(--bone);font-family:var(--cond);font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
 .macro-weather{display:inline-block;margin-top:8px}.macro-chart-wrap{border:1px solid var(--rule);border-top:0;background:var(--panel2);padding:10px;min-height:250px}
 #macroChart{display:block;width:100%;height:230px}.macro-line{fill:none;stroke-width:1.8;vector-effect:non-scaling-stroke}.macro-grid-line{stroke:#1E2C30;stroke-width:1}.macro-axis-label{fill:#7A8A8C;font-family:var(--mono);font-size:10px}.macro-legend{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap;margin-top:7px}.macro-legend span{display:inline-flex;align-items:center;gap:6px}.macro-swatch{width:18px;height:2px;display:inline-block;background:currentColor}.macro-empty{font-family:var(--mono);font-size:11px;color:var(--dimmer);padding:20px;text-align:center}
 .macro-events{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-top:0}
@@ -1193,6 +1194,26 @@ function macroFmt(card){
 function macroWeatherClass(w){return w==='FAVORS BTC'?'g':w==='AGAINST BTC'?'r':'a'}
 function macroRegimeClass(r){return r==='RISK-ASSET'?'g':r==='MONETARY/DEBASEMENT'?'a':'y'}
 function macroCorrFmt(v){return Number.isFinite(Number(v))?Number(v).toFixed(2):'—'}
+function macroUsd(v){return Number.isFinite(Number(v))?usd(Number(v)):'Unavailable'}
+function macroBigUsd(v){const n=Number(v);return Number.isFinite(n)?n>=1e12?'$'+(n/1e12).toFixed(2)+'T':n>=1e9?'$'+(n/1e9).toFixed(2)+'B':macroUsd(n):'Unavailable'}
+function macroPct(v){return Number.isFinite(Number(v))?(Number(v)>=0?'+':'')+Number(v).toFixed(2)+'%':'Unavailable'}
+function renderBtcGoldScoreboard(g){
+  if(!g)return '';
+  const rel=g.relative_performance||{},sc=g.scenario_prices_usd||{};
+  return `<article class="macro-card macro-gold">
+    <h3>BTC vs Gold</h3>
+    <div class="macro-val">${Number.isFinite(Number(g.btc_per_gold_oz))?'1 BTC = '+Number(g.btc_per_gold_oz).toLocaleString(undefined,{maximumFractionDigits:4})+' oz of gold':'Unavailable'}</div>
+    <div class="macro-meta">${esc(g.interpretation||'Unavailable')} · scenarios, not forecasts</div>
+    <div class="macro-gold-grid">
+      <div class="macro-gold-cell"><strong>Relative</strong>30D ${esc(macroPct(rel['30d']?.relative_percent))}<br>90D ${esc(macroPct(rel['90d']?.relative_percent))}<br>1Y ${esc(macroPct(rel['1y']?.relative_percent))}</div>
+      <div class="macro-gold-cell"><strong>Market caps</strong>BTC ${esc(macroBigUsd(g.btc_market_cap_usd))}<br>Gold ${esc(macroBigUsd(g.gold_market_cap_usd))}<br>BTC ${esc(Number.isFinite(Number(g.btc_market_cap_percent_of_gold))?Number(g.btc_market_cap_percent_of_gold).toFixed(2)+'%':'Unavailable')} of gold</div>
+      <div class="macro-gold-cell"><strong>BTC at 10% / 25%</strong>10% ${esc(macroUsd(sc['10%']))}<br>25% ${esc(macroUsd(sc['25%']))}</div>
+      <div class="macro-gold-cell"><strong>BTC at 50% / 100%</strong>50% ${esc(macroUsd(sc['50%']))}<br>100% ${esc(macroUsd(sc['100%']))}</div>
+    </div>
+    <div class="macro-text">${esc(g.note||'Gold market value and BTC supply change over time, so these targets move.')}</div>
+    <div class="macro-source">Source: ${esc(g.source||'—')}</div>
+  </article>`;
+}
 function renderMacroRegime(card){
   const corr=card.correlations||{};
   const rows=['dxy','gold','nasdaq'].map(id=>{
@@ -1265,7 +1286,7 @@ function drawMacroChart(){
 }
 function renderMacro(){
   const cards=$('macroCards'),events=$('macroEvents'),sel=$('macroCompare');if(!cards||!M.data)return;
-  cards.innerHTML=M.data.series.map(card=>{
+  cards.innerHTML=renderBtcGoldScoreboard(M.data.btc_vs_gold)+M.data.series.map(card=>{
     if(card.id==='btc_macro_regime')return renderMacroRegime(card);
     const unavailable=card.status!=='ok';
     const meta=unavailable?esc(card.explanation||'Reliable free series unavailable.'):

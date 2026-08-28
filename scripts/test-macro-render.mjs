@@ -12,6 +12,9 @@ ok(page.includes("BTC MACRO WEATHER"), "page must include BTC Macro Weather sect
 ok(page.includes("macroCards"), "page must include macro card container");
 ok(page.includes("macroEvents"), "page must include macro event container");
 ok(page.includes("btc-macro.json"), "page must load generated macro data");
+ok(page.includes("BTC vs Gold"), "page must render BTC vs Gold scoreboard");
+ok(page.includes("btc_vs_gold"), "page must use generated BTC vs Gold data");
+ok(page.includes("Gold market value and BTC supply change over time"), "page must show moving-target note");
 ok(page.includes("macro-regime"), "page must render BTC macro regime correlations");
 ok(page.includes("MIXED/TRANSITION"), "page must include macro regime labels");
 ok(page.includes("pairedMacroRows"), "macro comparison chart must pair BTC and macro dates");

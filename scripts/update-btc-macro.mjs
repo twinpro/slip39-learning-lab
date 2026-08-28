@@ -71,6 +71,74 @@ function round(value, digits = 2) {
   return Number.isFinite(value) ? Number(value.toFixed(digits)) : null;
 }
 
+function parseMarketCap(text, label) {
+  const compact = String(text || "").replace(/\s+/g, " ");
+  const match = compact.match(/\$([0-9]+(?:\.[0-9]+)?)\s*([TBMK])/);
+  if (!match) throw new Error(`${label} market cap not found`);
+  const scale = { T: 1e12, B: 1e9, M: 1e6, K: 1e3 }[match[2]];
+  return Number(match[1]) * scale;
+}
+
+function seriesValueAtOrBefore(series, targetMs) {
+  return nearestAtOrBefore(series?.history || [], targetMs)?.value ?? null;
+}
+
+async function totalBtcSupply() {
+  const raw = Number((await fetchText("https://blockchain.info/q/totalbc")).trim());
+  if (!Number.isFinite(raw) || raw <= 0) throw new Error("invalid Blockchain.com totalbc response");
+  return raw / 1e8;
+}
+
+async function goldMarketCap() {
+  return parseMarketCap(await fetchText("https://companiesmarketcap.com/gold/marketcap/"), "gold");
+}
+
+async function btcGoldScoreboard(series) {
+  const market = JSON.parse(await fs.readFile(MARKET, "utf8"));
+  const btcPrice = Number(market.spot?.us_spot_average_usd ?? market.spot?.coinbase_usd);
+  const gold = series.find(s => s.id === "gold" && s.status === "ok");
+  const goldPrice = Number(gold?.latest_value);
+  const latestGoldMs = Date.parse(`${gold?.observation_date || ""}T00:00:00Z`);
+  const btcDaily = dailyHistoryRows();
+  const latestBtc = btcDaily.at(-1);
+  const latestBtcPrice = Number(latestBtc?.value);
+  const liveRatio = btcPrice > 0 && goldPrice > 0 ? btcPrice / goldPrice : null;
+  const windows = {};
+  for (const [label, days] of [["30d", 30], ["90d", 90], ["1y", 365]]) {
+    const targetMs = Math.min(Date.parse(`${latestBtc?.date || ""}T00:00:00Z`), latestGoldMs) - days * DAY;
+    const btcPast = nearestAtOrBefore(btcDaily, targetMs)?.value ?? null;
+    const goldPast = seriesValueAtOrBefore(gold, targetMs);
+    const btcPerf = pct(latestBtcPrice, btcPast);
+    const goldPerf = pct(goldPrice, goldPast);
+    const relative = Number.isFinite(btcPerf) && Number.isFinite(goldPerf) ? btcPerf - goldPerf : null;
+    windows[label] = { btc_percent: round(btcPerf, 2), gold_percent: round(goldPerf, 2), relative_percent: round(relative, 2) };
+  }
+  const supply = await totalBtcSupply().catch(() => null);
+  const goldCap = await goldMarketCap().catch(() => null);
+  const btcMarketCap = btcPrice > 0 && supply > 0 ? btcPrice * supply : null;
+  const scenarios = {};
+  for (const share of [0.10, 0.25, 0.50, 1]) {
+    scenarios[`${Math.round(share * 100)}%`] = goldCap > 0 && supply > 0 ? round(goldCap * share / supply, 2) : null;
+  }
+  return {
+    generated_at: ISO,
+    status: liveRatio != null ? "ok" : "unavailable",
+    btc_price_usd: round(btcPrice, 2),
+    gold_price_usd_per_oz: round(goldPrice, 2),
+    btc_per_gold_oz: round(liveRatio, 4),
+    relative_performance: windows,
+    interpretation: Number(windows["90d"]?.relative_percent) >= 0 ? "BTC GAINING VS GOLD" : "GOLD GAINING VS BTC",
+    btc_supply: supply == null ? null : round(supply, 8),
+    btc_market_cap_usd: btcMarketCap == null ? null : round(btcMarketCap, 2),
+    gold_market_cap_usd: goldCap == null ? null : round(goldCap, 2),
+    btc_market_cap_percent_of_gold: btcMarketCap != null && goldCap > 0 ? round(btcMarketCap / goldCap * 100, 2) : null,
+    scenario_prices_usd: scenarios,
+    note: "Gold market value and BTC supply change over time, so these targets move.",
+    source: "Existing BTC dashboard data, Yahoo Finance public chart API, Blockchain.com totalbc, CompaniesMarketCap gold market cap",
+    source_urls: ["data/btc-market.json", "https://finance.yahoo.com/quote/GC%3DF", "https://blockchain.info/q/totalbc", "https://companiesmarketcap.com/gold/marketcap/"]
+  };
+}
+
 function downsample(rows, max = 420) {
   if (rows.length <= max) return rows;
   const step = Math.ceil(rows.length / max);
@@ -359,6 +427,7 @@ const out = {
   sources_used: ["Federal Reserve/FRED", "U.S. Treasury Fiscal Data", "Coin Metrics Community API", "Existing verified dashboard data"],
   unavailable_policy: "Missing data is represented as unavailable and is never converted to zero.",
   series,
+  btc_vs_gold: await btcGoldScoreboard(series),
   events: events(),
   errors
 };

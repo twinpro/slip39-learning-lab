@@ -18,6 +18,19 @@ ok(data.schema === 1, "schema must be 1");
 ok(/\d{4}-\d{2}-\d{2}T/.test(data.generated_at || ""), "generated_at must be ISO-like");
 ok(data.api_keys_required === false, "macro collector must be keyless");
 ok(/do not predict its price/i.test(data.note || ""), "macro note must state non-predictive context");
+const goldBoard = data.btc_vs_gold;
+ok(goldBoard?.status === "ok", "BTC vs Gold scoreboard must be available");
+ok(Number(goldBoard?.btc_per_gold_oz) > 0, "BTC/gold ounces must be positive");
+for (const window of ["30d", "90d", "1y"]) {
+  ok(Number.isFinite(Number(goldBoard?.relative_performance?.[window]?.relative_percent)), `${window} BTC-vs-Gold relative performance must render`);
+}
+ok(["BTC GAINING VS GOLD", "GOLD GAINING VS BTC"].includes(goldBoard?.interpretation), "BTC-vs-Gold interpretation must be recognized");
+ok(Number(goldBoard?.btc_market_cap_usd) > 0, "BTC market cap must be positive");
+ok(Number(goldBoard?.gold_market_cap_usd) > 0, "gold market cap must be positive");
+ok(Number(goldBoard?.btc_market_cap_percent_of_gold) > 0, "BTC market cap percent of gold must be positive");
+for (const share of ["10%", "25%", "50%", "100%"]) {
+  ok(Number(goldBoard?.scenario_prices_usd?.[share]) > 0, `${share} scenario price must be positive`);
+}
 
 const byId = new Map((data.series || []).map(s => [s.id, s]));
 const regime = byId.get("btc_macro_regime");
