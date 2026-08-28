@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { readFileSync } from "node:fs";
 
 const OUT = new URL("../data/btc-macro.json", import.meta.url);
 const MARKET = new URL("../data/btc-market.json", import.meta.url);
@@ -28,6 +29,7 @@ const FRED = {
 const INVERSE = new Set(["dollar_exchange", "cpi", "pce_core", "fed_funds", "treasury_2y", "treasury_10y", "real_yield_10y", "vix", "unemployment", "oil"]);
 const DIRECT = new Set(["m2", "fed_assets", "nasdaq"]);
 const POSITIVE_SERIES = new Set(["dollar_exchange", "cpi", "dollar_purchasing_power", "pce_core", "m2", "fed_assets", "reverse_repo", "nasdaq", "vix", "gold", "oil"]);
+const CORRELATION_INPUTS = new Set(["dollar_exchange", "gold", "nasdaq"]);
 
 async function fetchText(url) {
   const controller = new AbortController();
@@ -75,6 +77,104 @@ function downsample(rows, max = 420) {
   return rows.filter((_, i) => i % step === 0 || i === rows.length - 1);
 }
 
+function dailyHistoryRows() {
+  try {
+    const dataset = JSON.parse(readFileSync(new URL("../data/btc-daily-history.json", import.meta.url), "utf8"));
+    return (dataset.observations || [])
+      .map(r => ({ date: String(r.time).slice(0, 10), value: Number(r.PriceUSD) }))
+      .filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.date) && r.value > 0);
+  } catch {
+    return [];
+  }
+}
+
+function returnMap(rows) {
+  const clean = (rows || []).filter(r => r?.date && Number.isFinite(Number(r.value)) && Number(r.value) > 0).sort((a, b) => a.date.localeCompare(b.date));
+  const out = new Map();
+  for (let i = 1; i < clean.length; i++) {
+    const prev = Number(clean[i - 1].value);
+    const next = Number(clean[i].value);
+    if (prev > 0 && next > 0) out.set(clean[i].date, Math.log(next / prev));
+  }
+  return out;
+}
+
+function correlation(xs, ys) {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 20) return null;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let cov = 0, vx = 0, vy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx, dy = ys[i] - my;
+    cov += dx * dy; vx += dx * dx; vy += dy * dy;
+  }
+  return vx > 0 && vy > 0 ? cov / Math.sqrt(vx * vy) : null;
+}
+
+function pairReturns(btcReturns, assetReturns, endDate, days) {
+  const endMs = Date.parse(`${endDate}T00:00:00Z`);
+  const startMs = endMs - days * DAY;
+  const xs = [], ys = [];
+  for (const [date, btcReturn] of btcReturns) {
+    const ms = Date.parse(`${date}T00:00:00Z`);
+    if (ms > startMs && ms <= endMs && assetReturns.has(date)) {
+      xs.push(btcReturn);
+      ys.push(assetReturns.get(date));
+    }
+  }
+  return [xs, ys];
+}
+
+function trendLabel(current, previous) {
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return "stable";
+  const diff = Math.abs(current) - Math.abs(previous);
+  if (diff > 0.08) return "strengthening";
+  if (diff < -0.08) return "weakening";
+  return "stable";
+}
+
+function buildMacroRegime(series) {
+  const btc = dailyHistoryRows();
+  const btcReturns = returnMap(btc);
+  const latestDate = btc.at(-1)?.date;
+  const sources = { dxy: "dollar_exchange", gold: "gold", nasdaq: "nasdaq" };
+  const labels = { dxy: "DXY", gold: "Gold", nasdaq: "Nasdaq" };
+  const correlations = {};
+  for (const [key, id] of Object.entries(sources)) {
+    const card = series.find(s => s.id === id && s.status === "ok");
+    const assetReturns = returnMap(card?._correlation_history || card?.history || []);
+    correlations[key] = { label: labels[key], status: "unavailable", windows: {}, trend: "stable" };
+    if (!latestDate || btcReturns.size < 181 || assetReturns.size < 181) continue;
+    for (const days of [30, 90, 180]) {
+      const [xs, ys] = pairReturns(btcReturns, assetReturns, latestDate, days);
+      const value = correlation(xs, ys);
+      const prevEnd = new Date(Date.parse(`${latestDate}T00:00:00Z`) - days * DAY).toISOString().slice(0, 10);
+      const [px, py] = pairReturns(btcReturns, assetReturns, prevEnd, days);
+      const previous = correlation(px, py);
+      correlations[key].windows[`${days}d`] = { value: round(value, 3), sample_days: xs.length, trend: trendLabel(value, previous) };
+    }
+    correlations[key].status = Object.values(correlations[key].windows).some(w => Number.isFinite(w.value)) ? "ok" : "unavailable";
+    correlations[key].trend = correlations[key].windows["90d"]?.trend || "stable";
+  }
+  const c90 = {
+    dxy: correlations.dxy?.windows?.["90d"]?.value,
+    gold: correlations.gold?.windows?.["90d"]?.value,
+    nasdaq: correlations.nasdaq?.windows?.["90d"]?.value
+  };
+  let regime = "MIXED/TRANSITION";
+  if (Number.isFinite(c90.nasdaq) && c90.nasdaq >= 0.35 && (!Number.isFinite(c90.gold) || c90.nasdaq >= c90.gold)) regime = "RISK-ASSET";
+  if (Number.isFinite(c90.gold) && c90.gold >= 0.35 && (!Number.isFinite(c90.nasdaq) || c90.gold > c90.nasdaq) && (!Number.isFinite(c90.dxy) || c90.dxy <= 0.2)) regime = "MONETARY/DEBASEMENT";
+  return {
+    id: "btc_macro_regime", name: "BTC macro regime", status: Object.values(correlations).some(c => c.status === "ok") ? "ok" : "unavailable",
+    latest_value: null, unit: "correlation", observation_date: latestDate || null, direction_30d: "unknown", change_1y_percent: null, weather: "Neutral",
+    regime, correlations,
+    explanation: "Correlations compare daily BTC returns with dollar strength, gold, and Nasdaq returns. Positive means they have tended to move together; negative means they have tended to move opposite.",
+    source: "Existing BTC daily history + FRED keyless series", source_url: "data/btc-daily-history.json and FRED CSV",
+    data_start_date: btc[0]?.date || null, history: []
+  };
+}
+
 function weatherFor(id, d30, latest) {
   if (!Number.isFinite(d30)) return "Neutral";
   if (id === "vix") {
@@ -102,7 +202,7 @@ function buildSeries(id, name, unit, source, sourceUrl, note, rows, transform = 
   const y1 = nearestAtOrBefore(clean, latestMs - 365 * DAY);
   const delta30 = d30 ? latest.value - d30.value : null;
   const change1y = y1 ? pct(latest.value, y1.value) : null;
-  return {
+  const card = {
     id, name, status: "ok", latest_value: round(latest.value, unit === "%" ? 3 : 2), unit,
     observation_date: latest.date,
     direction_30d: Number.isFinite(delta30) ? (delta30 > 0 ? "up" : delta30 < 0 ? "down" : "flat") : "unknown",
@@ -112,8 +212,10 @@ function buildSeries(id, name, unit, source, sourceUrl, note, rows, transform = 
     explanation: note,
     source, source_url: sourceUrl,
     data_start_date: clean[0].date,
-    history: downsample(clean.map(r => ({ date: r.date, value: round(r.value, 4) })))
+    history: downsample(clean).map(r => ({ date: r.date, value: round(r.value, 4) }))
   };
+  if (CORRELATION_INPUTS.has(id)) card._correlation_history = clean.map(r => ({ date: r.date, value: round(r.value, 4) }));
+  return card;
 }
 
 function unavailable(id, name, reason, source = "Not available from approved free sources") {
@@ -124,6 +226,16 @@ async function fredSeries(id, config) {
   const [fredId, name, unit, source, sourceUrl, note] = config;
   const text = await fetchText(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(fredId)}`);
   return buildSeries(id, name, unit, source, sourceUrl, note, parseFredCsv(text));
+}
+
+async function yahooChartSeries(id, symbol, name, unit, note) {
+  const json = await fetchJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1d`);
+  const result = json?.chart?.result?.[0];
+  const timestamps = result?.timestamp || [];
+  const closes = result?.indicators?.quote?.[0]?.close || [];
+  const rows = timestamps.map((t, i) => ({ date: new Date(t * 1000).toISOString().slice(0, 10), value: Number(closes[i]) }))
+    .filter(r => r.date && Number.isFinite(r.value));
+  return buildSeries(id, name, unit, "Yahoo Finance public chart API", `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}`, note, rows);
 }
 
 async function treasuryTga() {
@@ -213,6 +325,16 @@ for (const [id, cfg] of Object.entries(FRED)) {
     }
   } catch (e) {
     errors[id] = String(e.message || e);
+    if (id === "gold") {
+      try {
+        series.push(await yahooChartSeries("gold", "GC=F", "Gold", "USD/oz", "Gold is a parallel hard-asset reference, not a BTC signal."));
+        errors.gold_fred = errors.gold;
+        delete errors.gold;
+        continue;
+      } catch (fallbackError) {
+        errors.gold_yahoo = String(fallbackError.message || fallbackError);
+      }
+    }
     series.push(unavailable(id, cfg[1], String(e.message || e), cfg[3]));
   }
 }
@@ -225,6 +347,8 @@ try { series.push(...await coinMetrics()); } catch (e) {
 }
 series.push(unavailable("stablecoin_supply", "Stablecoin supply", "No approved keyless free broad stablecoin supply series is implemented; unavailable rather than substituted.", "Unavailable"));
 series.push(...await existingDashboardCards());
+series.unshift(buildMacroRegime(series));
+for (const card of series) delete card._correlation_history;
 
 const out = {
   schema: 1,

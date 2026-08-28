@@ -2,6 +2,19 @@ name: Update BTC real-vs-paper data FREE
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/btc-market-data.yml"
+      - "scripts/btc-lib.mjs"
+      - "scripts/btc-history-lib.mjs"
+      - "scripts/update-btc-market.mjs"
+      - "scripts/update-btc-history.mjs"
+      - "scripts/verify-btc-market-freshness.mjs"
+      - "scripts/verify-snapshot.mjs"
+      - "scripts/verify-history.mjs"
+      - "scripts/test-collector.mjs"
+      - "scripts/test-history.mjs"
   schedule:
     - cron: "7,22,37,52 * * * *"
 
@@ -22,6 +35,10 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Capture pre-run market timestamp
+        run: |
+          node -e "const fs=require('node:fs'); const d=JSON.parse(fs.readFileSync('data/btc-market.json','utf8')); if(!Date.parse(d.generated_at)) throw new Error('invalid pre-run generated_at'); fs.appendFileSync(process.env.GITHUB_ENV, 'BTC_MARKET_BEFORE_GENERATED_AT='+d.generated_at+'\n');"
+
       - name: Run collector safety tests
         run: node scripts/test-collector.mjs
 
@@ -32,6 +49,9 @@ jobs:
         env:
           SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
         run: node scripts/update-btc-market.mjs
+
+      - name: Verify fresh collection advanced timestamp
+        run: node scripts/verify-btc-market-freshness.mjs after-collect
 
       - name: Print compact source health
         run: node scripts/report-health.mjs
@@ -67,6 +87,9 @@ jobs:
             git commit -m "Update BTC market data"
             git push
           fi
+
+      - name: Verify changed data was committed and pushed
+        run: node scripts/verify-btc-market-freshness.mjs after-commit
 
       - name: Fail workflow after preserving rejected-attempt health
         if: steps.snapshot_verify.outcome != 'success'

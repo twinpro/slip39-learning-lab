@@ -20,6 +20,17 @@ ok(data.api_keys_required === false, "macro collector must be keyless");
 ok(/do not predict its price/i.test(data.note || ""), "macro note must state non-predictive context");
 
 const byId = new Map((data.series || []).map(s => [s.id, s]));
+const regime = byId.get("btc_macro_regime");
+ok(!!regime, "missing BTC macro regime card");
+ok(["RISK-ASSET", "MONETARY/DEBASEMENT", "MIXED/TRANSITION"].includes(regime?.regime), "macro regime label must be recognized");
+for (const id of ["dxy", "gold", "nasdaq"]) {
+  const item = regime?.correlations?.[id];
+  ok(!!item, `missing ${id} correlation set`);
+  for (const window of ["30d", "90d", "180d"]) {
+    ok(Object.prototype.hasOwnProperty.call(item.windows || {}, window), `${id} missing ${window} correlation`);
+    ok(["strengthening", "weakening", "stable"].includes(item.windows?.[window]?.trend), `${id} ${window} trend must be recognized`);
+  }
+}
 for (const id of required) {
   const s = byId.get(id);
   ok(!!s, `missing series ${id}`);

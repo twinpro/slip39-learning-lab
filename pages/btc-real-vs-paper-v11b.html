@@ -222,6 +222,7 @@ footer{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);line-height:
 .macro-val{font-family:var(--mono);font-size:22px;line-height:1.1;overflow-wrap:anywhere}
 .macro-meta,.macro-text,.macro-source{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim);overflow-wrap:anywhere}
 .macro-text{margin-top:7px;color:#A9B8BA}.macro-source{margin-top:8px;color:var(--dimmer);border-top:1px solid var(--rule);padding-top:7px}
+.macro-regime{grid-column:1/-1}.macro-corr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:10px}.macro-corr{background:#0D1518;padding:9px;font-family:var(--mono);font-size:10px;line-height:1.55;color:var(--dim)}.macro-corr strong{display:block;color:var(--bone);font-family:var(--cond);font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}.macro-corr span{display:block;color:#A9B8BA}
 .macro-weather{display:inline-block;margin-top:8px}.macro-chart-wrap{border:1px solid var(--rule);border-top:0;background:var(--panel2);padding:10px;min-height:250px}
 #macroChart{display:block;width:100%;height:230px}.macro-empty{font-family:var(--mono);font-size:11px;color:var(--dimmer);padding:20px;text-align:center}
 .macro-events{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-top:0}
@@ -1189,6 +1190,27 @@ function macroFmt(card){
   return v.toLocaleString(undefined,{maximumFractionDigits:2})+(card.unit?' '+card.unit:'');
 }
 function macroWeatherClass(w){return w==='Tailwind'?'g':w==='Headwind'?'r':'a'}
+function macroRegimeClass(r){return r==='RISK-ASSET'?'g':r==='MONETARY/DEBASEMENT'?'a':'y'}
+function macroCorrFmt(v){return Number.isFinite(Number(v))?Number(v).toFixed(2):'—'}
+function renderMacroRegime(card){
+  const corr=card.correlations||{};
+  const rows=['dxy','gold','nasdaq'].map(id=>{
+    const item=corr[id]||{},w=item.windows||{};
+    return `<div class="macro-corr"><strong>${esc(item.label||id.toUpperCase())}</strong>
+      <span>30D ${esc(macroCorrFmt(w['30d']?.value))} · ${esc(w['30d']?.trend||'stable')}</span>
+      <span>90D ${esc(macroCorrFmt(w['90d']?.value))} · ${esc(w['90d']?.trend||'stable')}</span>
+      <span>180D ${esc(macroCorrFmt(w['180d']?.value))} · ${esc(w['180d']?.trend||'stable')}</span></div>`;
+  }).join('');
+  return `<article class="macro-card macro-regime">
+    <h3>${esc(card.name)}</h3>
+    <div class="macro-val">${esc(card.regime||'MIXED/TRANSITION')}</div>
+    <div class="macro-meta">${esc(card.observation_date||'—')} · rolling daily correlations</div>
+    <span class="chip ${macroRegimeClass(card.regime)} macro-weather">${esc(card.regime||'MIXED/TRANSITION')}</span>
+    <div class="macro-corr-grid">${rows}</div>
+    <div class="macro-text">${esc(card.explanation||'Correlation context unavailable.')}</div>
+    <div class="macro-source">Source: ${esc(card.source||'—')} · Start: ${esc(card.data_start_date||'Unavailable')}</div>
+  </article>`;
+}
 function macroRangeStart(){
   const t=trustedNowMs();
   if(M.range==='1y')return t-365*24*60*60*1000;
@@ -1226,6 +1248,7 @@ function drawMacroChart(){
 function renderMacro(){
   const cards=$('macroCards'),events=$('macroEvents'),sel=$('macroCompare');if(!cards||!M.data)return;
   cards.innerHTML=M.data.series.map(card=>{
+    if(card.id==='btc_macro_regime')return renderMacroRegime(card);
     const unavailable=card.status!=='ok';
     const meta=unavailable?esc(card.explanation||'Reliable free series unavailable.'):
       `${esc(card.observation_date)} · 30D ${esc(card.direction_30d)} · 1Y ${card.change_1y_percent==null?'—':esc(card.change_1y_percent+'%')}`;

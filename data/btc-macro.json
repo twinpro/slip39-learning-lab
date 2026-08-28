@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-08-27T17:58:51.934Z",
+  "generated_at": "2026-08-28T18:54:13.514Z",
   "note": "Macro conditions can influence Bitcoin but do not predict its price. No macro score is produced.",
   "cost": "$0",
   "api_keys_required": false,
@@ -12,6 +12,91 @@
   ],
   "unavailable_policy": "Missing data is represented as unavailable and is never converted to zero.",
   "series": [
+    {
+      "id": "btc_macro_regime",
+      "name": "BTC macro regime",
+      "status": "ok",
+      "latest_value": null,
+      "unit": "correlation",
+      "observation_date": "2026-08-25",
+      "direction_30d": "unknown",
+      "change_1y_percent": null,
+      "weather": "Neutral",
+      "regime": "MONETARY/DEBASEMENT",
+      "correlations": {
+        "dxy": {
+          "label": "DXY",
+          "status": "ok",
+          "windows": {
+            "30d": {
+              "value": -0.413,
+              "sample_days": 20,
+              "trend": "stable"
+            },
+            "90d": {
+              "value": -0.438,
+              "sample_days": 60,
+              "trend": "strengthening"
+            },
+            "180d": {
+              "value": -0.258,
+              "sample_days": 123,
+              "trend": "strengthening"
+            }
+          },
+          "trend": "strengthening"
+        },
+        "gold": {
+          "label": "Gold",
+          "status": "ok",
+          "windows": {
+            "30d": {
+              "value": 0.568,
+              "sample_days": 22,
+              "trend": "stable"
+            },
+            "90d": {
+              "value": 0.521,
+              "sample_days": 62,
+              "trend": "strengthening"
+            },
+            "180d": {
+              "value": 0.328,
+              "sample_days": 124,
+              "trend": "strengthening"
+            }
+          },
+          "trend": "strengthening"
+        },
+        "nasdaq": {
+          "label": "Nasdaq",
+          "status": "ok",
+          "windows": {
+            "30d": {
+              "value": -0.042,
+              "sample_days": 22,
+              "trend": "stable"
+            },
+            "90d": {
+              "value": 0.266,
+              "sample_days": 62,
+              "trend": "weakening"
+            },
+            "180d": {
+              "value": 0.363,
+              "sample_days": 124,
+              "trend": "weakening"
+            }
+          },
+          "trend": "weakening"
+        }
+      },
+      "explanation": "Correlations compare daily BTC returns with dollar strength, gold, and Nasdaq returns. Positive means they have tended to move together; negative means they have tended to move opposite.",
+      "source": "Existing BTC daily history + FRED keyless series",
+      "source_url": "data/btc-daily-history.json and FRED CSV",
+      "data_start_date": "2010-07-18",
+      "history": []
+    },
     {
       "id": "dollar_exchange",
       "name": "Dollar exchange strength",
@@ -7034,12 +7119,12 @@
       "id": "treasury_2y",
       "name": "2-year Treasury yield",
       "status": "ok",
-      "latest_value": 4.17,
+      "latest_value": 4.19,
       "unit": "%",
-      "observation_date": "2026-08-25",
+      "observation_date": "2026-08-26",
       "direction_30d": "down",
-      "change_30d": -0.16,
-      "change_1y_percent": 11.8,
+      "change_30d": -0.12,
+      "change_1y_percent": 16.07,
       "weather": "Tailwind",
       "explanation": "The 2-year yield tracks expected near-term Fed policy.",
       "source": "FRED: DGS2",
@@ -8687,8 +8772,8 @@
           "value": 4.28
         },
         {
-          "date": "2026-08-25",
-          "value": 4.17
+          "date": "2026-08-26",
+          "value": 4.19
         }
       ]
     },
@@ -8696,13 +8781,13 @@
       "id": "treasury_10y",
       "name": "10-year Treasury yield",
       "status": "ok",
-      "latest_value": 4.64,
+      "latest_value": 4.66,
       "unit": "%",
-      "observation_date": "2026-08-25",
-      "direction_30d": "down",
-      "change_30d": -0.05,
-      "change_1y_percent": 8.41,
-      "weather": "Tailwind",
+      "observation_date": "2026-08-26",
+      "direction_30d": "up",
+      "change_30d": 0.01,
+      "change_1y_percent": 9.39,
+      "weather": "Headwind",
       "explanation": "Higher long yields can pressure long-duration risk assets.",
       "source": "FRED: DGS10",
       "source_url": "https://fred.stlouisfed.org/series/DGS10",
@@ -10357,8 +10442,8 @@
           "value": 4.63
         },
         {
-          "date": "2026-08-25",
-          "value": 4.64
+          "date": "2026-08-26",
+          "value": 4.66
         }
       ]
     },
@@ -10366,12 +10451,12 @@
       "id": "real_yield_10y",
       "name": "10-year real yield",
       "status": "ok",
-      "latest_value": 2.32,
+      "latest_value": 2.34,
       "unit": "%",
-      "observation_date": "2026-08-25",
+      "observation_date": "2026-08-26",
       "direction_30d": "down",
-      "change_30d": -0.11,
-      "change_1y_percent": 24.06,
+      "change_30d": -0.1,
+      "change_1y_percent": 27.17,
       "weather": "Tailwind",
       "explanation": "Higher inflation-adjusted yields can compete with scarce assets.",
       "source": "FRED: DFII10",
@@ -12027,8 +12112,8 @@
           "value": 2.35
         },
         {
-          "date": "2026-08-25",
-          "value": 2.32
+          "date": "2026-08-26",
+          "value": 2.34
         }
       ]
     },
@@ -13678,13 +13763,13 @@
       "id": "fed_assets",
       "name": "Federal Reserve assets",
       "status": "ok",
-      "latest_value": 6745699,
+      "latest_value": 6730912,
       "unit": "USD millions",
-      "observation_date": "2026-08-19",
-      "direction_30d": "up",
-      "change_30d": 2671,
-      "change_1y_percent": 1.54,
-      "weather": "Tailwind",
+      "observation_date": "2026-08-26",
+      "direction_30d": "down",
+      "change_30d": -16466,
+      "change_1y_percent": 1.7,
+      "weather": "Headwind",
       "explanation": "A larger Fed balance sheet can indicate easier liquidity conditions.",
       "source": "FRED: WALCL",
       "source_url": "https://fred.stlouisfed.org/series/WALCL",
@@ -15339,8 +15424,8 @@
           "value": 6748567
         },
         {
-          "date": "2026-08-19",
-          "value": 6745699
+          "date": "2026-08-26",
+          "value": 6730912
         }
       ]
     },
@@ -15348,12 +15433,12 @@
       "id": "reverse_repo",
       "name": "Reverse repo",
       "status": "ok",
-      "latest_value": 0.7,
+      "latest_value": 0.46,
       "unit": "USD billions",
-      "observation_date": "2026-08-26",
+      "observation_date": "2026-08-27",
       "direction_30d": "down",
-      "change_30d": -0.678,
-      "change_1y_percent": -97.54,
+      "change_30d": -0.67,
+      "change_1y_percent": -98.69,
       "weather": "Neutral",
       "explanation": "Lower reverse repo balances can release cash into markets.",
       "source": "FRED: RRPONTSYD",
@@ -16981,8 +17066,8 @@
           "value": 0.255
         },
         {
-          "date": "2026-08-26",
-          "value": 0.702
+          "date": "2026-08-27",
+          "value": 0.456
         }
       ]
     },
@@ -16990,12 +17075,12 @@
       "id": "nasdaq",
       "name": "Nasdaq/risk appetite",
       "status": "ok",
-      "latest_value": 26130.2,
+      "latest_value": 26541.35,
       "unit": "index",
-      "observation_date": "2026-08-26",
+      "observation_date": "2026-08-27",
       "direction_30d": "up",
-      "change_30d": 1198.12,
-      "change_1y_percent": 21.29,
+      "change_30d": 1664.44,
+      "change_1y_percent": 22.93,
       "weather": "Tailwind",
       "explanation": "A rising Nasdaq often signals stronger risk appetite.",
       "source": "FRED: NASDAQCOM",
@@ -18651,8 +18736,8 @@
           "value": 25873.18
         },
         {
-          "date": "2026-08-26",
-          "value": 26130.2
+          "date": "2026-08-27",
+          "value": 26541.35
         }
       ]
     },
@@ -18660,12 +18745,12 @@
       "id": "vix",
       "name": "VIX",
       "status": "ok",
-      "latest_value": 15.21,
+      "latest_value": 14.51,
       "unit": "index",
-      "observation_date": "2026-08-26",
+      "observation_date": "2026-08-27",
       "direction_30d": "down",
-      "change_30d": -3.46,
-      "change_1y_percent": 4.04,
+      "change_30d": -3.7,
+      "change_1y_percent": -2.29,
       "weather": "Tailwind",
       "explanation": "Higher volatility usually means weaker risk appetite.",
       "source": "FRED: VIXCLS",
@@ -20285,8 +20370,8 @@
           "value": 14.9
         },
         {
-          "date": "2026-08-26",
-          "value": 15.21
+          "date": "2026-08-27",
+          "value": 14.51
         }
       ]
     },
@@ -21571,16 +21656,1032 @@
     {
       "id": "gold",
       "name": "Gold",
-      "status": "unavailable",
-      "latest_value": null,
-      "observation_date": null,
-      "direction_30d": "unknown",
-      "change_1y_percent": null,
+      "status": "ok",
+      "latest_value": 4616.5,
+      "unit": "USD/oz",
+      "observation_date": "2026-08-28",
+      "direction_30d": "up",
+      "change_30d": 581.8,
+      "change_1y_percent": 34.52,
       "weather": "Neutral",
-      "explanation": "404 Not Found",
-      "source": "FRED: GOLDPMGBD228NLBM",
-      "data_start_date": null,
-      "history": []
+      "explanation": "Gold is a parallel hard-asset reference, not a BTC signal.",
+      "source": "Yahoo Finance public chart API",
+      "source_url": "https://finance.yahoo.com/quote/GC%3DF",
+      "data_start_date": "2024-08-28",
+      "history": [
+        {
+          "date": "2024-08-28",
+          "value": 2501
+        },
+        {
+          "date": "2024-08-30",
+          "value": 2493.8
+        },
+        {
+          "date": "2024-09-04",
+          "value": 2493.3999
+        },
+        {
+          "date": "2024-09-06",
+          "value": 2493.5
+        },
+        {
+          "date": "2024-09-10",
+          "value": 2512.3
+        },
+        {
+          "date": "2024-09-12",
+          "value": 2551.2
+        },
+        {
+          "date": "2024-09-16",
+          "value": 2580.3999
+        },
+        {
+          "date": "2024-09-18",
+          "value": 2570.7
+        },
+        {
+          "date": "2024-09-20",
+          "value": 2619.8999
+        },
+        {
+          "date": "2024-09-24",
+          "value": 2651.2
+        },
+        {
+          "date": "2024-09-26",
+          "value": 2669.8999
+        },
+        {
+          "date": "2024-09-30",
+          "value": 2636.1001
+        },
+        {
+          "date": "2024-10-02",
+          "value": 2647.1001
+        },
+        {
+          "date": "2024-10-04",
+          "value": 2645.8
+        },
+        {
+          "date": "2024-10-08",
+          "value": 2615
+        },
+        {
+          "date": "2024-10-10",
+          "value": 2620.6001
+        },
+        {
+          "date": "2024-10-14",
+          "value": 2647.8
+        },
+        {
+          "date": "2024-10-16",
+          "value": 2674
+        },
+        {
+          "date": "2024-10-18",
+          "value": 2713.7
+        },
+        {
+          "date": "2024-10-22",
+          "value": 2744.2
+        },
+        {
+          "date": "2024-10-24",
+          "value": 2734.8999
+        },
+        {
+          "date": "2024-10-28",
+          "value": 2742.8999
+        },
+        {
+          "date": "2024-10-30",
+          "value": 2788.5
+        },
+        {
+          "date": "2024-11-01",
+          "value": 2738.6001
+        },
+        {
+          "date": "2024-11-05",
+          "value": 2740.3
+        },
+        {
+          "date": "2024-11-07",
+          "value": 2698.3999
+        },
+        {
+          "date": "2024-11-11",
+          "value": 2611.2
+        },
+        {
+          "date": "2024-11-13",
+          "value": 2580.8
+        },
+        {
+          "date": "2024-11-15",
+          "value": 2565.7
+        },
+        {
+          "date": "2024-11-19",
+          "value": 2627.1001
+        },
+        {
+          "date": "2024-11-21",
+          "value": 2672.1001
+        },
+        {
+          "date": "2024-11-25",
+          "value": 2616.8
+        },
+        {
+          "date": "2024-11-27",
+          "value": 2639.8999
+        },
+        {
+          "date": "2024-12-02",
+          "value": 2634.8999
+        },
+        {
+          "date": "2024-12-04",
+          "value": 2653.8
+        },
+        {
+          "date": "2024-12-06",
+          "value": 2638.6001
+        },
+        {
+          "date": "2024-12-10",
+          "value": 2697.6001
+        },
+        {
+          "date": "2024-12-12",
+          "value": 2687.5
+        },
+        {
+          "date": "2024-12-16",
+          "value": 2651.3999
+        },
+        {
+          "date": "2024-12-18",
+          "value": 2636.5
+        },
+        {
+          "date": "2024-12-20",
+          "value": 2628.7
+        },
+        {
+          "date": "2024-12-24",
+          "value": 2620
+        },
+        {
+          "date": "2024-12-27",
+          "value": 2617.2
+        },
+        {
+          "date": "2024-12-31",
+          "value": 2629.2
+        },
+        {
+          "date": "2025-01-03",
+          "value": 2645
+        },
+        {
+          "date": "2025-01-07",
+          "value": 2656.7
+        },
+        {
+          "date": "2025-01-09",
+          "value": 2683.8
+        },
+        {
+          "date": "2025-01-13",
+          "value": 2673.5
+        },
+        {
+          "date": "2025-01-15",
+          "value": 2712.5
+        },
+        {
+          "date": "2025-01-17",
+          "value": 2744.3
+        },
+        {
+          "date": "2025-01-22",
+          "value": 2767.6001
+        },
+        {
+          "date": "2025-01-24",
+          "value": 2777.3
+        },
+        {
+          "date": "2025-01-28",
+          "value": 2766.8
+        },
+        {
+          "date": "2025-01-30",
+          "value": 2823
+        },
+        {
+          "date": "2025-02-03",
+          "value": 2833.8999
+        },
+        {
+          "date": "2025-02-05",
+          "value": 2871.6001
+        },
+        {
+          "date": "2025-02-07",
+          "value": 2867.3
+        },
+        {
+          "date": "2025-02-11",
+          "value": 2912.5
+        },
+        {
+          "date": "2025-02-13",
+          "value": 2925.8999
+        },
+        {
+          "date": "2025-02-18",
+          "value": 2931.6001
+        },
+        {
+          "date": "2025-02-20",
+          "value": 2940
+        },
+        {
+          "date": "2025-02-24",
+          "value": 2947.8999
+        },
+        {
+          "date": "2025-02-26",
+          "value": 2916.8
+        },
+        {
+          "date": "2025-02-28",
+          "value": 2836.8
+        },
+        {
+          "date": "2025-03-04",
+          "value": 2909.6001
+        },
+        {
+          "date": "2025-03-06",
+          "value": 2916.6001
+        },
+        {
+          "date": "2025-03-10",
+          "value": 2891
+        },
+        {
+          "date": "2025-03-12",
+          "value": 2939.1001
+        },
+        {
+          "date": "2025-03-14",
+          "value": 2994.5
+        },
+        {
+          "date": "2025-03-18",
+          "value": 3035.1001
+        },
+        {
+          "date": "2025-03-20",
+          "value": 3040
+        },
+        {
+          "date": "2025-03-24",
+          "value": 3013.1001
+        },
+        {
+          "date": "2025-03-26",
+          "value": 3020.8999
+        },
+        {
+          "date": "2025-03-28",
+          "value": 3086.5
+        },
+        {
+          "date": "2025-04-01",
+          "value": 3118.8999
+        },
+        {
+          "date": "2025-04-03",
+          "value": 3097
+        },
+        {
+          "date": "2025-04-07",
+          "value": 2951.3
+        },
+        {
+          "date": "2025-04-09",
+          "value": 3056.5
+        },
+        {
+          "date": "2025-04-11",
+          "value": 3222.2
+        },
+        {
+          "date": "2025-04-15",
+          "value": 3218.7
+        },
+        {
+          "date": "2025-04-17",
+          "value": 3308.7
+        },
+        {
+          "date": "2025-04-22",
+          "value": 3400.8
+        },
+        {
+          "date": "2025-04-24",
+          "value": 3332
+        },
+        {
+          "date": "2025-04-28",
+          "value": 3332.5
+        },
+        {
+          "date": "2025-04-30",
+          "value": 3305
+        },
+        {
+          "date": "2025-05-02",
+          "value": 3231.8999
+        },
+        {
+          "date": "2025-05-06",
+          "value": 3411.3999
+        },
+        {
+          "date": "2025-05-08",
+          "value": 3296.6001
+        },
+        {
+          "date": "2025-05-12",
+          "value": 3220
+        },
+        {
+          "date": "2025-05-14",
+          "value": 3181.3999
+        },
+        {
+          "date": "2025-05-16",
+          "value": 3182
+        },
+        {
+          "date": "2025-05-20",
+          "value": 3280.3
+        },
+        {
+          "date": "2025-05-22",
+          "value": 3292.3
+        },
+        {
+          "date": "2025-05-27",
+          "value": 3299.1001
+        },
+        {
+          "date": "2025-05-29",
+          "value": 3317.1001
+        },
+        {
+          "date": "2025-06-02",
+          "value": 3370.6001
+        },
+        {
+          "date": "2025-06-04",
+          "value": 3373.5
+        },
+        {
+          "date": "2025-06-06",
+          "value": 3322.7
+        },
+        {
+          "date": "2025-06-10",
+          "value": 3320.8999
+        },
+        {
+          "date": "2025-06-12",
+          "value": 3380.8999
+        },
+        {
+          "date": "2025-06-16",
+          "value": 3396.3999
+        },
+        {
+          "date": "2025-06-18",
+          "value": 3389.8
+        },
+        {
+          "date": "2025-06-23",
+          "value": 3377.7
+        },
+        {
+          "date": "2025-06-25",
+          "value": 3327.1001
+        },
+        {
+          "date": "2025-06-27",
+          "value": 3273.7
+        },
+        {
+          "date": "2025-07-01",
+          "value": 3336.7
+        },
+        {
+          "date": "2025-07-03",
+          "value": 3331.6001
+        },
+        {
+          "date": "2025-07-07",
+          "value": 3332.2
+        },
+        {
+          "date": "2025-07-09",
+          "value": 3311.6001
+        },
+        {
+          "date": "2025-07-11",
+          "value": 3356
+        },
+        {
+          "date": "2025-07-15",
+          "value": 3329.8
+        },
+        {
+          "date": "2025-07-17",
+          "value": 3340.1001
+        },
+        {
+          "date": "2025-07-21",
+          "value": 3401.8999
+        },
+        {
+          "date": "2025-07-23",
+          "value": 3394.1001
+        },
+        {
+          "date": "2025-07-25",
+          "value": 3334
+        },
+        {
+          "date": "2025-07-29",
+          "value": 3323.3999
+        },
+        {
+          "date": "2025-07-31",
+          "value": 3293.2
+        },
+        {
+          "date": "2025-08-04",
+          "value": 3374.3999
+        },
+        {
+          "date": "2025-08-06",
+          "value": 3380
+        },
+        {
+          "date": "2025-08-08",
+          "value": 3439.1001
+        },
+        {
+          "date": "2025-08-12",
+          "value": 3348.8999
+        },
+        {
+          "date": "2025-08-14",
+          "value": 3335.2
+        },
+        {
+          "date": "2025-08-18",
+          "value": 3331.7
+        },
+        {
+          "date": "2025-08-20",
+          "value": 3343.3999
+        },
+        {
+          "date": "2025-08-22",
+          "value": 3374.3999
+        },
+        {
+          "date": "2025-08-26",
+          "value": 3388.6001
+        },
+        {
+          "date": "2025-08-28",
+          "value": 3431.8
+        },
+        {
+          "date": "2025-09-02",
+          "value": 3549.3999
+        },
+        {
+          "date": "2025-09-04",
+          "value": 3565.8
+        },
+        {
+          "date": "2025-09-08",
+          "value": 3638.1001
+        },
+        {
+          "date": "2025-09-10",
+          "value": 3643.6001
+        },
+        {
+          "date": "2025-09-12",
+          "value": 3649.3999
+        },
+        {
+          "date": "2025-09-16",
+          "value": 3688.8999
+        },
+        {
+          "date": "2025-09-18",
+          "value": 3643.7
+        },
+        {
+          "date": "2025-09-22",
+          "value": 3740.7
+        },
+        {
+          "date": "2025-09-24",
+          "value": 3732.1001
+        },
+        {
+          "date": "2025-09-26",
+          "value": 3775.3
+        },
+        {
+          "date": "2025-09-30",
+          "value": 3840.8
+        },
+        {
+          "date": "2025-10-02",
+          "value": 3839.7
+        },
+        {
+          "date": "2025-10-06",
+          "value": 3948.5
+        },
+        {
+          "date": "2025-10-08",
+          "value": 4043.3
+        },
+        {
+          "date": "2025-10-10",
+          "value": 3975.8999
+        },
+        {
+          "date": "2025-10-14",
+          "value": 4138.7002
+        },
+        {
+          "date": "2025-10-16",
+          "value": 4280.2002
+        },
+        {
+          "date": "2025-10-20",
+          "value": 4336.3999
+        },
+        {
+          "date": "2025-10-22",
+          "value": 4044.3999
+        },
+        {
+          "date": "2025-10-24",
+          "value": 4118.3999
+        },
+        {
+          "date": "2025-10-28",
+          "value": 3966.2
+        },
+        {
+          "date": "2025-10-30",
+          "value": 4001.3
+        },
+        {
+          "date": "2025-11-03",
+          "value": 4000.3
+        },
+        {
+          "date": "2025-11-05",
+          "value": 3980.3
+        },
+        {
+          "date": "2025-11-07",
+          "value": 3999.3999
+        },
+        {
+          "date": "2025-11-11",
+          "value": 4106.7998
+        },
+        {
+          "date": "2025-11-13",
+          "value": 4186.8999
+        },
+        {
+          "date": "2025-11-17",
+          "value": 4068.3
+        },
+        {
+          "date": "2025-11-19",
+          "value": 4077.7
+        },
+        {
+          "date": "2025-11-21",
+          "value": 4076.7
+        },
+        {
+          "date": "2025-11-25",
+          "value": 4139.2002
+        },
+        {
+          "date": "2025-11-28",
+          "value": 4218.2998
+        },
+        {
+          "date": "2025-12-02",
+          "value": 4186.6001
+        },
+        {
+          "date": "2025-12-04",
+          "value": 4211.7998
+        },
+        {
+          "date": "2025-12-08",
+          "value": 4187.2002
+        },
+        {
+          "date": "2025-12-10",
+          "value": 4196.3999
+        },
+        {
+          "date": "2025-12-12",
+          "value": 4300.1001
+        },
+        {
+          "date": "2025-12-16",
+          "value": 4304.5
+        },
+        {
+          "date": "2025-12-18",
+          "value": 4339.5
+        },
+        {
+          "date": "2025-12-22",
+          "value": 4444.6001
+        },
+        {
+          "date": "2025-12-24",
+          "value": 4480.6001
+        },
+        {
+          "date": "2025-12-29",
+          "value": 4325.1001
+        },
+        {
+          "date": "2025-12-31",
+          "value": 4325.6001
+        },
+        {
+          "date": "2026-01-05",
+          "value": 4436.8999
+        },
+        {
+          "date": "2026-01-07",
+          "value": 4449.2998
+        },
+        {
+          "date": "2026-01-09",
+          "value": 4490.2998
+        },
+        {
+          "date": "2026-01-13",
+          "value": 4589.2002
+        },
+        {
+          "date": "2026-01-15",
+          "value": 4616.2998
+        },
+        {
+          "date": "2026-01-20",
+          "value": 4759.6001
+        },
+        {
+          "date": "2026-01-22",
+          "value": 4908.7998
+        },
+        {
+          "date": "2026-01-26",
+          "value": 5079.7002
+        },
+        {
+          "date": "2026-01-28",
+          "value": 5301.6001
+        },
+        {
+          "date": "2026-01-30",
+          "value": 4713.8999
+        },
+        {
+          "date": "2026-02-03",
+          "value": 4903.7002
+        },
+        {
+          "date": "2026-02-05",
+          "value": 4861.3999
+        },
+        {
+          "date": "2026-02-09",
+          "value": 5050.8999
+        },
+        {
+          "date": "2026-02-11",
+          "value": 5071.6001
+        },
+        {
+          "date": "2026-02-13",
+          "value": 5022
+        },
+        {
+          "date": "2026-02-18",
+          "value": 4986.5
+        },
+        {
+          "date": "2026-02-20",
+          "value": 5059.2998
+        },
+        {
+          "date": "2026-02-24",
+          "value": 5155.7998
+        },
+        {
+          "date": "2026-02-26",
+          "value": 5176.5
+        },
+        {
+          "date": "2026-03-02",
+          "value": 5294.3999
+        },
+        {
+          "date": "2026-03-04",
+          "value": 5120.2002
+        },
+        {
+          "date": "2026-03-06",
+          "value": 5146.1001
+        },
+        {
+          "date": "2026-03-10",
+          "value": 5229.7002
+        },
+        {
+          "date": "2026-03-12",
+          "value": 5115.7998
+        },
+        {
+          "date": "2026-03-16",
+          "value": 4994
+        },
+        {
+          "date": "2026-03-18",
+          "value": 4889.8999
+        },
+        {
+          "date": "2026-03-20",
+          "value": 4570.3999
+        },
+        {
+          "date": "2026-03-24",
+          "value": 4399.2998
+        },
+        {
+          "date": "2026-03-26",
+          "value": 4375.5
+        },
+        {
+          "date": "2026-03-30",
+          "value": 4526
+        },
+        {
+          "date": "2026-04-01",
+          "value": 4783.2002
+        },
+        {
+          "date": "2026-04-06",
+          "value": 4656.7998
+        },
+        {
+          "date": "2026-04-08",
+          "value": 4749.5
+        },
+        {
+          "date": "2026-04-10",
+          "value": 4761.8999
+        },
+        {
+          "date": "2026-04-14",
+          "value": 4825
+        },
+        {
+          "date": "2026-04-16",
+          "value": 4785.3999
+        },
+        {
+          "date": "2026-04-20",
+          "value": 4806.6001
+        },
+        {
+          "date": "2026-04-22",
+          "value": 4732.5
+        },
+        {
+          "date": "2026-04-24",
+          "value": 4722.2998
+        },
+        {
+          "date": "2026-04-28",
+          "value": 4591.5
+        },
+        {
+          "date": "2026-04-30",
+          "value": 4614.7002
+        },
+        {
+          "date": "2026-05-04",
+          "value": 4519.5
+        },
+        {
+          "date": "2026-05-06",
+          "value": 4681.8999
+        },
+        {
+          "date": "2026-05-08",
+          "value": 4720.3999
+        },
+        {
+          "date": "2026-05-12",
+          "value": 4677.6001
+        },
+        {
+          "date": "2026-05-14",
+          "value": 4678.1001
+        },
+        {
+          "date": "2026-05-18",
+          "value": 4552.5
+        },
+        {
+          "date": "2026-05-20",
+          "value": 4531.2998
+        },
+        {
+          "date": "2026-05-22",
+          "value": 4521
+        },
+        {
+          "date": "2026-05-27",
+          "value": 4447.5
+        },
+        {
+          "date": "2026-05-29",
+          "value": 4560.5
+        },
+        {
+          "date": "2026-06-02",
+          "value": 4489.1001
+        },
+        {
+          "date": "2026-06-04",
+          "value": 4475.7998
+        },
+        {
+          "date": "2026-06-08",
+          "value": 4335.8999
+        },
+        {
+          "date": "2026-06-10",
+          "value": 4108.2002
+        },
+        {
+          "date": "2026-06-12",
+          "value": 4215
+        },
+        {
+          "date": "2026-06-16",
+          "value": 4330.8999
+        },
+        {
+          "date": "2026-06-18",
+          "value": 4224.1001
+        },
+        {
+          "date": "2026-06-23",
+          "value": 4129.8999
+        },
+        {
+          "date": "2026-06-25",
+          "value": 4030.5
+        },
+        {
+          "date": "2026-06-29",
+          "value": 4022.3
+        },
+        {
+          "date": "2026-07-01",
+          "value": 4068.3
+        },
+        {
+          "date": "2026-07-06",
+          "value": 4155.1001
+        },
+        {
+          "date": "2026-07-08",
+          "value": 4070.8999
+        },
+        {
+          "date": "2026-07-10",
+          "value": 4104.1001
+        },
+        {
+          "date": "2026-07-14",
+          "value": 4061.1001
+        },
+        {
+          "date": "2026-07-16",
+          "value": 3985.6001
+        },
+        {
+          "date": "2026-07-20",
+          "value": 4010.3
+        },
+        {
+          "date": "2026-07-22",
+          "value": 4146.8999
+        },
+        {
+          "date": "2026-07-24",
+          "value": 4067.6001
+        },
+        {
+          "date": "2026-07-28",
+          "value": 4036.3
+        },
+        {
+          "date": "2026-07-30",
+          "value": 4100.1001
+        },
+        {
+          "date": "2026-08-03",
+          "value": 4033.7
+        },
+        {
+          "date": "2026-08-05",
+          "value": 4245.7998
+        },
+        {
+          "date": "2026-08-07",
+          "value": 4340.7002
+        },
+        {
+          "date": "2026-08-11",
+          "value": 4383
+        },
+        {
+          "date": "2026-08-13",
+          "value": 4363.6001
+        },
+        {
+          "date": "2026-08-17",
+          "value": 4417.7998
+        },
+        {
+          "date": "2026-08-19",
+          "value": 4489.3999
+        },
+        {
+          "date": "2026-08-21",
+          "value": 4624.1001
+        },
+        {
+          "date": "2026-08-25",
+          "value": 4638.1001
+        },
+        {
+          "date": "2026-08-27",
+          "value": 4609.7002
+        },
+        {
+          "date": "2026-08-28",
+          "value": 4616.5
+        }
+      ]
     },
     {
       "id": "oil",
@@ -23248,22 +24349,18 @@
       "id": "tga",
       "name": "Treasury General Account",
       "status": "ok",
-      "latest_value": 994137,
+      "latest_value": 959435,
       "unit": "USD millions",
-      "observation_date": "2026-08-25",
+      "observation_date": "2026-08-26",
       "direction_30d": "up",
-      "change_30d": 107837,
-      "change_1y_percent": 66.94,
+      "change_30d": 56684,
+      "change_1y_percent": 51.59,
       "weather": "Neutral",
       "explanation": "A rising TGA can drain reserves; a falling TGA can add liquidity.",
       "source": "U.S. Treasury Fiscal Data",
       "source_url": "https://fiscaldata.treasury.gov/datasets/daily-treasury-statement/operating-cash-balance",
-      "data_start_date": "2025-06-23",
+      "data_start_date": "2025-06-24",
       "history": [
-        {
-          "date": "2025-06-23",
-          "value": 374568
-        },
         {
           "date": "2025-06-24",
           "value": 358071
@@ -24443,6 +25540,10 @@
         {
           "date": "2026-08-25",
           "value": 994137
+        },
+        {
+          "date": "2026-08-26",
+          "value": 959435
         }
       ]
     },
@@ -24506,21 +25607,17 @@
       "id": "etf_flows",
       "name": "ETF flows",
       "status": "ok",
-      "latest_value": 1797788544.51,
+      "latest_value": 1433736251.7,
       "unit": "USD 5-session net",
-      "observation_date": "2026-08-26",
+      "observation_date": "2026-08-27",
       "direction_30d": "unknown",
       "change_1y_percent": null,
       "weather": "Tailwind",
       "explanation": "Uses the existing verified dashboard ETF snapshot; this does not alter scoring.",
       "source": "SoSoValue official API v2",
       "source_url": "data/btc-market.json",
-      "data_start_date": "2026-07-23",
+      "data_start_date": "2026-07-24",
       "history": [
-        {
-          "date": "2026-07-23",
-          "value": -225176828.385
-        },
         {
           "date": "2026-07-24",
           "value": -240084652.50000003
@@ -24616,6 +25713,10 @@
         {
           "date": "2026-08-26",
           "value": 232118394.595
+        },
+        {
+          "date": "2026-08-27",
+          "value": 242238213.36
         }
       ]
     },
@@ -24623,9 +25724,9 @@
       "id": "futures_funding",
       "name": "Futures/funding",
       "status": "ok",
-      "latest_value": 0.0085,
+      "latest_value": 0.0081,
       "unit": "% weighted funding",
-      "observation_date": "2026-08-27",
+      "observation_date": "2026-08-28",
       "direction_30d": "unknown",
       "change_1y_percent": null,
       "weather": "Neutral",
@@ -25001,6 +26102,18 @@
         {
           "date": "2026-08-27",
           "value": 0.008544369969816027
+        },
+        {
+          "date": "2026-08-27",
+          "value": 0.008244533717447359
+        },
+        {
+          "date": "2026-08-27",
+          "value": 0.0064518162943916265
+        },
+        {
+          "date": "2026-08-28",
+          "value": 0.008116840581291548
         }
       ]
     }
@@ -25012,7 +26125,7 @@
       "datetime": "2026-09-16T14:00:00-04:00",
       "source": "Federal Reserve FOMC calendar",
       "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
-      "countdown_days": 21
+      "countdown_days": 19
     },
     {
       "id": "cpi",
@@ -25020,7 +26133,7 @@
       "datetime": "2026-09-11T08:30:00-04:00",
       "source": "BLS CPI release schedule",
       "source_url": "https://www.bls.gov/schedule/news_release/cpi.htm",
-      "countdown_days": 15
+      "countdown_days": 14
     },
     {
       "id": "pce",
@@ -25028,7 +26141,7 @@
       "datetime": "2026-09-30T08:30:00-04:00",
       "source": "BEA release schedule",
       "source_url": "https://www.bea.gov/news/schedule/full",
-      "countdown_days": 34
+      "countdown_days": 33
     },
     {
       "id": "employment",
@@ -25036,10 +26149,10 @@
       "datetime": "2026-09-04T08:30:00-04:00",
       "source": "BLS release schedule",
       "source_url": "https://www.bls.gov/schedule/2026/",
-      "countdown_days": 8
+      "countdown_days": 7
     }
   ],
   "errors": {
-    "gold": "404 Not Found"
+    "gold_fred": "404 Not Found"
   }
 }
