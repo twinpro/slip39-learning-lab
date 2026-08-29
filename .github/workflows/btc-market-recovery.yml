@@ -1,0 +1,108 @@
+name: Recover BTC real-vs-paper data
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Update BTC macro weather data"
+      - "Update Bitcoin daily history"
+      - "Update Bitcoin monthly returns"
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btc-market-data-free
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Check whether market snapshot needs recovery
+        id: recovery
+        run: node scripts/check-btc-market-recovery.mjs
+
+      - name: Stop when snapshot is still fresh enough
+        if: steps.recovery.outputs.should_recover != 'true'
+        run: echo "BTC market recovery not needed"
+
+      - name: Capture pre-run market timestamp
+        if: steps.recovery.outputs.should_recover == 'true'
+        run: |
+          node -e "const fs=require('node:fs'); const d=JSON.parse(fs.readFileSync('data/btc-market.json','utf8')); fs.appendFileSync(process.env.GITHUB_ENV, 'BTC_MARKET_BEFORE_GENERATED_AT='+(d.generated_at||'')+'\nBTC_MARKET_ALLOW_INVALID_BEFORE=true\n');"
+
+      - name: Run collector safety tests
+        if: steps.recovery.outputs.should_recover == 'true'
+        run: node scripts/test-collector.mjs
+
+      - name: Run history safety tests
+        if: steps.recovery.outputs.should_recover == 'true'
+        run: node scripts/test-history.mjs
+
+      - name: Run recovery gate tests
+        if: steps.recovery.outputs.should_recover == 'true'
+        run: node scripts/test-btc-market-recovery.mjs
+
+      - name: Collect free public BTC market data
+        if: steps.recovery.outputs.should_recover == 'true'
+        env:
+          SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
+        run: node scripts/update-btc-market.mjs
+
+      - name: Verify fresh collection advanced timestamp
+        if: steps.recovery.outputs.should_recover == 'true'
+        run: node scripts/verify-btc-market-freshness.mjs after-collect
+
+      - name: Verify generated snapshot before publish
+        if: steps.recovery.outputs.should_recover == 'true'
+        id: snapshot_verify
+        continue-on-error: true
+        run: node scripts/verify-snapshot.mjs
+
+      - name: Write source-health status for this attempt
+        if: steps.recovery.outputs.should_recover == 'true'
+        run: node scripts/write-health-status.mjs
+
+      - name: Update hourly verified history
+        if: steps.recovery.outputs.should_recover == 'true' && steps.snapshot_verify.outcome == 'success'
+        run: node scripts/update-btc-history.mjs
+
+      - name: Verify history before publish
+        if: steps.recovery.outputs.should_recover == 'true' && steps.snapshot_verify.outcome == 'success'
+        run: node scripts/verify-history.mjs
+
+      - name: Restore rejected market snapshot
+        if: steps.recovery.outputs.should_recover == 'true' && steps.snapshot_verify.outcome != 'success'
+        run: git restore data/btc-market.json
+
+      - name: Commit recovered market JSON
+        if: steps.recovery.outputs.should_recover == 'true'
+        run: |
+          git config user.name "btc-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/btc-market.json data/btc-market-history.jsonl data/btc-market-health.json
+          if git diff --cached --quiet; then
+            echo "No recovered data change"
+            exit 1
+          else
+            git commit -m "Recover BTC market data"
+            git push
+          fi
+
+      - name: Verify recovered data was committed and pushed
+        if: steps.recovery.outputs.should_recover == 'true'
+        run: node scripts/verify-btc-market-freshness.mjs after-commit
+
+      - name: Fail workflow after preserving rejected-attempt health
+        if: steps.recovery.outputs.should_recover == 'true' && steps.snapshot_verify.outcome != 'success'
+        run: exit 1

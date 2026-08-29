@@ -10,11 +10,14 @@ on:
       - "scripts/btc-history-lib.mjs"
       - "scripts/update-btc-market.mjs"
       - "scripts/update-btc-history.mjs"
+      - "scripts/btc-market-recovery-lib.mjs"
+      - "scripts/check-btc-market-recovery.mjs"
       - "scripts/verify-btc-market-freshness.mjs"
       - "scripts/verify-snapshot.mjs"
       - "scripts/verify-history.mjs"
       - "scripts/test-collector.mjs"
       - "scripts/test-history.mjs"
+      - "scripts/test-btc-market-recovery.mjs"
   schedule:
     - cron: "7,22,37,52 * * * *"
 
@@ -44,6 +47,9 @@ jobs:
 
       - name: Run history safety tests
         run: node scripts/test-history.mjs
+
+      - name: Run recovery gate tests
+        run: node scripts/test-btc-market-recovery.mjs
 
       - name: Collect free public BTC market data
         env:
