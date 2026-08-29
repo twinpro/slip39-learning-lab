@@ -10,6 +10,7 @@ on:
       - "scripts/btc-history-lib.mjs"
       - "scripts/update-btc-market.mjs"
       - "scripts/update-btc-history.mjs"
+      - "scripts/capture-btc-market-before.mjs"
       - "scripts/btc-market-recovery-lib.mjs"
       - "scripts/check-btc-market-recovery.mjs"
       - "scripts/verify-btc-market-freshness.mjs"
@@ -40,8 +41,7 @@ jobs:
           node-version: "24"
 
       - name: Capture pre-run market timestamp
-        run: |
-          node -e "const fs=require('node:fs'); const d=JSON.parse(fs.readFileSync('data/btc-market.json','utf8')); if(!Date.parse(d.generated_at)) throw new Error('invalid pre-run generated_at'); fs.appendFileSync(process.env.GITHUB_ENV, 'BTC_MARKET_BEFORE_GENERATED_AT='+d.generated_at+'\n');"
+        run: node scripts/capture-btc-market-before.mjs
 
       - name: Run collector safety tests
         run: node scripts/test-collector.mjs

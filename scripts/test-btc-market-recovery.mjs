@@ -16,6 +16,19 @@ function check(name, ok, detail = "") {
 
 const nowMs = Date.parse("2026-08-29T12:00:00Z");
 
+function runCaptureWith(content) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btc-market-capture-"));
+  const snapshot = path.join(dir, "snapshot.json");
+  const envFile = path.join(dir, "env.txt");
+  fs.writeFileSync(snapshot, content);
+  const output = execFileSync(process.execPath, ["scripts/capture-btc-market-before.mjs"], {
+    cwd: new URL("..", import.meta.url),
+    env: { ...process.env, BTC_MARKET_SNAPSHOT: snapshot, GITHUB_ENV: envFile },
+    encoding: "utf8"
+  });
+  return { output, env: fs.readFileSync(envFile, "utf8") };
+}
+
 {
   const result = shouldRecoverMarketSnapshot({
     nowMs,
@@ -69,6 +82,21 @@ const nowMs = Date.parse("2026-08-29T12:00:00Z");
     ok = true;
   } catch {}
   check("recovery verifier accepts a valid new timestamp after invalid stale snapshot", ok);
+}
+
+{
+  const result = runCaptureWith(JSON.stringify({ generated_at: "2026-08-29T11:59:00.000Z" }));
+  check("updater captures valid previous generated_at without invalid-before flag", result.env.includes("BTC_MARKET_BEFORE_GENERATED_AT=2026-08-29T11:59:00.000Z") && !result.env.includes("BTC_MARKET_ALLOW_INVALID_BEFORE"), result.env);
+}
+
+{
+  const result = runCaptureWith(JSON.stringify({ generated_at: "not-a-date" }));
+  check("updater tolerates invalid previous generated_at and enables self-recovery", result.env.includes("BTC_MARKET_BEFORE_GENERATED_AT=\n") && result.env.includes("BTC_MARKET_ALLOW_INVALID_BEFORE=true"), result.env);
+}
+
+{
+  const result = runCaptureWith("{not-json");
+  check("updater tolerates malformed pre-run btc-market.json and enables self-recovery", result.env.includes("BTC_MARKET_BEFORE_GENERATED_AT=\n") && result.env.includes("BTC_MARKET_ALLOW_INVALID_BEFORE=true"), result.env);
 }
 
 console.log(`\n${total - failed}/${total} BTC market recovery tests passed`);
