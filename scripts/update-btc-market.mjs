@@ -325,7 +325,10 @@ try {
 // invariant fails, the venue is rejected from this run and verify-snapshot.mjs prevents
 // the bad snapshot from being published.
 const unitRejected = guardVenueUnits(out.derivatives.venues);
-if (unitRejected.length) out.sources.unit_guard_rejected = unitRejected.join(", ");
+const coreUnitRejected = unitRejected.filter(name => CORE_VENUES.includes(name));
+const optionalUnitRejected = unitRejected.filter(name => !CORE_VENUES.includes(name));
+if (coreUnitRejected.length) out.sources.unit_guard_rejected = coreUnitRejected.join(", ");
+if (optionalUnitRejected.length) out.sources.optional_unit_guard_rejected = optionalUnitRejected.join(", ");
 
 // Fixed comparable core set. OI can be displayed as partial working coverage, but
 // time-series comparisons are only valid when all five core venues are working.

@@ -292,7 +292,17 @@ export function validateSnapshot(d) {
   if (!Number.isFinite(Date.parse(d.generated_at))) fail("generated_at is missing or invalid");
 
   const unitRejected = String(d.sources?.unit_guard_rejected || "").trim();
-  if (unitRejected) fail(`unit guard rejected venue(s): ${unitRejected}`);
+  const coreRejected = unitRejected
+    ? unitRejected.split(/\s*,\s*/).filter(name => CORE_VENUES.includes(name))
+    : [];
+  const optionalRejected = [
+    ...new Set([
+      ...(unitRejected ? unitRejected.split(/\s*,\s*/) : []).filter(name => name && !CORE_VENUES.includes(name)),
+      ...String(d.sources?.optional_unit_guard_rejected || "").split(/\s*,\s*/).filter(Boolean)
+    ])
+  ];
+  if (coreRejected.length) fail(`unit guard rejected core venue(s): ${coreRejected.join(", ")}`);
+  if (optionalRejected.length) warn(`unit guard rejected optional venue(s): ${optionalRejected.join(", ")}`);
 
   const etf = d.etf || {};
   if (etf.status === "ok") {
@@ -316,9 +326,10 @@ export function validateSnapshot(d) {
   const venues = d.derivatives?.venues || {};
   for (const [name, v] of Object.entries(venues)) {
     if (v?.status !== "ok") continue;
-    if (!(num(v.oi_usd) > 0)) fail(`${name}: status ok but oi_usd is not positive`);
+    const check = CORE_VENUES.includes(name) ? fail : warn;
+    if (!(num(v.oi_usd) > 0)) check(`${name}: status ok but oi_usd is not positive`);
     const f = num(v.funding_rate_percent);
-    if (f != null && Math.abs(f) > FUNDING_SANITY_PERCENT_8H) fail(`${name}: funding ${f}% exceeds ±${FUNDING_SANITY_PERCENT_8H}% 8h sanity bound`);
+    if (f != null && Math.abs(f) > FUNDING_SANITY_PERCENT_8H) check(`${name}: funding ${f}% exceeds ±${FUNDING_SANITY_PERCENT_8H}% 8h sanity bound`);
   }
 
   const kraken = venues.kraken;

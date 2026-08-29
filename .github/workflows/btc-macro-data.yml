@@ -41,5 +41,12 @@ jobs:
             echo "No macro data change"
           else
             git commit -m "Update BTC macro weather data"
+            for attempt in 1 2 3; do
+              if git push; then
+                exit 0
+              fi
+              echo "::warning::git push failed on attempt ${attempt}; rebasing and retrying"
+              git pull --rebase --autostash origin main
+            done
             git push
           fi

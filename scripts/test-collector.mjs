@@ -185,7 +185,12 @@ function goodSnapshot() {
 {
   const d = goodSnapshot(); d.sources.unit_guard_rejected="kraken";
   const v = validateSnapshot(d);
-  check("validator refuses a unit-guard rejection", !v.ok && v.errors.some(x=>x.includes("unit guard rejected")), v.errors.join(" | "));
+  check("validator refuses a core unit-guard rejection", !v.ok && v.errors.some(x=>x.includes("unit guard rejected core venue")), v.errors.join(" | "));
+}
+{
+  const d = goodSnapshot(); d.sources.optional_unit_guard_rejected="bybit";
+  const v = validateSnapshot(d);
+  check("validator warns but publishes optional unit-guard rejection", v.ok && v.warnings.some(x=>x.includes("optional venue")), JSON.stringify(v));
 }
 {
   const d = goodSnapshot(); d.derivatives.venues.kraken.oi_usd *= 78_000;
@@ -265,6 +270,37 @@ function goodSnapshot() {
   d.derivatives.venues.bybit = { status:"error", core:false, error:"403" };
   d.health = computeSourceHealth(d);
   check("optional Bybit failure does not downgrade overall health", d.health.overall.quality === "verified", JSON.stringify(d.health));
+}
+{
+  const d = goodSnapshot();
+  d.derivatives.venues.bybit = { status:"rejected", core:false, rejected_reason:"simulated bad optional field" };
+  d.sources.optional_unit_guard_rejected = "bybit";
+  d.health = computeSourceHealth(d);
+  const v = validateSnapshot(d);
+  check("optional Bybit unit rejection does not veto publication", v.ok && d.health.overall.quality === "verified", JSON.stringify({ v, health: d.health }));
+}
+{
+  const d = goodSnapshot();
+  d.derivatives.venues.bybit = { status:"ok", core:false, oi_usd:null, funding_rate_percent:99 };
+  d.health = computeSourceHealth(d);
+  const v = validateSnapshot(d);
+  check("optional Bybit bad ok fields warn without vetoing publication", v.ok && v.warnings.some(x=>x.includes("bybit")), JSON.stringify(v));
+}
+{
+  const d = goodSnapshot();
+  d.etf = { status:"unavailable", error:"simulated ETF outage" };
+  d.health = computeSourceHealth(d);
+  const v = validateSnapshot(d);
+  check("ETF outage still publishes a degraded snapshot when spot and derivatives are valid", v.ok && d.health.overall.quality === "unknown", JSON.stringify({ v, health: d.health }));
+}
+{
+  const d = goodSnapshot();
+  d.generated_at = "2026-08-29T12:00:00Z";
+  d.sources.unit_guard_rejected = "kraken";
+  d.derivatives.venues.kraken.status = "rejected";
+  d.health = computeSourceHealth(d);
+  const status = buildHealthStatus(d, { last_successful_at:"2026-08-29T11:45:00Z" });
+  check("core venue bad field records degraded attempt with advanced generated_at", !status.snapshot_valid && status.attempted_at === d.generated_at && status.last_successful_at === "2026-08-29T11:45:00Z", JSON.stringify(status));
 }
 {
   const d = goodSnapshot();
