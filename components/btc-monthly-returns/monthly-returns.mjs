@@ -44,6 +44,20 @@ export function completedAggregates(returns,startYear,endYear){
   });
 }
 
+export function annualReturn(returns,year,currentKey){
+  let compound=1, hasValue=false, hasCurrent=false;
+  for(let index=0;index<MONTHS.length;index++){
+    const key=`${year}-${String(index+1).padStart(2,'0')}`;
+    if(key>currentKey) continue;
+    const item=returns.get(key);
+    if(!item||item.status==='unknown'||!Number.isFinite(item.value)) continue;
+    compound*=1+(item.value/100);
+    hasValue=true;
+    if(item.isCurrent) hasCurrent=true;
+  }
+  return hasValue?{value:(compound-1)*100,isCurrent:hasCurrent}:null;
+}
+
 const format=value=>`${value>=0?'+':''}${value.toFixed(1)}%`;
 const FRAME_ID='monthly';
 // Safari can round the iframe content box a hair short; keep this allowance tiny.
@@ -112,11 +126,12 @@ export function teardownFrameHeightPosting(){
   while(frameHeightCleanup.length) frameHeightCleanup.pop()();
 }
 
-function cellMarkup(item,isFuture=false){
+function cellMarkup(item,isFuture=false,extraClass=''){
   const className=classifyCell({value:item?.value,isCurrent:item?.isCurrent,isFuture});
-  if(isFuture) return `<td class="${className}" aria-label="Future month"></td>`;
-  if(!item) return `<td class="${className}" aria-label="Unknown return">UNKNOWN</td>`;
-  return `<td class="${className}">${format(item.value)}${item.isCurrent?'<small>MTD</small>':''}</td>`;
+  const classes=`${className}${extraClass?` ${extraClass}`:''}`;
+  if(isFuture) return `<td class="${classes}" aria-label="Future month"></td>`;
+  if(!item) return `<td class="${classes}" aria-label="Unknown return">UNKNOWN</td>`;
+  return `<td class="${classes}">${item.isCurrent&&extraClass?'YTD ':''}${format(item.value)}${item.isCurrent&&!extraClass?'<small>MTD</small>':''}</td>`;
 }
 
 export function renderTable(documentRef,fixture){
@@ -129,7 +144,7 @@ export function renderTable(documentRef,fixture){
   const startYear=fixture.startYear, endYear=Number(asOf.slice(0,4));
   const currentKey=asOf.slice(0,7);
   const header=documentRef.querySelector('thead tr');
-  header.insertAdjacentHTML('beforeend',MONTHS.map(month=>`<th scope="col">${month}</th>`).join(''));
+  header.insertAdjacentHTML('beforeend',`${MONTHS.map(month=>`<th scope="col">${month}</th>`).join('')}<th class="year-return-head" scope="col">YEAR RETURN</th>`);
   const rows=[];
   for(let year=endYear;year>=startYear;year--){
     const cells=MONTHS.map((_,index)=>{
@@ -137,11 +152,11 @@ export function renderTable(documentRef,fixture){
       const item=returns.get(key);
       return cellMarkup(item?.status==='unknown'?null:item,key>currentKey);
     }).join('');
-    rows.push(`<tr><td>${year}</td>${cells}</tr>`);
+    rows.push(`<tr><td>${year}</td>${cells}${cellMarkup(annualReturn(returns,year,currentKey),false,'year-return-cell')}</tr>`);
   }
   const stats=fixture.aggregates||completedAggregates(returns,startYear,endYear);
-  for(const [label,property] of [['AVERAGE','average'],['MEDIAN','median']]){
-    rows.push(`<tr class="${label==='AVERAGE'?'summary-start':''}"><td class="summary-label">${label}</td>${stats.map(item=>cellMarkup(item[property]==null?null:{value:item[property]})).join('')}</tr>`);
+  for(const [label,property] of [['MONTHLY AVERAGE','average'],['MONTHLY MEDIAN','median']]){
+    rows.push(`<tr class="${label==='MONTHLY AVERAGE'?'summary-start':''}"><td class="summary-label">${label}</td>${stats.map(item=>cellMarkup(item[property]==null?null:{value:item[property]})).join('')}<td class="year-return-cell summary-year-return" aria-label="No yearly summary"></td></tr>`);
   }
   documentRef.querySelector('tbody').innerHTML=rows.join('');
   documentRef.querySelector('#data-mode').textContent=isPreview?'PREVIEW DATA · NOT LIVE':'LIVE DATA';

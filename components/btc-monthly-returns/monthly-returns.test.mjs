@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {calculateMonthlyReturns,classifyCell,completedAggregates,lastDailyPrices,renderTable} from './monthly-returns.mjs';
+import {annualReturn,calculateMonthlyReturns,classifyCell,completedAggregates,lastDailyPrices,renderTable} from './monthly-returns.mjs';
 
 const points=[
   {date:'2025-12-30',priceUSD:100},{date:'2025-12-31',priceUSD:100},
@@ -30,6 +30,27 @@ test('classifies positive, negative, zero, missing, future, and MTD cells',()=>{
   assert.equal(classifyCell({value:1,isFuture:true}),'future'); assert.equal(classifyCell({value:1,isCurrent:true}),'positive mtd');
 });
 
+test('compounds completed yearly returns instead of summing them',()=>{
+  const returns=new Map([
+    ['2025-01',{status:'ok',isCurrent:false,value:10}],
+    ['2025-02',{status:'ok',isCurrent:false,value:-10}],
+    ['2025-03',{status:'ok',isCurrent:false,value:5}]
+  ]);
+  assert.ok(Math.abs(annualReturn(returns,2025,'2026-08').value-3.95)<1e-10);
+});
+
+test('compounds current year from available months and ignores future blanks',()=>{
+  const returns=new Map([
+    ['2026-01',{status:'ok',isCurrent:false,value:10}],
+    ['2026-02',{status:'ok',isCurrent:false,value:-10}],
+    ['2026-08',{status:'ok',isCurrent:true,value:25}],
+    ['2026-09',{status:'ok',isCurrent:false,value:99}]
+  ]);
+  const result=annualReturn(returns,2026,'2026-08');
+  assert.equal(result.isCurrent,true);
+  assert.ok(Math.abs(result.value-23.75)<1e-10);
+});
+
 test('renders newest year first, 2013 last, summaries at bottom, and preserves values and MTD',()=>{
   const nodes={
     'thead tr':{insertAdjacentHTML(){}},
@@ -51,7 +72,9 @@ test('renders newest year first, 2013 last, summaries at bottom, and preserves v
   const labels=[...html.matchAll(/<tr[^>]*><td[^>]*>([^<]+)<\/td>/g)].map(match=>match[1]);
   assert.equal(labels[0],'2026');
   assert.equal(labels.at(-3),'2013');
-  assert.deepEqual(labels.slice(-2),['AVERAGE','MEDIAN']);
+  assert.deepEqual(labels.slice(-2),['MONTHLY AVERAGE','MONTHLY MEDIAN']);
   assert.match(html,/\+51\.4%/);
   assert.match(html,/\+25\.5%<small>MTD<\/small>/);
+  assert.match(html,/YTD \+25\.5%/);
+  assert.match(html,/summary-year-return" aria-label="No yearly summary"><\/td>/);
 });
