@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "attempted_at": "2026-09-05T08:48:21.006Z",
+  "attempted_at": "2026-09-05T09:03:17.915Z",
   "snapshot_valid": true,
-  "last_successful_at": "2026-09-05T08:48:21.006Z",
+  "last_successful_at": "2026-09-05T09:03:17.915Z",
   "health": {
     "schema": 1,
-    "assessed_at": "2026-09-05T08:48:21.006Z",
+    "assessed_at": "2026-09-05T09:03:17.915Z",
     "overall": {
-      "quality": "verified",
-      "reason": "All required scored components passed their configured checks."
+      "quality": "partial",
+      "reason": "At least one required scored component is not fully verified."
     },
     "sections": {
       "etf": {
@@ -23,14 +23,14 @@
         "reason": "All BTC price legs and both USDT/USD normalization quotes passed checks."
       },
       "derivatives_oi": {
-        "quality": "verified",
-        "coverage": "5/5 core venues",
-        "reason": "The fixed five-venue OI core is complete and comparable."
+        "quality": "partial",
+        "coverage": "4/5 core venues",
+        "reason": "Missing deribit; current partial OI may display, but history comparison is disabled."
       },
       "funding": {
-        "quality": "verified",
-        "coverage": "5/5 comparable venues",
-        "reason": "All fixed-core funding rates are normalized to an 8-hour basis."
+        "quality": "partial",
+        "coverage": "4/5 comparable venues",
+        "reason": "Live leverage health may display, but fixed-core funding history is not comparable."
       },
       "exchange_supply": {
         "quality": "unknown",
