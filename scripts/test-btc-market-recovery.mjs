@@ -95,6 +95,11 @@ function runCaptureWith(content) {
 }
 
 {
+  const result = runCaptureWith(JSON.stringify({ generated_at: "2999-01-01T00:00:00.000Z" }));
+  check("updater treats future-dated previous generated_at as recoverable", result.env.includes("BTC_MARKET_BEFORE_GENERATED_AT=\n") && result.env.includes("BTC_MARKET_ALLOW_INVALID_BEFORE=true"), result.env);
+}
+
+{
   const result = runCaptureWith("{not-json");
   check("updater tolerates malformed pre-run btc-market.json and enables self-recovery", result.env.includes("BTC_MARKET_BEFORE_GENERATED_AT=\n") && result.env.includes("BTC_MARKET_ALLOW_INVALID_BEFORE=true"), result.env);
 }

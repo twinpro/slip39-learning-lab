@@ -1,14 +1,12 @@
 import fs from "node:fs/promises";
-import { num, guardVenueUnits, fiveSessionSpanDays, assessEtfFreshness, computeSourceHealth, CORE_VENUES, MAX_ETF_5_SESSION_SPAN_DAYS, MAX_ETF_WEEKDAYS_SINCE_LATEST, MAX_ETF_ABSOLUTE_AGE_DAYS, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
+import { num, guardVenueUnits, computeSourceHealth, CORE_VENUES, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
+import { SOSOVALUE_ETF_BODY, SOSOVALUE_ETF_ENDPOINT, buildEtfSnapshot, parseSosoEtfRows, reusablePreviousEtf } from "./btc-etf-lib.mjs";
 
 const OUT = new URL("../data/btc-market.json", import.meta.url);
 const NOW = new Date();
 const ISO = NOW.toISOString();
 
 const SCHEMA = 12;
-const ETF_DAILY_SANITY_USD = 25_000_000_000;
-const ETF_MIN_RECENT_MAGNITUDE_USD = 1_000_000;
-
 const out = {
   schema: SCHEMA,
   release: "V12.3",
@@ -57,116 +55,22 @@ async function getJson(url, opts) {
   return await (await fetchAny(url, opts)).json();
 }
 
-function isoDate(ts) {
-  return new Date(ts).toISOString().slice(0, 10);
-}
-
-function sosoRowsFrom(j) {
-  const lists = [j?.data?.list, j?.data, j?.list, j?.result?.list, j?.result];
-  for (const a of lists) {
-    if (!Array.isArray(a)) continue;
-    const rows = a.map(x => {
-      const raw = x?.date ?? x?.timestamp ?? x?.time ?? "";
-      let timestamp = null;
-      if (typeof raw === "number") {
-        timestamp = raw < 1e12 ? raw * 1000 : raw;
-      } else if (/^\d{10,13}$/.test(String(raw))) {
-        const n = Number(raw);
-        timestamp = String(raw).length <= 10 ? n * 1000 : n;
-      } else {
-        timestamp = Date.parse(`${String(raw)}T00:00:00Z`);
-      }
-      return {
-        timestamp,
-        flow_usd: num(x?.totalNetInflow ?? x?.dailyNetInflow ?? x?.netInflow ?? x?.flow_usd)
-      };
-    }).filter(x => Number.isFinite(x.timestamp) && x.flow_usd != null);
-    if (rows.length) return rows.sort((a, b) => a.timestamp - b.timestamp);
-  }
-  return [];
-}
-
-function buildEtf(rows, source) {
-  const clean = (rows || [])
-    .filter(x => Number.isFinite(x.timestamp) && Number.isFinite(x.flow_usd))
-    .sort((a, b) => a.timestamp - b.timestamp);
-
-  if (clean.length < 5) throw new Error(`only ${clean.length} usable ETF rows`);
-
-  const latest = clean.at(-1);
-  const freshness = assessEtfFreshness(latest.timestamp, NOW.getTime());
-  const ageDays = freshness.ageDays;
-  if (freshness.reason === "absolute_age") {
-    throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${ageDays.toFixed(1)} calendar days old (absolute max ${MAX_ETF_ABSOLUTE_AGE_DAYS})`);
-  }
-  if (freshness.reason === "expected_report_session_age") {
-    throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${freshness.expectedReportSessionsElapsed} expected ETF report sessions behind (max ${MAX_ETF_WEEKDAYS_SINCE_LATEST}; weekends and U.S. market holidays ignored)`);
-  }
-  if (!freshness.ok) throw new Error(`latest ETF row ${isoDate(latest.timestamp)} failed freshness check: ${freshness.reason}`);
-
-  const recent = clean.slice(-20).map(r => Math.abs(r.flow_usd)).filter(v => v > 0);
-  const peak = recent.length ? Math.max(...recent) : 0;
-  if (peak > ETF_DAILY_SANITY_USD) {
-    throw new Error(`ETF daily flow ${peak.toExponential(2)} exceeds sanity cap; possible unit error`);
-  }
-  if (peak > 0 && peak < ETF_MIN_RECENT_MAGNITUDE_USD) {
-    throw new Error(`largest recent ETF daily flow is only ${peak}; feed may not be denominated in USD`);
-  }
-
-  const spanDays = fiveSessionSpanDays(clean);
-  if (spanDays != null && spanDays > MAX_ETF_5_SESSION_SPAN_DAYS) {
-    throw new Error(`last 5 ETF rows span ${spanDays.toFixed(1)} calendar days (max ${MAX_ETF_5_SESSION_SPAN_DAYS}); series may have gaps`);
-  }
-
-  const last5 = clean.slice(-5);
-  return {
-    status: "ok",
-    source,
-    fetched_at: ISO,
-    latest_date: isoDate(latest.timestamp),
-    latest_age_days: +ageDays.toFixed(2),
-    five_session_span_calendar_days: spanDays == null ? null : +spanDays.toFixed(2),
-    row_count: clean.length,
-    flow_5d_usd: last5.reduce((a, x) => a + x.flow_usd, 0),
-    last_5_trading_sessions: last5.map(x => ({ date: isoDate(x.timestamp), flow_usd: x.flow_usd })),
-    // Keep the legacy key for the existing dashboard and older readers.
-    last_5_trading_days: last5.map(x => ({ date: isoDate(x.timestamp), flow_usd: x.flow_usd })),
-    history: clean.slice(-25)
-  };
-}
-
-function reusablePreviousEtf(snapshot) {
-  if (!snapshot?.etf || snapshot.etf.status !== "ok") return null;
-  const latestTimestamp = Date.parse(`${snapshot.etf.latest_date}T00:00:00Z`);
-  const freshness = assessEtfFreshness(latestTimestamp, NOW.getTime());
-  if (!freshness.ok) return null;
-  return {
-    ...snapshot.etf,
-    fetched_at: snapshot.etf.fetched_at || snapshot.generated_at || null,
-    preserved_at: ISO,
-    preserved_from_generated_at: snapshot.generated_at || null,
-    latest_age_days: +freshness.ageDays.toFixed(2)
-  };
-}
-
 // ETF: SoSoValue official API v2. This endpoint is currently free/keyless; if a
 // legacy SOSOVALUE_API_KEY secret exists, keep sending it without requiring it.
 try {
   const key = process.env.SOSOVALUE_API_KEY || "";
   const headers = { "Content-Type": "application/json" };
   if (key) headers["x-soso-api-key"] = key;
-  const j = await getJson("https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart", {
+  const j = await getJson(SOSOVALUE_ETF_ENDPOINT, {
     method: "POST",
     headers,
-    body: JSON.stringify({ type: "us-btc-spot" })
+    body: JSON.stringify(SOSOVALUE_ETF_BODY)
   });
-  if (Number(j?.code) !== 0) throw new Error(j?.msg || "SoSoValue v2 API error");
-
-  out.etf = buildEtf(sosoRowsFrom(j), "SoSoValue official API v2");
+  out.etf = buildEtfSnapshot(parseSosoEtfRows(j), { source: "SoSoValue official API v2", fetchedAt: ISO, nowMs: NOW.getTime() });
   out.sources.sosovalue = "ok";
   out.sources.sosovalue_endpoint = "v2";
 } catch (e) {
-  const previousEtf = reusablePreviousEtf(previousSnapshot);
+  const previousEtf = reusablePreviousEtf(previousSnapshot, NOW.getTime(), ISO);
   out.etf = previousEtf || { status: "unavailable", error: String(e.message || e) };
   out.sources.sosovalue = "error: " + String(e.message || e);
   if (previousEtf) out.sources.sosovalue_recovery = "preserved previous valid ETF snapshot";

@@ -4,10 +4,12 @@ const file = process.env.BTC_MARKET_SNAPSHOT || new URL("../data/btc-market.json
 const outputPath = process.env.GITHUB_ENV || "";
 let before = "";
 let allowInvalidBefore = false;
+const FUTURE_SKEW_MS = 5 * 60_000;
 
 try {
   const snapshot = JSON.parse(fs.readFileSync(file, "utf8"));
-  if (Number.isFinite(Date.parse(snapshot?.generated_at || ""))) {
+  const generatedAtMs = Date.parse(snapshot?.generated_at || "");
+  if (Number.isFinite(generatedAtMs) && generatedAtMs <= Date.now() + FUTURE_SKEW_MS) {
     before = snapshot.generated_at;
   } else {
     allowInvalidBefore = true;

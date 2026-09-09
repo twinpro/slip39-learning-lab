@@ -679,6 +679,14 @@ function setMobileBadge(id,st,tx){const c=$(id);if(c){c.className='chip '+st;c.t
 function scoreText(score){return score==null?'—<small>/100</small>':Math.round(score)+'<small>/100</small>'}
 function scoreColor(score){return score==null?'var(--dimmer)':score>=65?'var(--green)':score>=40?'var(--amber)':'var(--red)'}
 function statusWord(score){return score==null?'Unknown':score>=65?'Green':score>=40?'Yellow':'Red'}
+function etfFreshnessLabel(etf){
+  if(etf?.source_status==='preserved_after_refresh_failure')return 'source warning · last known good';
+  if(etf?.freshness_status==='fresh')return 'live / fresh';
+  if(etf?.freshness_status==='reporting_lag')return 'normal reporting lag';
+  if(etf?.freshness_status==='stale')return 'stale';
+  if(etf?.status&&etf.status!=='ok')return 'source error';
+  return 'insufficient data';
+}
 function updateHeaderPriceState(state=S.priceState){
   S.priceState=state;
   const label=state==='live'&&Number.isFinite(S.price)
@@ -844,7 +852,7 @@ function renderSnapshot(){
   $('asof').textContent=formatEtDateTime(d.generated_at);
 
   $('v-etf').textContent=usd(etf5); $('v-etf').classList.toggle('stale',etf5==null);
-  $('b-etf').innerHTML=etf5==null?'No ETF data':`latest <b>${etf.latest_date||'—'}</b> · ${etf.row_count||'—'} rows`;
+  $('b-etf').innerHTML=etf5==null?'No ETF data':`${esc(etfFreshnessLabel(etf))} · latest <b>${etf.latest_date||'—'}</b> · expected <b>${etf.expected_latest_session||'—'}</b> · ${etf.sessions_behind??'—'} sessions behind · ${etf.row_count||'—'} rows`;
   setChip('s-etf',snapshotTooOld?'r':etfScore==null?qualityChip(hs.etf?.quality):scoreClass(etfScore),snapshotTooOld?'stale':etfScore==null?(hs.etf?.quality||'no data'):Math.round(etfScore)+'/100');
   $('t-etf').textContent=etf.latest_date||'—';
 

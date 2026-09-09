@@ -39,7 +39,7 @@ jobs:
       - name: Capture pre-run market timestamp
         if: steps.recovery.outputs.should_recover == 'true'
         run: |
-          node -e "const fs=require('node:fs'); const d=JSON.parse(fs.readFileSync('data/btc-market.json','utf8')); fs.appendFileSync(process.env.GITHUB_ENV, 'BTC_MARKET_BEFORE_GENERATED_AT='+(d.generated_at||'')+'\nBTC_MARKET_ALLOW_INVALID_BEFORE=true\n');"
+          node scripts/capture-btc-market-before.mjs
 
       - name: Run collector safety tests
         if: steps.recovery.outputs.should_recover == 'true'
