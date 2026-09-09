@@ -53,8 +53,6 @@ jobs:
         run: node scripts/test-btc-market-recovery.mjs
 
       - name: Collect free public BTC market data
-        env:
-          SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
         run: node scripts/update-btc-market.mjs
 
       - name: Verify fresh collection advanced timestamp
