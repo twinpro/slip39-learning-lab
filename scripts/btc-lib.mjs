@@ -8,6 +8,7 @@ export const MAX_ETF_5_SESSION_SPAN_DAYS = 9;
 export const MAX_ETF_WEEKDAYS_SINCE_LATEST = 2;
 export const MAX_ETF_ABSOLUTE_AGE_DAYS = 7;
 export const ETF_REPORT_READY_HOUR_ET = 20;
+export const ETF_MARKET_CLOSE_HOUR_ET = 16;
 export const IMPLIED_BTC_MIN = 0.5;
 export const IMPLIED_BTC_MAX = 5_000_000;
 export const VENUE_OI_MAX_USD = 1_000_000_000_000;
@@ -31,31 +32,49 @@ export function fiveSessionSpanDays(rowsAscending) {
   return (last5.at(-1).timestamp - last5[0].timestamp) / 86_400_000;
 }
 
+// ETF freshness is measured using completed U.S. ETF trading sessions and a
+// reporting-lag allowance. Calendar-day or raw UTC weekday age must not be used.
 export function assessEtfFreshness(latestTimestamp, nowTimestamp) {
   if (!Number.isFinite(latestTimestamp) || !Number.isFinite(nowTimestamp)) {
-    return { ok: false, reason: "invalid_timestamp", ageDays: null, weekdaysElapsed: null, expectedReportSessionsElapsed: null };
+    return etfFreshnessResult("invalid", "invalid_timestamp", null, null, null, null, null, null);
   }
 
   const dayMs = 86_400_000;
   const ageDays = (nowTimestamp - latestTimestamp) / dayMs;
-  if (ageDays < -1) return { ok: false, reason: "future", ageDays, weekdaysElapsed: 0, expectedReportSessionsElapsed: 0 };
+  if (ageDays < -1) return etfFreshnessResult("invalid", "future", null, null, 0, ageDays, 0, 0);
 
   const latest = new Date(latestTimestamp);
   const latestDay = Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth(), latest.getUTCDate());
   const nowEt = easternDateParts(nowTimestamp);
   const nowEtDay = Date.UTC(nowEt.year, nowEt.month - 1, nowEt.day);
-  const reportCutoffReached = nowEt.hour >= ETF_REPORT_READY_HOUR_ET;
-  const latestExpectedReportDay = reportCutoffReached ? nowEtDay : previousCalendarDay(nowEtDay);
+  const latestCompletedSession = latestCompletedEtfSession(nowEtDay, nowEt.hour);
+  const latestExpectedReportDay = nowEt.hour >= ETF_REPORT_READY_HOUR_ET ? latestCompletedSession : previousEtfTradingSession(latestCompletedSession);
   const weekdaysElapsed = countUtcWeekdaysExclusive(latestDay, nowEtDay);
-  const expectedReportSessionsElapsed = countEtfReportSessionsExclusive(latestDay, latestExpectedReportDay);
+  const sessionsBehind = countEtfReportSessionsExclusive(latestDay, latestExpectedReportDay);
+  const latestDataDate = new Date(latestDay).toISOString().slice(0, 10);
+  const expectedLatestSession = latestExpectedReportDay == null ? null : new Date(latestExpectedReportDay).toISOString().slice(0, 10);
 
   if (ageDays > MAX_ETF_ABSOLUTE_AGE_DAYS) {
-    return { ok: false, reason: "absolute_age", ageDays, weekdaysElapsed, expectedReportSessionsElapsed };
+    return etfFreshnessResult("stale", "absolute_age", latestDataDate, expectedLatestSession, sessionsBehind, ageDays, weekdaysElapsed, sessionsBehind);
   }
-  if (expectedReportSessionsElapsed > MAX_ETF_WEEKDAYS_SINCE_LATEST) {
-    return { ok: false, reason: "expected_report_session_age", ageDays, weekdaysElapsed, expectedReportSessionsElapsed };
+  if (sessionsBehind > MAX_ETF_WEEKDAYS_SINCE_LATEST) {
+    return etfFreshnessResult("stale", "expected_report_session_age", latestDataDate, expectedLatestSession, sessionsBehind, ageDays, weekdaysElapsed, sessionsBehind);
   }
-  return { ok: true, reason: "fresh", ageDays, weekdaysElapsed, expectedReportSessionsElapsed };
+  return etfFreshnessResult(sessionsBehind === 0 ? "fresh" : "reporting_lag", sessionsBehind === 0 ? "fresh" : "normal_reporting_lag", latestDataDate, expectedLatestSession, sessionsBehind, ageDays, weekdaysElapsed, sessionsBehind);
+}
+
+function etfFreshnessResult(status, reason, latestDataDate, expectedLatestSession, sessionsBehind, ageDays, weekdaysElapsed, expectedReportSessionsElapsed) {
+  return {
+    ok: status === "fresh" || status === "reporting_lag",
+    status,
+    latestDataDate,
+    expectedLatestSession,
+    sessionsBehind,
+    reason,
+    ageDays,
+    weekdaysElapsed,
+    expectedReportSessionsElapsed
+  };
 }
 
 function easternDateParts(timestamp) {
@@ -78,6 +97,18 @@ function easternDateParts(timestamp) {
 
 function previousCalendarDay(dayTimestamp) {
   return dayTimestamp - 86_400_000;
+}
+
+function latestCompletedEtfSession(nowEtDay, nowEtHour) {
+  const todayCompleted = nowEtHour >= ETF_MARKET_CLOSE_HOUR_ET && isUsEtfTradingDay(nowEtDay);
+  return todayCompleted ? nowEtDay : previousEtfTradingSession(nowEtDay);
+}
+
+function previousEtfTradingSession(dayTimestamp) {
+  for (let day = previousCalendarDay(dayTimestamp); day >= dayTimestamp - 14 * 86_400_000; day -= 86_400_000) {
+    if (isUsEtfTradingDay(day)) return day;
+  }
+  return null;
 }
 
 function countUtcWeekdaysExclusive(startDayTimestamp, endDayTimestamp) {
@@ -192,10 +223,12 @@ function healthSection(quality, coverage, reason, extra = {}) {
 export function computeSourceHealth(d) {
   const etf = d?.etf ?? {};
   const etfRows = Array.isArray(etf.last_5_trading_sessions) ? etf.last_5_trading_sessions : [];
+  const freshnessStatus = String(etf.freshness_status || "");
   const etfUsable = etf.status === "ok" && num(etf.flow_5d_usd) != null &&
-    etfRows.length === 5 && etfRows.every(r => num(r?.flow_usd) != null);
+    etfRows.length === 5 && etfRows.every(r => num(r?.flow_usd) != null) &&
+    (freshnessStatus === "fresh" || freshnessStatus === "reporting_lag" || freshnessStatus === "");
   const etfHealth = etfUsable
-    ? healthSection("verified", "5/5 sessions · 1 source", "Automated date, schema, magnitude, and five-session checks passed.", { verification_depth: 1 })
+    ? healthSection(freshnessStatus === "reporting_lag" ? "partial" : "verified", "5/5 sessions · 1 source", freshnessStatus === "reporting_lag" ? "ETF data is within the documented normal source reporting-lag allowance." : "Automated date, schema, magnitude, and five-session checks passed.", { verification_depth: 1 })
     : healthSection("unknown", "0 usable ETF series", "The configured ETF feed did not produce a validated five-session series.", { verification_depth: 0 });
 
   const spot = d?.spot ?? {};
@@ -428,6 +461,11 @@ export function validateSnapshot(d) {
     const latestTimestamp = Date.parse(`${etf.latest_date}T00:00:00Z`);
     const freshness = assessEtfFreshness(latestTimestamp, Date.parse(d.generated_at));
     if (!freshness.ok) fail(`ETF latest_date failed ${freshness.reason} freshness guard`);
+    if (etf.freshness_status && etf.freshness_status !== freshness.status) fail(`ETF freshness_status must be ${freshness.status}, got ${etf.freshness_status}`);
+    if (etf.expected_latest_session && etf.expected_latest_session !== freshness.expectedLatestSession) fail(`ETF expected_latest_session must be ${freshness.expectedLatestSession}, got ${etf.expected_latest_session}`);
+    if (num(etf.sessions_behind) != null && num(etf.sessions_behind) !== freshness.sessionsBehind) fail(`ETF sessions_behind must be ${freshness.sessionsBehind}, got ${etf.sessions_behind}`);
+    if (etf.source_status && !["ok", "preserved_after_refresh_failure"].includes(etf.source_status)) fail(`ETF source_status is invalid: ${etf.source_status}`);
+    if (etf.endpoint && typeof etf.endpoint !== "string") fail("ETF endpoint must be a string");
   } else {
     warn("ETF source unavailable in this snapshot");
   }

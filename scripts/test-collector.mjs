@@ -18,6 +18,7 @@ import {
   formatEtHistoryTick,
   formatEtTime,
 } from "../assets/js/btc-dashboard-time.mjs";
+import { buildEtfSnapshot, parseSosoEtfRows, reusablePreviousEtf } from "./btc-etf-lib.mjs";
 
 let total = 0, failed = 0;
 function check(name, ok, detail = "") {
@@ -97,15 +98,72 @@ const fridayEtf = Date.parse("2026-08-21T00:00:00Z");
 }
 {
   const freshness = assessEtfFreshness(Date.parse("2026-09-04T00:00:00Z"), Date.parse("2026-09-09T01:33:00Z"));
-  check("ETF freshness ignores weekend, Labor Day, and pre-midnight UTC overcount", freshness.ok && freshness.expectedReportSessionsElapsed === 1, JSON.stringify(freshness));
+  check("ETF freshness ignores weekend, Labor Day, and pre-midnight UTC overcount", freshness.status === "reporting_lag" && freshness.sessionsBehind === 1 && freshness.expectedLatestSession === "2026-09-08", JSON.stringify(freshness));
 }
 {
   const freshness = assessEtfFreshness(fridayEtf, Date.parse("2026-08-27T00:30:00Z"));
-  check("Friday ETF data is stale after three expected report sessions", !freshness.ok && freshness.reason === "expected_report_session_age" && freshness.expectedReportSessionsElapsed === 3, JSON.stringify(freshness));
+  check("Friday ETF data is stale after three expected report sessions", !freshness.ok && freshness.reason === "expected_report_session_age" && freshness.sessionsBehind === 3, JSON.stringify(freshness));
 }
 {
   const freshness = assessEtfFreshness(fridayEtf, Date.parse("2026-08-29T00:00:01Z"));
   check("ETF freshness retains a seven-calendar-day absolute limit", !freshness.ok && freshness.reason === "absolute_age", JSON.stringify(freshness));
+}
+{
+  check("Friday data viewed Saturday is fresh", assessEtfFreshness(Date.parse("2026-08-21T00:00:00Z"), Date.parse("2026-08-22T16:00:00Z")).status === "fresh");
+  check("Friday data viewed Sunday is fresh", assessEtfFreshness(Date.parse("2026-08-21T00:00:00Z"), Date.parse("2026-08-23T16:00:00Z")).status === "fresh");
+  check("Friday data viewed Monday holiday is fresh", assessEtfFreshness(Date.parse("2026-09-04T00:00:00Z"), Date.parse("2026-09-07T16:00:00Z")).status === "fresh");
+  check("Friday data viewed Tuesday morning after Monday holiday is fresh", assessEtfFreshness(Date.parse("2026-09-04T00:00:00Z"), Date.parse("2026-09-08T14:00:00Z")).status === "fresh");
+  check("previous trading-session data before market close is fresh", assessEtfFreshness(Date.parse("2026-09-08T00:00:00Z"), Date.parse("2026-09-09T15:00:00Z")).status === "fresh");
+  check("previous trading-session data shortly after market close is fresh", assessEtfFreshness(Date.parse("2026-09-08T00:00:00Z"), Date.parse("2026-09-09T21:30:00Z")).status === "fresh");
+  check("previous trading-session data after reporting-ready hour is reporting lag", assessEtfFreshness(Date.parse("2026-09-08T00:00:00Z"), Date.parse("2026-09-10T01:00:00Z")).status === "reporting_lag");
+  check("Christmas observed holiday is skipped", assessEtfFreshness(Date.parse("2026-12-24T00:00:00Z"), Date.parse("2026-12-25T18:00:00Z")).status === "fresh");
+  check("July 4 observed holiday is skipped", assessEtfFreshness(Date.parse("2027-07-02T00:00:00Z"), Date.parse("2027-07-05T18:00:00Z")).status === "fresh");
+  check("Thanksgiving is skipped", assessEtfFreshness(Date.parse("2026-11-25T00:00:00Z"), Date.parse("2026-11-26T18:00:00Z")).status === "fresh");
+  check("Good Friday is skipped", assessEtfFreshness(Date.parse("2026-04-02T00:00:00Z"), Date.parse("2026-04-03T18:00:00Z")).status === "fresh");
+  check("New Year timezone boundary does not age early UTC", assessEtfFreshness(Date.parse("2026-12-31T00:00:00Z"), Date.parse("2027-01-01T02:00:00Z")).status === "fresh");
+}
+
+function sosoPayload(rows) {
+  return { code:0, data:rows.map(r=>({ date:r.date, totalNetInflow:r.flow })) };
+}
+
+{
+  const rows = parseSosoEtfRows(sosoPayload([
+    { date:"2026-09-01", flow:100000000 },
+    { date:"2026-09-02", flow:-100000000 },
+    { date:"2026-09-03", flow:0 },
+    { date:"2026-09-04", flow:250000000 },
+    { date:"2026-09-08", flow:50000000 }
+  ]));
+  const etf = buildEtfSnapshot(rows, { source:"test", fetchedAt:"2026-09-09T15:00:00Z", nowMs:Date.parse("2026-09-09T15:00:00Z") });
+  check("SoSoValue parser accepts positive, negative, and zero flow rows", etf.status === "ok" && etf.flow_5d_usd === 300000000, JSON.stringify(etf));
+}
+{
+  for (const [name, payload] of [
+    ["malformed JSON object", null],
+    ["API error", { code:429, msg:"rate limited", data:[] }],
+    ["API success response with empty rows", { code:0, data:[] }],
+    ["null flow", sosoPayload([{ date:"2026-09-01", flow:null }])],
+    ["malformed date", sosoPayload([{ date:"09/01/2026", flow:100000000 }])]
+  ]) {
+    let ok = false;
+    try { parseSosoEtfRows(payload); } catch { ok = true; }
+    check(`SoSoValue schema guard rejects ${name}`, ok);
+  }
+}
+{
+  const previous = goodSnapshot();
+  previous.generated_at = "2026-09-09T01:00:00Z";
+  previous.etf.latest_date = "2026-09-08";
+  previous.etf.freshness_status = "fresh";
+  const preserved = reusablePreviousEtf(previous, Date.parse("2026-09-09T15:00:00Z"), "2026-09-09T15:00:00Z");
+  check("fresh previous ETF snapshot can be preserved after HTTP 500 or 429", preserved?.source_status === "preserved_after_refresh_failure", JSON.stringify(preserved));
+}
+{
+  const previous = goodSnapshot();
+  previous.etf.latest_date = "2026-08-01";
+  const preserved = reusablePreviousEtf(previous, Date.parse("2026-09-09T15:00:00Z"), "2026-09-09T15:00:00Z");
+  check("stale previous ETF snapshot is not reused", preserved === null);
 }
 
 {

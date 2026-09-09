@@ -58,6 +58,9 @@ jobs:
       - name: Verify fresh collection advanced timestamp
         run: node scripts/verify-btc-market-freshness.mjs after-collect
 
+      - name: Assert ETF health
+        run: node scripts/assert-etf-health.mjs
+
       - name: Print compact source health
         run: node scripts/report-health.mjs
 
