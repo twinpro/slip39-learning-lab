@@ -7,6 +7,7 @@ export const CORE_VENUES = ["okx", "deribit", "bitmex", "hyperliquid", "kraken"]
 export const MAX_ETF_5_SESSION_SPAN_DAYS = 9;
 export const MAX_ETF_WEEKDAYS_SINCE_LATEST = 2;
 export const MAX_ETF_ABSOLUTE_AGE_DAYS = 7;
+export const ETF_REPORT_READY_HOUR_ET = 20;
 export const IMPLIED_BTC_MIN = 0.5;
 export const IMPLIED_BTC_MAX = 5_000_000;
 export const VENUE_OI_MAX_USD = 1_000_000_000_000;
@@ -32,30 +33,138 @@ export function fiveSessionSpanDays(rowsAscending) {
 
 export function assessEtfFreshness(latestTimestamp, nowTimestamp) {
   if (!Number.isFinite(latestTimestamp) || !Number.isFinite(nowTimestamp)) {
-    return { ok: false, reason: "invalid_timestamp", ageDays: null, weekdaysElapsed: null };
+    return { ok: false, reason: "invalid_timestamp", ageDays: null, weekdaysElapsed: null, expectedReportSessionsElapsed: null };
   }
 
   const dayMs = 86_400_000;
   const ageDays = (nowTimestamp - latestTimestamp) / dayMs;
-  if (ageDays < -1) return { ok: false, reason: "future", ageDays, weekdaysElapsed: 0 };
+  if (ageDays < -1) return { ok: false, reason: "future", ageDays, weekdaysElapsed: 0, expectedReportSessionsElapsed: 0 };
 
   const latest = new Date(latestTimestamp);
-  const now = new Date(nowTimestamp);
   const latestDay = Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth(), latest.getUTCDate());
-  const nowDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  let weekdaysElapsed = 0;
-  for (let day = latestDay + dayMs; day <= nowDay; day += dayMs) {
-    const weekday = new Date(day).getUTCDay();
-    if (weekday !== 0 && weekday !== 6) weekdaysElapsed++;
-  }
+  const nowEt = easternDateParts(nowTimestamp);
+  const nowEtDay = Date.UTC(nowEt.year, nowEt.month - 1, nowEt.day);
+  const reportCutoffReached = nowEt.hour >= ETF_REPORT_READY_HOUR_ET;
+  const latestExpectedReportDay = reportCutoffReached ? nowEtDay : previousCalendarDay(nowEtDay);
+  const weekdaysElapsed = countUtcWeekdaysExclusive(latestDay, nowEtDay);
+  const expectedReportSessionsElapsed = countEtfReportSessionsExclusive(latestDay, latestExpectedReportDay);
 
   if (ageDays > MAX_ETF_ABSOLUTE_AGE_DAYS) {
-    return { ok: false, reason: "absolute_age", ageDays, weekdaysElapsed };
+    return { ok: false, reason: "absolute_age", ageDays, weekdaysElapsed, expectedReportSessionsElapsed };
   }
-  if (weekdaysElapsed > MAX_ETF_WEEKDAYS_SINCE_LATEST) {
-    return { ok: false, reason: "weekday_age", ageDays, weekdaysElapsed };
+  if (expectedReportSessionsElapsed > MAX_ETF_WEEKDAYS_SINCE_LATEST) {
+    return { ok: false, reason: "expected_report_session_age", ageDays, weekdaysElapsed, expectedReportSessionsElapsed };
   }
-  return { ok: true, reason: "fresh", ageDays, weekdaysElapsed };
+  return { ok: true, reason: "fresh", ageDays, weekdaysElapsed, expectedReportSessionsElapsed };
+}
+
+function easternDateParts(timestamp) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date(timestamp));
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day),
+    hour: Number(values.hour)
+  };
+}
+
+function previousCalendarDay(dayTimestamp) {
+  return dayTimestamp - 86_400_000;
+}
+
+function countUtcWeekdaysExclusive(startDayTimestamp, endDayTimestamp) {
+  let count = 0;
+  for (let day = startDayTimestamp + 86_400_000; day <= endDayTimestamp; day += 86_400_000) {
+    const weekday = new Date(day).getUTCDay();
+    if (weekday !== 0 && weekday !== 6) count++;
+  }
+  return count;
+}
+
+function countEtfReportSessionsExclusive(startDayTimestamp, endDayTimestamp) {
+  let count = 0;
+  for (let day = startDayTimestamp + 86_400_000; day <= endDayTimestamp; day += 86_400_000) {
+    if (isUsEtfTradingDay(day)) count++;
+  }
+  return count;
+}
+
+function isUsEtfTradingDay(dayTimestamp) {
+  const date = new Date(dayTimestamp);
+  const weekday = date.getUTCDay();
+  if (weekday === 0 || weekday === 6) return false;
+  return !usMarketHolidayKeys(date.getUTCFullYear()).has(date.toISOString().slice(0, 10));
+}
+
+function usMarketHolidayKeys(year) {
+  return new Set([
+    observedFixedHoliday(year, 0, 1),
+    nthWeekdayOfMonth(year, 0, 1, 3),
+    nthWeekdayOfMonth(year, 1, 1, 3),
+    goodFriday(year),
+    lastWeekdayOfMonth(year, 4, 1),
+    observedFixedHoliday(year, 5, 19),
+    observedFixedHoliday(year, 6, 4),
+    nthWeekdayOfMonth(year, 8, 1, 1),
+    nthWeekdayOfMonth(year, 10, 4, 4),
+    observedFixedHoliday(year, 11, 25)
+  ].filter(Boolean));
+}
+
+function dateKey(year, month, day) {
+  return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+}
+
+function observedFixedHoliday(year, month, day) {
+  const d = new Date(Date.UTC(year, month, day));
+  const weekday = d.getUTCDay();
+  if (weekday === 0) return dateKey(year, month, day + 1);
+  if (weekday === 6) return dateKey(year, month, day - 1);
+  return dateKey(year, month, day);
+}
+
+function nthWeekdayOfMonth(year, month, weekday, n) {
+  const first = new Date(Date.UTC(year, month, 1));
+  const offset = (weekday - first.getUTCDay() + 7) % 7;
+  return dateKey(year, month, 1 + offset + (n - 1) * 7);
+}
+
+function lastWeekdayOfMonth(year, month, weekday) {
+  const last = new Date(Date.UTC(year, month + 1, 0));
+  const offset = (last.getUTCDay() - weekday + 7) % 7;
+  return dateKey(year, month, last.getUTCDate() - offset);
+}
+
+function goodFriday(year) {
+  const easter = easterSundayUtc(year);
+  easter.setUTCDate(easter.getUTCDate() - 2);
+  return easter.toISOString().slice(0, 10);
+}
+
+function easterSundayUtc(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(Date.UTC(year, month, day));
 }
 
 function approxEqual(a, b, relTol = 1e-9, absTol = 1e-6) {

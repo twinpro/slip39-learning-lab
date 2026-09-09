@@ -14,8 +14,8 @@ const out = {
   release: "V12.3",
   generated_at: ISO,
   cost: "$0",
-  api_keys_required: true,
-  api_keys: ["SOSOVALUE_API_KEY (free tier)"],
+  api_keys_required: false,
+  api_keys: [],
   paid_api_keys_required: false,
   sources: {},
   etf: { status: "unavailable" },
@@ -27,6 +27,11 @@ const out = {
     note: "No verified free automated all-exchange BTC balance feed has been implemented. This metric remains UNKNOWN and is excluded from scoring."
   }
 };
+
+let previousSnapshot = null;
+try {
+  previousSnapshot = JSON.parse(await fs.readFile(OUT, "utf8"));
+} catch {}
 
 async function fetchAny(url, opts = {}) {
   const controller = new AbortController();
@@ -94,8 +99,8 @@ function buildEtf(rows, source) {
   if (freshness.reason === "absolute_age") {
     throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${ageDays.toFixed(1)} calendar days old (absolute max ${MAX_ETF_ABSOLUTE_AGE_DAYS})`);
   }
-  if (freshness.reason === "weekday_age") {
-    throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${freshness.weekdaysElapsed} UTC weekdays behind (max ${MAX_ETF_WEEKDAYS_SINCE_LATEST}; weekends ignored)`);
+  if (freshness.reason === "expected_report_session_age") {
+    throw new Error(`latest ETF row ${isoDate(latest.timestamp)} is ${freshness.expectedReportSessionsElapsed} expected ETF report sessions behind (max ${MAX_ETF_WEEKDAYS_SINCE_LATEST}; weekends and U.S. market holidays ignored)`);
   }
   if (!freshness.ok) throw new Error(`latest ETF row ${isoDate(latest.timestamp)} failed freshness check: ${freshness.reason}`);
 
@@ -130,17 +135,29 @@ function buildEtf(rows, source) {
   };
 }
 
-// ETF: SoSoValue official API v2. The free API key is stored as SOSOVALUE_API_KEY.
+function reusablePreviousEtf(snapshot) {
+  if (!snapshot?.etf || snapshot.etf.status !== "ok") return null;
+  const latestTimestamp = Date.parse(`${snapshot.etf.latest_date}T00:00:00Z`);
+  const freshness = assessEtfFreshness(latestTimestamp, NOW.getTime());
+  if (!freshness.ok) return null;
+  return {
+    ...snapshot.etf,
+    fetched_at: snapshot.etf.fetched_at || snapshot.generated_at || null,
+    preserved_at: ISO,
+    preserved_from_generated_at: snapshot.generated_at || null,
+    latest_age_days: +freshness.ageDays.toFixed(2)
+  };
+}
+
+// ETF: SoSoValue official API v2. This endpoint is currently free/keyless; if a
+// legacy SOSOVALUE_API_KEY secret exists, keep sending it without requiring it.
 try {
   const key = process.env.SOSOVALUE_API_KEY || "";
-  if (!key) throw new Error("SOSOVALUE_API_KEY secret is missing");
-
+  const headers = { "Content-Type": "application/json" };
+  if (key) headers["x-soso-api-key"] = key;
   const j = await getJson("https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-soso-api-key": key
-    },
+    headers,
     body: JSON.stringify({ type: "us-btc-spot" })
   });
   if (Number(j?.code) !== 0) throw new Error(j?.msg || "SoSoValue v2 API error");
@@ -149,8 +166,10 @@ try {
   out.sources.sosovalue = "ok";
   out.sources.sosovalue_endpoint = "v2";
 } catch (e) {
-  out.etf = { status: "unavailable", error: String(e.message || e) };
+  const previousEtf = reusablePreviousEtf(previousSnapshot);
+  out.etf = previousEtf || { status: "unavailable", error: String(e.message || e) };
   out.sources.sosovalue = "error: " + String(e.message || e);
+  if (previousEtf) out.sources.sosovalue_recovery = "preserved previous valid ETF snapshot";
 }
 
 // OKX BTC-USDT perpetual. oiUsd is already USD notional.
