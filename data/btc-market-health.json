@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "attempted_at": "2026-09-11T15:03:22.245Z",
+  "attempted_at": "2026-09-11T15:18:21.965Z",
   "snapshot_valid": true,
-  "last_successful_at": "2026-09-11T15:03:22.245Z",
+  "last_successful_at": "2026-09-11T15:18:21.965Z",
   "health": {
     "schema": 1,
-    "assessed_at": "2026-09-11T15:03:22.245Z",
+    "assessed_at": "2026-09-11T15:18:21.965Z",
     "overall": {
-      "quality": "verified",
-      "reason": "All required scored components passed their configured checks."
+      "quality": "unknown",
+      "reason": "At least one required scored component is not fully verified."
     },
     "sections": {
       "etf": {
@@ -18,9 +18,9 @@
         "verification_depth": 1
       },
       "spot": {
-        "quality": "verified",
-        "coverage": "3/3 BTC legs · 2/2 peg quotes",
-        "reason": "All BTC price legs and both USDT/USD normalization quotes passed checks."
+        "quality": "unknown",
+        "coverage": "0/3 BTC legs · 0/2 peg quotes",
+        "reason": "The normalized U.S. spot proxy cannot be calculated from all required BTC price legs."
       },
       "derivatives_oi": {
         "quality": "verified",
