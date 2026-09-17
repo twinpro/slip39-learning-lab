@@ -1,7 +1,7 @@
 {
   "schema": 12,
   "release": "V12.3",
-  "generated_at": "2026-09-17T06:48:20.106Z",
+  "generated_at": "2026-09-17T07:03:17.450Z",
   "cost": "$0",
   "api_keys_required": false,
   "api_keys": [],
@@ -13,8 +13,8 @@
     "deribit": "ok",
     "bitmex": "ok",
     "hyperliquid": "ok",
-    "kraken_futures": "ok",
-    "kraken_funding": "ok",
+    "kraken_futures": "error",
+    "kraken_funding": "unavailable",
     "bybit": "error (optional; not relied upon)",
     "unit_guard_rejected": "bitmex",
     "kraken_spot": "ok",
@@ -24,9 +24,9 @@
   "etf": {
     "status": "ok",
     "source": "SoSoValue official API v2",
-    "fetched_at": "2026-09-17T06:48:20.106Z",
+    "fetched_at": "2026-09-17T07:03:17.450Z",
     "latest_date": "2026-09-16",
-    "latest_age_days": 1.28,
+    "latest_age_days": 1.29,
     "expected_latest_session": "2026-09-15",
     "sessions_behind": 0,
     "freshness_status": "fresh",
@@ -188,22 +188,22 @@
       "okx": {
         "status": "ok",
         "contract": "BTC-USDT-SWAP",
-        "oi_usd": 2198742014.0418997,
-        "oi_btc": 28717.66290000013,
-        "funding_rate_percent": 0.00540124605057,
+        "oi_usd": 2196392857.18546,
+        "oi_btc": 28732.764500000132,
+        "funding_rate_percent": 0.005224179059940001,
         "funding_interval_hours": 8,
-        "mark_price": 76564.1,
-        "implied_btc": 28717.6629,
+        "mark_price": 76442.1,
+        "implied_btc": 28732.7645,
         "unit_check": "ok"
       },
       "deribit": {
         "status": "ok",
         "contract": "BTC-PERPETUAL",
-        "oi_usd": 798440460,
-        "funding_rate_percent": 0.006940000000000001,
+        "oi_usd": 798420350,
+        "funding_rate_percent": 0.006917,
         "funding_interval_hours": 8,
-        "mark_price": 76551.42,
-        "implied_btc": 10430.1195,
+        "mark_price": 76426.84,
+        "implied_btc": 10446.8581,
         "unit_check": "ok"
       },
       "bitmex": {
@@ -219,31 +219,18 @@
       "hyperliquid": {
         "status": "ok",
         "contract": "BTC perpetual",
-        "oi_usd": 2882785985.1387997,
-        "oi_btc": 37649.02684,
-        "funding_rate_percent": 0.0041064,
+        "oi_usd": 2883725809.9554,
+        "oi_btc": 37724.3637,
+        "funding_rate_percent": -0.0036884,
         "funding_interval_hours": 8,
         "funding_source_interval_hours": 1,
-        "mark_price": 76570,
-        "implied_btc": 37649.0268,
+        "mark_price": 76442,
+        "implied_btc": 37724.3637,
         "unit_check": "ok"
       },
       "kraken": {
-        "status": "ok",
-        "symbol": "PI_XBTUSD",
-        "contract": "PI_XBTUSD (inverse; 1 contract = 1 USD; openInterest is USD notional)",
-        "oi_usd": 2318948,
-        "open_interest_raw": 2318948,
-        "mark_price": 76528.95905677261,
-        "funding_rate_absolute_raw": 3.52627248e-10,
-        "funding_rate_percent": 0.0215128066666664,
-        "funding_interval_hours": 8,
-        "funding_source_interval_hours": 1,
-        "relative_funding_timestamp": "2026-09-17T06:00:00Z",
-        "funding_note": "Comparable relative Kraken funding is sourced from the public historical funding endpoint and normalized to an 8-hour equivalent.",
-        "funding_analytics_error": null,
-        "implied_btc": 30.3016,
-        "unit_check": "ok"
+        "status": "error",
+        "error": "503 Service Unavailable"
       },
       "bybit": {
         "status": "error",
@@ -253,21 +240,19 @@
     },
     "aggregate": {
       "status": "ok",
-      "venue_count": 4,
+      "venue_count": 3,
       "venues": [
         "okx",
         "deribit",
-        "hyperliquid",
-        "kraken"
+        "hyperliquid"
       ],
-      "oi_usd": 5882287407.180699,
-      "funding_rate_percent": 0.004981885588514552,
-      "funding_venue_count": 4,
+      "oi_usd": 5878539017.14086,
+      "funding_rate_percent": 0.0010820186507011081,
+      "funding_venue_count": 3,
       "funding_venues": [
         "okx",
         "deribit",
-        "hyperliquid",
-        "kraken"
+        "hyperliquid"
       ],
       "core_expected_venues": [
         "okx",
@@ -279,11 +264,11 @@
       "core_working_venues": [
         "okx",
         "deribit",
-        "hyperliquid",
-        "kraken"
+        "hyperliquid"
       ],
       "core_missing_venues": [
-        "bitmex"
+        "bitmex",
+        "kraken"
       ],
       "core_comparable_status": "incomplete",
       "core_comparable_oi_usd": null,
@@ -293,16 +278,16 @@
   "spot": {
     "status": "ok",
     "source": "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
-    "coinbase_usd": 76515.7,
-    "kraken_usd": 76507.7,
-    "us_spot_average_usd": 76511.7,
-    "okx_usdt": 76599.9,
-    "coinbase_usdt_usd": 0.99905,
-    "kraken_usdt_usd": 0.999,
-    "usdt_usd": 0.999025,
-    "okx_usd_equivalent": 76525.2150975,
-    "us_spot_premium_percent_raw": -0.1151,
-    "us_spot_premium_percent": -0.0177,
+    "coinbase_usd": 76404.07,
+    "kraken_usd": 76416.9,
+    "us_spot_average_usd": 76410.485,
+    "okx_usdt": 76489.9,
+    "coinbase_usdt_usd": 0.99902,
+    "kraken_usdt_usd": 0.99895,
+    "usdt_usd": 0.998985,
+    "okx_usd_equivalent": 76412.26275149999,
+    "us_spot_premium_percent_raw": -0.1038,
+    "us_spot_premium_percent": -0.0023,
     "premium_status": "usdt_normalized",
     "note": "OKX BTC-USDT is converted to USD using live Coinbase/Kraken USDT-USD before comparison."
   },
@@ -313,7 +298,7 @@
   },
   "health": {
     "schema": 1,
-    "assessed_at": "2026-09-17T06:48:20.106Z",
+    "assessed_at": "2026-09-17T07:03:17.450Z",
     "overall": {
       "quality": "conflict",
       "reason": "At least one required scored component is not fully verified."
@@ -332,12 +317,12 @@
       },
       "derivatives_oi": {
         "quality": "conflict",
-        "coverage": "4/5 core venues",
+        "coverage": "3/5 core venues",
         "reason": "Unit guard rejected: bitmex. Derivatives scoring is disabled."
       },
       "funding": {
         "quality": "conflict",
-        "coverage": "4/5 comparable venues",
+        "coverage": "3/5 comparable venues",
         "reason": "Funding or unit validation failed for: bitmex."
       },
       "exchange_supply": {
