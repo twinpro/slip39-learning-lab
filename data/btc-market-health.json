@@ -1,20 +1,20 @@
 {
   "schema": 1,
-  "attempted_at": "2026-09-19T03:48:20.233Z",
+  "attempted_at": "2026-09-19T04:03:16.800Z",
   "snapshot_valid": false,
   "last_successful_at": "2026-09-16T11:48:19.274Z",
   "health": {
     "schema": 1,
-    "assessed_at": "2026-09-19T03:48:20.233Z",
+    "assessed_at": "2026-09-19T04:03:16.800Z",
     "overall": {
       "quality": "conflict",
       "reason": "At least one required scored component is not fully verified."
     },
     "sections": {
       "etf": {
-        "quality": "partial",
+        "quality": "verified",
         "coverage": "5/5 sessions · 1 source",
-        "reason": "ETF data is within the documented normal source reporting-lag allowance.",
+        "reason": "Automated date, schema, magnitude, and five-session checks passed.",
         "verification_depth": 1
       },
       "spot": {
@@ -39,9 +39,9 @@
         "excluded_from_overall": true
       },
       "bybit": {
-        "quality": "unknown",
+        "quality": "verified",
         "coverage": "optional",
-        "reason": "Bybit is unavailable and has no effect on dashboard health.",
+        "reason": "Bybit is available but excluded from the fixed core.",
         "optional": true
       }
     }
