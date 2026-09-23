@@ -1,7 +1,7 @@
 {
   "schema": 12,
   "release": "V12.3",
-  "generated_at": "2026-09-23T05:03:18.100Z",
+  "generated_at": "2026-09-23T05:04:42.898Z",
   "cost": "$0",
   "api_keys_required": false,
   "api_keys": [],
@@ -24,9 +24,9 @@
   "etf": {
     "status": "ok",
     "source": "SoSoValue official API v2",
-    "fetched_at": "2026-09-23T05:03:18.100Z",
-    "latest_date": "2026-09-21",
-    "latest_age_days": 2.21,
+    "fetched_at": "2026-09-23T05:04:42.898Z",
+    "latest_date": "2026-09-22",
+    "latest_age_days": 1.21,
     "expected_latest_session": "2026-09-21",
     "sessions_behind": 0,
     "freshness_status": "fresh",
@@ -35,12 +35,8 @@
     "endpoint": "https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart",
     "five_session_span_calendar_days": 6,
     "row_count": 300,
-    "flow_5d_usd": 845123230.7950001,
+    "flow_5d_usd": 2010201635.0100002,
     "last_5_trading_sessions": [
-      {
-        "date": "2026-09-15",
-        "flow_usd": -450329418.71
-      },
       {
         "date": "2026-09-16",
         "flow_usd": -295980763.08
@@ -56,14 +52,14 @@
       {
         "date": "2026-09-21",
         "flow_usd": 998952286.985
+      },
+      {
+        "date": "2026-09-22",
+        "flow_usd": 714748985.505
       }
     ],
     "last_5_trading_days": [
       {
-        "date": "2026-09-15",
-        "flow_usd": -450329418.71
-      },
-      {
         "date": "2026-09-16",
         "flow_usd": -295980763.08
       },
@@ -78,13 +74,13 @@
       {
         "date": "2026-09-21",
         "flow_usd": 998952286.985
+      },
+      {
+        "date": "2026-09-22",
+        "flow_usd": 714748985.505
       }
     ],
     "history": [
-      {
-        "timestamp": 1786924800000,
-        "flow_usd": 297556930.725
-      },
       {
         "timestamp": 1787011200000,
         "flow_usd": 189296469.295
@@ -180,6 +176,10 @@
       {
         "timestamp": 1789948800000,
         "flow_usd": 998952286.985
+      },
+      {
+        "timestamp": 1790035200000,
+        "flow_usd": 714748985.505
       }
     ]
   },
@@ -188,22 +188,22 @@
       "okx": {
         "status": "ok",
         "contract": "BTC-USDT-SWAP",
-        "oi_usd": 2614641705.746718,
-        "oi_btc": 30078.625900000094,
-        "funding_rate_percent": 0.0018436972872999998,
+        "oi_usd": 2610855353.2600074,
+        "oi_btc": 30044.365400000082,
+        "funding_rate_percent": 0.0018659697339200002,
         "funding_interval_hours": 8,
-        "mark_price": 86913,
-        "implied_btc": 30083.4364,
+        "mark_price": 86929.9,
+        "implied_btc": 30034.0315,
         "unit_check": "ok"
       },
       "deribit": {
         "status": "ok",
         "contract": "BTC-PERPETUAL",
-        "oi_usd": 850856200,
-        "funding_rate_percent": 0.012897,
+        "oi_usd": 850867150,
+        "funding_rate_percent": 0.012902,
         "funding_interval_hours": 8,
-        "mark_price": 86970.28,
-        "implied_btc": 9783.2984,
+        "mark_price": 86973.34,
+        "implied_btc": 9783.0801,
         "unit_check": "ok"
       },
       "bitmex": {
@@ -219,22 +219,22 @@
       "hyperliquid": {
         "status": "ok",
         "contract": "BTC perpetual",
-        "oi_usd": 4016703125.9916,
-        "oi_btc": 46174.30884,
+        "oi_usd": 4014866766.95832,
+        "oi_btc": 46156.91304,
         "funding_rate_percent": 0.01,
         "funding_interval_hours": 8,
         "funding_source_interval_hours": 1,
-        "mark_price": 86990,
-        "implied_btc": 46174.3088,
+        "mark_price": 86983,
+        "implied_btc": 46156.913,
         "unit_check": "ok"
       },
       "kraken": {
         "status": "ok",
         "symbol": "PI_XBTUSD",
         "contract": "PI_XBTUSD (inverse; 1 contract = 1 USD; openInterest is USD notional)",
-        "oi_usd": 2263772,
-        "open_interest_raw": 2263772,
-        "mark_price": 87015.95960150997,
+        "oi_usd": 2263972,
+        "open_interest_raw": 2263972,
+        "mark_price": 86990.52625601176,
         "funding_rate_absolute_raw": 3.03168365e-10,
         "funding_rate_percent": 0.021138416666666403,
         "funding_interval_hours": 8,
@@ -242,7 +242,7 @@
         "relative_funding_timestamp": "2026-09-23T05:00:00Z",
         "funding_note": "Comparable relative Kraken funding is sourced from the public historical funding endpoint and normalized to an 8-hour equivalent.",
         "funding_analytics_error": null,
-        "implied_btc": 26.0156,
+        "implied_btc": 26.0255,
         "unit_check": "ok"
       },
       "bybit": {
@@ -260,8 +260,8 @@
         "hyperliquid",
         "kraken"
       ],
-      "oi_usd": 7484464803.7383175,
-      "funding_rate_percent": 0.007483365279406725,
+      "oi_usd": 7478853242.2183275,
+      "funding_rate_percent": 0.007493954978924417,
       "funding_venue_count": 4,
       "funding_venues": [
         "okx",
@@ -293,16 +293,16 @@
   "spot": {
     "status": "ok",
     "source": "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
-    "coinbase_usd": 86949.83,
-    "kraken_usd": 86949.4,
-    "us_spot_average_usd": 86949.61499999999,
-    "okx_usdt": 86953,
-    "coinbase_usdt_usd": 0.99988,
+    "coinbase_usd": 86959.56,
+    "kraken_usd": 86950.8,
+    "us_spot_average_usd": 86955.18,
+    "okx_usdt": 86967,
+    "coinbase_usdt_usd": 0.99987,
     "kraken_usdt_usd": 0.99984,
-    "usdt_usd": 0.99986,
-    "okx_usd_equivalent": 86940.82658,
-    "us_spot_premium_percent_raw": -0.0039,
-    "us_spot_premium_percent": 0.0101,
+    "usdt_usd": 0.9998549999999999,
+    "okx_usd_equivalent": 86954.38978499999,
+    "us_spot_premium_percent_raw": -0.0136,
+    "us_spot_premium_percent": 0.0009,
     "premium_status": "usdt_normalized",
     "note": "OKX BTC-USDT is converted to USD using live Coinbase/Kraken USDT-USD before comparison."
   },
@@ -313,7 +313,7 @@
   },
   "health": {
     "schema": 1,
-    "assessed_at": "2026-09-23T05:03:18.100Z",
+    "assessed_at": "2026-09-23T05:04:42.898Z",
     "overall": {
       "quality": "conflict",
       "reason": "At least one required scored component is not fully verified."
