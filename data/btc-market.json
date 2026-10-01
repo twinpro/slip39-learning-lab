@@ -1,7 +1,7 @@
 {
   "schema": 12,
   "release": "V12.3",
-  "generated_at": "2026-10-01T04:03:16.667Z",
+  "generated_at": "2026-10-01T04:18:19.804Z",
   "cost": "$0",
   "api_keys_required": false,
   "api_keys": [],
@@ -24,9 +24,9 @@
   "etf": {
     "status": "ok",
     "source": "SoSoValue official API v2",
-    "fetched_at": "2026-10-01T04:03:16.667Z",
-    "latest_date": "2026-09-29",
-    "latest_age_days": 2.17,
+    "fetched_at": "2026-10-01T04:18:19.804Z",
+    "latest_date": "2026-09-30",
+    "latest_age_days": 1.18,
     "expected_latest_session": "2026-09-29",
     "sessions_behind": 0,
     "freshness_status": "fresh",
@@ -35,12 +35,8 @@
     "endpoint": "https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart",
     "five_session_span_calendar_days": 6,
     "row_count": 300,
-    "flow_5d_usd": 769353764.43,
+    "flow_5d_usd": 273688786.05999994,
     "last_5_trading_sessions": [
-      {
-        "date": "2026-09-23",
-        "flow_usd": 346977216.16999996
-      },
       {
         "date": "2026-09-24",
         "flow_usd": 190646110.255
@@ -56,14 +52,14 @@
       {
         "date": "2026-09-29",
         "flow_usd": 66194702.4
+      },
+      {
+        "date": "2026-09-30",
+        "flow_usd": -148687762.20000002
       }
     ],
     "last_5_trading_days": [
       {
-        "date": "2026-09-23",
-        "flow_usd": 346977216.16999996
-      },
-      {
         "date": "2026-09-24",
         "flow_usd": 190646110.255
       },
@@ -78,13 +74,13 @@
       {
         "date": "2026-09-29",
         "flow_usd": 66194702.4
+      },
+      {
+        "date": "2026-09-30",
+        "flow_usd": -148687762.20000002
       }
     ],
     "history": [
-      {
-        "timestamp": 1787616000000,
-        "flow_usd": 314369658.955
-      },
       {
         "timestamp": 1787702400000,
         "flow_usd": 232118394.595
@@ -180,6 +176,10 @@
       {
         "timestamp": 1790640000000,
         "flow_usd": 66194702.4
+      },
+      {
+        "timestamp": 1790726400000,
+        "flow_usd": -148687762.20000002
       }
     ]
   },
@@ -188,22 +188,22 @@
       "okx": {
         "status": "ok",
         "contract": "BTC-USDT-SWAP",
-        "oi_usd": 2371461404.9544067,
-        "oi_btc": 28322.04420000008,
-        "funding_rate_percent": 0.0071244617117,
+        "oi_usd": 2381438927.8553367,
+        "oi_btc": 28421.48330000008,
+        "funding_rate_percent": 0.0071487765829,
         "funding_interval_hours": 8,
-        "mark_price": 83731.9,
-        "implied_btc": 28322.078,
+        "mark_price": 83775.3,
+        "implied_btc": 28426.5043,
         "unit_check": "ok"
       },
       "deribit": {
         "status": "ok",
         "contract": "BTC-PERPETUAL",
-        "oi_usd": 792093880,
-        "funding_rate_percent": 0.006546,
+        "oi_usd": 793281420,
+        "funding_rate_percent": 0.006285,
         "funding_interval_hours": 8,
-        "mark_price": 83730.57,
-        "implied_btc": 9460.0321,
+        "mark_price": 83776.92,
+        "implied_btc": 9468.9733,
         "unit_check": "ok"
       },
       "bitmex": {
@@ -219,22 +219,22 @@
       "hyperliquid": {
         "status": "ok",
         "contract": "BTC perpetual",
-        "oi_usd": 2888532494.7777,
-        "oi_btc": 34491.99946,
+        "oi_usd": 2915050381.3322196,
+        "oi_btc": 34789.54042,
         "funding_rate_percent": 0.01,
         "funding_interval_hours": 8,
         "funding_source_interval_hours": 1,
-        "mark_price": 83745,
-        "implied_btc": 34491.9995,
+        "mark_price": 83791,
+        "implied_btc": 34789.5404,
         "unit_check": "ok"
       },
       "kraken": {
         "status": "ok",
         "symbol": "PI_XBTUSD",
         "contract": "PI_XBTUSD (inverse; 1 contract = 1 USD; openInterest is USD notional)",
-        "oi_usd": 2249584,
-        "open_interest_raw": 2249584,
-        "mark_price": 83721.9116541225,
+        "oi_usd": 2249585,
+        "open_interest_raw": 2249585,
+        "mark_price": 83777.081280557,
         "funding_rate_absolute_raw": 1.477353894e-9,
         "funding_rate_percent": 0.0989217966666664,
         "funding_interval_hours": 8,
@@ -242,7 +242,7 @@
         "relative_funding_timestamp": "2026-10-01T04:00:00Z",
         "funding_note": "Comparable relative Kraken funding is sourced from the public historical funding endpoint and normalized to an 8-hour equivalent.",
         "funding_analytics_error": null,
-        "implied_btc": 26.8697,
+        "implied_btc": 26.852,
         "unit_check": "ok"
       },
       "bybit": {
@@ -260,8 +260,8 @@
         "hyperliquid",
         "kraken"
       ],
-      "oi_usd": 6054337363.732107,
-      "funding_rate_percent": 0.00845481301790346,
+      "oi_usd": 6092020314.187556,
+      "funding_rate_percent": 0.008434506570729952,
       "funding_venue_count": 4,
       "funding_venues": [
         "okx",
@@ -293,16 +293,16 @@
   "spot": {
     "status": "ok",
     "source": "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
-    "coinbase_usd": 83705.5,
-    "kraken_usd": 83702.3,
-    "us_spot_average_usd": 83703.9,
-    "okx_usdt": 83771.7,
-    "coinbase_usdt_usd": 0.99923,
-    "kraken_usdt_usd": 0.99919,
-    "usdt_usd": 0.9992099999999999,
-    "okx_usd_equivalent": 83705.52035699999,
-    "us_spot_premium_percent_raw": -0.0809,
-    "us_spot_premium_percent": -0.0019,
+    "coinbase_usd": 83759.51,
+    "kraken_usd": 83752,
+    "us_spot_average_usd": 83755.755,
+    "okx_usdt": 83821.3,
+    "coinbase_usdt_usd": 0.99921,
+    "kraken_usdt_usd": 0.99921,
+    "usdt_usd": 0.99921,
+    "okx_usd_equivalent": 83755.08117300001,
+    "us_spot_premium_percent_raw": -0.0782,
+    "us_spot_premium_percent": 0.0008,
     "premium_status": "usdt_normalized",
     "note": "OKX BTC-USDT is converted to USD using live Coinbase/Kraken USDT-USD before comparison."
   },
@@ -313,7 +313,7 @@
   },
   "health": {
     "schema": 1,
-    "assessed_at": "2026-10-01T04:03:16.667Z",
+    "assessed_at": "2026-10-01T04:18:19.804Z",
     "overall": {
       "quality": "conflict",
       "reason": "At least one required scored component is not fully verified."
