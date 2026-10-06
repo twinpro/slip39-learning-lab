@@ -29,6 +29,8 @@ export const num = x => {
 // /instrument includes settled and unlisted contracts, whose last funding rate
 // is historical. Only an Open XBTUSD contract can supply live derivatives data.
 // https://docs.bitmex.com/api-explorer/get-instruments
+// XBTUSD settled on 2026-09-16; keep its absence explicit rather than changing
+// the fixed venue set used to compare historical observations.
 export function parseBitmexInstrument(rows) {
   const d = Array.isArray(rows) ? rows.find(row => row?.symbol === "XBTUSD") : null;
   if (!d || typeof d.state !== "string" || !d.state.trim()) {
