@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import {
   num,
+  parseBitmexInstrument,
   guardVenueUnits,
   fiveSessionSpanDays,
   assessEtfFreshness,
@@ -19,6 +20,7 @@ import {
   formatEtTime,
 } from "../assets/js/btc-dashboard-time.mjs";
 import { buildEtfSnapshot, parseSosoEtfRows, reusablePreviousEtf } from "./btc-etf-lib.mjs";
+import { buildHistoryRow } from "./btc-history-lib.mjs";
 
 let total = 0, failed = 0;
 function check(name, ok, detail = "") {
@@ -416,6 +418,40 @@ function goodSnapshot() {
   d.health.sections.spot.quality = "verified-but-tampered";
   const v = validateSnapshot(d);
   check("validator rejects tampered health classification", !v.ok && v.errors.some(x=>x.includes("health spot quality")), v.errors.join(" | "));
+}
+
+{
+  const instrument = { symbol: "XBTUSD", state: "Settled", openInterest: 0, fundingRate: 0.0001, markPrice: 76095.46 };
+  const d = goodSnapshot();
+  d.derivatives.venues.bitmex = parseBitmexInstrument([instrument]);
+  const rejected = guardVenueUnits(d.derivatives.venues);
+  const working = CORE_VENUES.filter(name => d.derivatives.venues[name].status === "ok");
+  const oi = working.reduce((sum, name) => sum + d.derivatives.venues[name].oi_usd, 0);
+  d.derivatives.aggregate = {
+    status: "ok", venue_count: working.length, venues: working,
+    oi_usd: oi,
+    funding_rate_percent: working.reduce((sum, name) => sum + d.derivatives.venues[name].oi_usd * d.derivatives.venues[name].funding_rate_percent, 0) / oi,
+    funding_venue_count: working.length, funding_venues: working,
+    core_expected_venues: [...CORE_VENUES], core_working_venues: working,
+    core_missing_venues: ["bitmex"], core_comparable_status: "incomplete", core_comparable_oi_usd: null
+  };
+  d.health = computeSourceHealth(d);
+  const validation = validateSnapshot(d);
+  check("settled BitMEX contract does not trigger a unit conflict", rejected.length === 0 && d.derivatives.venues.bitmex.status === "unavailable");
+  check("settled BitMEX historical funding is excluded", d.derivatives.venues.bitmex.funding_rate_percent === null && !working.includes("bitmex"));
+  check("settled BitMEX leaves four-venue live leverage usable", d.health.sections.funding.quality === "partial" && d.health.sections.funding.coverage === "4/5 comparable venues" && Number.isFinite(d.derivatives.aggregate.funding_rate_percent));
+  check("snapshot publishes with settled BitMEX and healthy remaining venues", validation.ok, validation.errors.join(" | "));
+  const history = buildHistoryRow(d);
+  check("partial coverage is not spliced into fixed five-venue history", history.derivatives.core_comparable_oi_usd === null && history.derivatives.funding_comparable === false);
+  const active = parseBitmexInstrument([{ ...instrument, state: "Open", openInterest: 22_000_000 }]);
+  check("open BitMEX contract retains USD OI and percent funding", active.status === "ok" && active.oi_usd === 22_000_000 && active.funding_rate_percent === 0.01);
+  const zero = { bitmex: parseBitmexInstrument([{ ...instrument, state: "Open" }]) };
+  check("open BitMEX contract with zero OI still fails unit guard", guardVenueUnits(zero).includes("bitmex"));
+  for (const [name, rows] of [["empty response", []], ["missing state", [{ symbol: "XBTUSD" }]], ["wrong contract", [{ ...instrument, symbol: "ETHUSD" }]]]) {
+    let rejected = false;
+    try { parseBitmexInstrument(rows); } catch { rejected = true; }
+    check(`BitMEX parser rejects ${name}`, rejected);
+  }
 }
 
 console.log(`\n${total-failed}/${total} collector safety tests passed`);

@@ -26,6 +26,35 @@ export const num = x => {
   return Number.isFinite(v) ? v : null;
 };
 
+// /instrument includes settled and unlisted contracts, whose last funding rate
+// is historical. Only an Open XBTUSD contract can supply live derivatives data.
+// https://docs.bitmex.com/api-explorer/get-instruments
+export function parseBitmexInstrument(rows) {
+  const d = Array.isArray(rows) ? rows.find(row => row?.symbol === "XBTUSD") : null;
+  if (!d || typeof d.state !== "string" || !d.state.trim()) {
+    throw new Error("BitMEX XBTUSD instrument or state is missing");
+  }
+  const metadata = { contract: "XBTUSD (inverse; 1 contract = 1 USD)", instrument_state: d.state };
+  if (d.state !== "Open") {
+    return {
+      ...metadata,
+      status: "unavailable",
+      oi_usd: null,
+      funding_rate_percent: null,
+      funding_interval_hours: null,
+      note: `BitMEX XBTUSD is ${d.state}; excluded from live OI and funding.`
+    };
+  }
+  return {
+    ...metadata,
+    status: "ok",
+    oi_usd: num(d.openInterest),
+    funding_rate_percent: num(d.fundingRate) != null ? num(d.fundingRate) * 100 : null,
+    funding_interval_hours: 8,
+    mark_price: num(d.markPrice)
+  };
+}
+
 export function fiveSessionSpanDays(rowsAscending) {
   const last5 = (rowsAscending || []).slice(-5);
   if (last5.length < 5) return null;

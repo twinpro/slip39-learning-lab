@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { num, guardVenueUnits, computeSourceHealth, CORE_VENUES, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
+import { num, parseBitmexInstrument, guardVenueUnits, computeSourceHealth, CORE_VENUES, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
 import { SOSOVALUE_ETF_BODY, SOSOVALUE_ETF_ENDPOINT, buildEtfSnapshot, parseSosoEtfRows, reusablePreviousEtf } from "./btc-etf-lib.mjs";
 
 const OUT = new URL("../data/btc-market.json", import.meta.url);
@@ -121,17 +121,10 @@ try {
 
 // BitMEX XBTUSD is inverse: 1 contract = 1 USD notional.
 try {
-  const j = await getJson("https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&columns=openInterest,fundingRate,markPrice");
-  const d = j?.[0] || {};
-  out.derivatives.venues.bitmex = {
-    status: "ok",
-    contract: "XBTUSD (inverse; 1 contract = 1 USD)",
-    oi_usd: num(d.openInterest),
-    funding_rate_percent: num(d.fundingRate) != null ? num(d.fundingRate) * 100 : null,
-    funding_interval_hours: 8,
-    mark_price: num(d.markPrice)
-  };
-  out.sources.bitmex = "ok";
+  const j = await getJson("https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&columns=state,openInterest,fundingRate,markPrice");
+  const venue = parseBitmexInstrument(j);
+  out.derivatives.venues.bitmex = venue;
+  out.sources.bitmex = venue.status === "ok" ? "ok" : venue.note;
 } catch (e) {
   out.derivatives.venues.bitmex = { status: "error", error: String(e.message || e) };
   out.sources.bitmex = "error";
