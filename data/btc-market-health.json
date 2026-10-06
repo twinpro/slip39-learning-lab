@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "attempted_at": "2026-10-06T14:03:17.912Z",
-  "snapshot_valid": false,
-  "last_successful_at": "2026-09-16T11:48:19.274Z",
+  "attempted_at": "2026-10-06T14:14:04.702Z",
+  "snapshot_valid": true,
+  "last_successful_at": "2026-10-06T14:14:04.702Z",
   "health": {
     "schema": 1,
-    "assessed_at": "2026-10-06T14:03:17.912Z",
+    "assessed_at": "2026-10-06T14:14:04.702Z",
     "overall": {
-      "quality": "conflict",
+      "quality": "partial",
       "reason": "At least one required scored component is not fully verified."
     },
     "sections": {
@@ -23,14 +23,14 @@
         "reason": "All BTC price legs and both USDT/USD normalization quotes passed checks."
       },
       "derivatives_oi": {
-        "quality": "conflict",
+        "quality": "partial",
         "coverage": "4/5 core venues",
-        "reason": "Unit guard rejected: bitmex. Derivatives scoring is disabled."
+        "reason": "Missing bitmex; current partial OI may display, but history comparison is disabled."
       },
       "funding": {
-        "quality": "conflict",
+        "quality": "partial",
         "coverage": "4/5 comparable venues",
-        "reason": "Funding or unit validation failed for: bitmex."
+        "reason": "Live leverage health may display, but fixed-core funding history is not comparable."
       },
       "exchange_supply": {
         "quality": "unknown",
@@ -46,7 +46,5 @@
       }
     }
   },
-  "validation_errors": [
-    "unit guard rejected core venue(s): bitmex"
-  ]
+  "validation_errors": []
 }
