@@ -1,7 +1,7 @@
 {
   "schema": 12,
   "release": "V12.3",
-  "generated_at": "2026-10-10T04:33:16.479Z",
+  "generated_at": "2026-10-10T04:48:19.647Z",
   "cost": "$0",
   "api_keys_required": false,
   "api_keys": [],
@@ -25,7 +25,7 @@
     "source": "SoSoValue official API v2",
     "fetched_at": "2026-10-09T13:03:18.238Z",
     "latest_date": "2026-10-08",
-    "latest_age_days": 2.19,
+    "latest_age_days": 2.2,
     "expected_latest_session": "2026-10-08",
     "sessions_behind": 0,
     "freshness_status": "fresh",
@@ -181,30 +181,30 @@
         "flow_usd": -244125629.17499998
       }
     ],
-    "preserved_at": "2026-10-10T04:33:16.479Z",
-    "preserved_from_generated_at": "2026-10-10T04:18:18.589Z"
+    "preserved_at": "2026-10-10T04:48:19.647Z",
+    "preserved_from_generated_at": "2026-10-10T04:33:16.479Z"
   },
   "derivatives": {
     "venues": {
       "okx": {
         "status": "ok",
         "contract": "BTC-USDT-SWAP",
-        "oi_usd": 2469507241.6710105,
-        "oi_btc": 29891.790000000125,
-        "funding_rate_percent": 0.0047176365083700005,
+        "oi_usd": 2470276787.97201,
+        "oi_btc": 29891.155000000123,
+        "funding_rate_percent": 0.00485955256922,
         "funding_interval_hours": 8,
-        "mark_price": 82615,
-        "implied_btc": 29891.7538,
+        "mark_price": 82637.1,
+        "implied_btc": 29893.0721,
         "unit_check": "ok"
       },
       "deribit": {
         "status": "ok",
         "contract": "BTC-PERPETUAL",
-        "oi_usd": 830578050,
-        "funding_rate_percent": 0.0008389999999999999,
+        "oi_usd": 830657980,
+        "funding_rate_percent": 0.000919,
         "funding_interval_hours": 8,
-        "mark_price": 82606.96,
-        "implied_btc": 10054.5771,
+        "mark_price": 82625.64,
+        "implied_btc": 10053.2714,
         "unit_check": "ok"
       },
       "bitmex": {
@@ -219,13 +219,13 @@
       "hyperliquid": {
         "status": "ok",
         "contract": "BTC perpetual",
-        "oi_usd": 3153447038.70258,
-        "oi_btc": 38173.16562,
-        "funding_rate_percent": 0.00467536,
+        "oi_usd": 3155677967.2876396,
+        "oi_btc": 38188.61446,
+        "funding_rate_percent": 0.0033322399999999998,
         "funding_interval_hours": 8,
         "funding_source_interval_hours": 1,
-        "mark_price": 82609,
-        "implied_btc": 38173.1656,
+        "mark_price": 82634,
+        "implied_btc": 38188.6145,
         "unit_check": "ok"
       },
       "kraken": {
@@ -234,7 +234,7 @@
         "contract": "PI_XBTUSD (inverse; 1 contract = 1 USD; openInterest is USD notional)",
         "oi_usd": 2288563,
         "open_interest_raw": 2288563,
-        "mark_price": 82629.0478948939,
+        "mark_price": 82644.93028333859,
         "funding_rate_absolute_raw": 9.39691564e-10,
         "funding_rate_percent": 0.06203649,
         "funding_interval_hours": 8,
@@ -242,7 +242,7 @@
         "relative_funding_timestamp": "2026-10-10T04:00:00Z",
         "funding_note": "Comparable relative Kraken funding is sourced from the public historical funding endpoint and normalized to an 8-hour equivalent.",
         "funding_analytics_error": null,
-        "implied_btc": 27.6968,
+        "implied_btc": 27.6915,
         "unit_check": "ok"
       },
       "bybit": {
@@ -260,8 +260,8 @@
         "hyperliquid",
         "kraken"
       ],
-      "oi_usd": 6455820893.37359,
-      "funding_rate_percent": 0.004218296560151751,
+      "oi_usd": 6458901298.259649,
+      "funding_rate_percent": 0.0036268189091207014,
       "funding_venue_count": 4,
       "funding_venues": [
         "okx",
@@ -293,16 +293,16 @@
   "spot": {
     "status": "ok",
     "source": "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
-    "coinbase_usd": 82575.3,
-    "kraken_usd": 82576.2,
-    "us_spot_average_usd": 82575.75,
-    "okx_usdt": 82653.4,
-    "coinbase_usdt_usd": 0.99907,
-    "kraken_usdt_usd": 0.99905,
-    "usdt_usd": 0.9990600000000001,
-    "okx_usd_equivalent": 82575.705804,
-    "us_spot_premium_percent_raw": -0.0939,
-    "us_spot_premium_percent": 0.0001,
+    "coinbase_usd": 82598.8,
+    "kraken_usd": 82600.7,
+    "us_spot_average_usd": 82599.75,
+    "okx_usdt": 82674.3,
+    "coinbase_usdt_usd": 0.99909,
+    "kraken_usdt_usd": 0.99906,
+    "usdt_usd": 0.9990749999999999,
+    "okx_usd_equivalent": 82597.8262725,
+    "us_spot_premium_percent_raw": -0.0902,
+    "us_spot_premium_percent": 0.0023,
     "premium_status": "usdt_normalized",
     "note": "OKX BTC-USDT is converted to USD using live Coinbase/Kraken USDT-USD before comparison."
   },
@@ -313,7 +313,7 @@
   },
   "health": {
     "schema": 1,
-    "assessed_at": "2026-10-10T04:33:16.479Z",
+    "assessed_at": "2026-10-10T04:48:19.647Z",
     "overall": {
       "quality": "partial",
       "reason": "At least one required scored component is not fully verified."
