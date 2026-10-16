@@ -56,7 +56,7 @@ try {
   out.sources.sosovalue = "ok";
   out.sources.sosovalue_endpoint = "v2";
 } catch (e) {
-  const previousEtf = reusablePreviousEtf(previousSnapshot, NOW.getTime(), ISO);
+  const previousEtf = reusablePreviousEtf(previousSnapshot, NOW.getTime(), new Date().toISOString());
   out.etf = previousEtf || { status: "unavailable", error: String(e.message || e) };
   out.sources.sosovalue = "error: " + String(e.message || e);
   if (previousEtf) out.sources.sosovalue_recovery = "preserved previous valid ETF snapshot";
@@ -71,9 +71,9 @@ try {
   ]);
   if (oi.code !== "0" || fund.code !== "0" || ticker.code !== "0") throw new Error("OKX non-zero API code");
   const o = oi.data?.[0] || {}, f = fund.data?.[0] || {}, t = ticker.data?.[0] || {};
-  const observedAt = observationTime(o.ts, ISO);
-  observationTime(t.ts, ISO);
-  observationTime(f.ts, ISO);
+  const observedAt = observationTime(o.ts, new Date().toISOString());
+  observationTime(t.ts, new Date().toISOString());
+  observationTime(f.ts, new Date().toISOString());
   const oiUsd = num(o.oiUsd) ?? (num(o.oiCcy) != null && num(t.last) != null ? num(o.oiCcy) * num(t.last) : null);
   out.derivatives.venues.okx = {
     status: "ok",
@@ -96,7 +96,7 @@ try {
   const j = await getJson("https://www.deribit.com/api/v2/public/ticker?instrument_name=BTC-PERPETUAL");
   if (j.error) throw new Error("Deribit API error: " + j.error.code);
   const d = j.result || {};
-  const observedAt = observationTime(d.timestamp, ISO);
+  const observedAt = observationTime(d.timestamp, new Date().toISOString());
   out.derivatives.venues.deribit = {
     status: "ok",
     contract: "BTC-PERPETUAL",
@@ -116,7 +116,7 @@ try {
 try {
   const j = await getJson("https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&columns=symbol,state,openInterest,fundingRate,markPrice,timestamp");
   const venue = parseBitmexInstrument(j);
-  if (venue.status === "ok") venue.observed_at = observationTime(j.find(x => x.symbol === "XBTUSD").timestamp, ISO);
+  if (venue.status === "ok") venue.observed_at = observationTime(j.find(x => x.symbol === "XBTUSD").timestamp, new Date().toISOString());
   out.derivatives.venues.bitmex = venue;
   out.sources.bitmex = venue.status === "ok" ? "ok" : venue.note;
 } catch (e) {
@@ -162,7 +162,7 @@ try {
           || rows.find(x => String(x?.symbol || "").toUpperCase() === "PI_BTCUSD");
   if (!pi) throw new Error("Kraken PI_XBTUSD ticker not found");
 
-  const observedAt = observationTime(j.serverTime, ISO);
+  const observedAt = observationTime(j.serverTime, new Date().toISOString());
   const oiUsd = num(pi.openInterest);
   if (!(oiUsd > 0)) throw new Error("Kraken PI_XBTUSD openInterest missing");
 
@@ -179,7 +179,7 @@ try {
     if (latest) {
       // PI_XBTUSD funding is hourly. Normalize to an 8-hour equivalent.
       relativeFundingPercent8h = num(latest.relativeFundingRate) * 100 * 8;
-      relativeFundingTimestamp = observationTime(latest.timestamp, ISO, 180);
+      relativeFundingTimestamp = observationTime(latest.timestamp, new Date().toISOString(), 180);
     } else {
       fundingAnalyticsError = "no relativeFundingRate rows";
     }
@@ -219,12 +219,13 @@ try {
 // It is never part of the fixed core aggregate.
 try {
   const t = await getJson("https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT");
-  observationTime(t.time, ISO);
+  observationTime(t.time, new Date().toISOString());
   if (t.retCode !== 0) throw new Error("Bybit retCode " + t.retCode);
   const d = t.result?.list?.[0] || {};
   out.derivatives.venues.bybit = {
     status: "ok",
     core: false,
+    observed_at: observationTime(t.time, new Date().toISOString()),
     oi_usd: num(d.openInterestValue),
     oi_btc: num(d.openInterest),
     funding_rate_percent: num(d.fundingRate) != null ? num(d.fundingRate) * 100 : null,
@@ -241,8 +242,8 @@ try {
 // the bad snapshot from being published.
 for (const v of Object.values(out.derivatives.venues)) {
   if (v.status === "ok") {
-    v.observed_at ||= ISO;
-    v.timestamp_basis = v.observed_at === ISO ? "response_received" : "provider";
+    v.observed_at ||= new Date().toISOString();
+    v.timestamp_basis = ["BTC perpetual"].includes(v.contract) ? "response_received" : "provider";
     if (num(v.funding_rate_percent) != null && Math.abs(v.funding_rate_percent) > FUNDING_SANITY_PERCENT_8H) {
       v.funding_error = "Funding exceeded sanity bound; excluded";
       v.funding_rate_percent = null;
@@ -308,8 +309,8 @@ try {
     getJson("https://api.kraken.com/0/public/Ticker?pair=USDTUSD").catch(() => null)
   ]);
 
-  observationTime(cb?.time, ISO);
-  observationTime(ok?.data?.[0]?.ts, ISO);
+  observationTime(cb?.time, new Date().toISOString());
+  observationTime(ok?.data?.[0]?.ts, new Date().toISOString());
   if (ok.code !== "0" || kr.error?.length) throw new Error("Spot API error");
   const cbp = num(cb?.price);
   const krKey = kr?.result ? Object.keys(kr.result)[0] : null;
@@ -317,7 +318,7 @@ try {
   const okp = num(ok?.data?.[0]?.last);
 
   let cbUsdtUsd = num(cbUsdt?.price);
-  try { observationTime(cbUsdt?.time, ISO); } catch { cbUsdtUsd = null; }
+  try { observationTime(cbUsdt?.time, new Date().toISOString()); } catch { cbUsdtUsd = null; }
   const krUsdtKey = krUsdt?.result ? Object.keys(krUsdt.result)[0] : null;
   const krUsdtUsd = krUsdtKey ? num(krUsdt.result[krUsdtKey]?.c?.[0]) : null;
   const pegQuotes = [cbUsdtUsd, krUsdtUsd].filter(v => v != null && v > 0.97 && v < 1.03);
@@ -333,7 +334,7 @@ try {
 
   out.spot = {
     status: "ok",
-    observed_at: ISO,
+    observed_at: new Date().toISOString(),
     timestamp_basis: "validated provider timestamps; Kraken response received",
     source: "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
     coinbase_usd: cbp,
@@ -359,6 +360,8 @@ try {
   out.sources.usdt_usd = "error";
 }
 
+// Publication time is completion time; provider observation times remain unchanged.
+out.generated_at = new Date().toISOString();
 preserveVerifiedReadings(out, previousSnapshot);
 out.health = computeSourceHealth(out);
 

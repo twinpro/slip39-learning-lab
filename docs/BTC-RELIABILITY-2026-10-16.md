@@ -120,12 +120,33 @@ no clock offset was hardcoded or validation widened to make a local probe pass.
 ## Rollback
 
 Prefer reverting the repair commit(s) to preserve newer bot data and history:
-`git revert <repair-commit-sha>` followed by `git push origin main` after checks.
+`git revert 466b8182a127f696d0afda28d70ee64cda02e2d4` followed by `git push origin main` after checks.
 For an isolated inspection of the exact old site:
 `git switch --detach backup/btc-reliability-2026-10-16-remote-de13ee10`.
 Do not reset/force-push main to the backup: doing so would discard subsequent data.
 
 ## Deployment result
 
-Pending hosted execution and published-site verification. Do not treat local tests
-as proof of deployment. This section will be updated with actual run and data evidence.
+Repair commit: `466b8182a127f696d0afda28d70ee64cda02e2d4`.
+Hosted collector run **SUCCESS**: https://github.com/twinpro/slip39-learning-lab/actions/runs/38949670506
+Published data commit: `633d29097c60c0150576b44c21d1e9bbcb1b602c`.
+Pages deployment **SUCCESS**: https://github.com/twinpro/slip39-learning-lab/actions/runs/38949745656
+
+The live site loaded snapshot `2026-10-16T18:45:07.106Z`; it displayed fresh data,
+spot 52/100 and leverage 82/100. ETF is UNAVAILABLE; supply is UNKNOWN. Overall
+correctly remains INSUFFICIENT DATA because no verified ETF report is available.
+The four derivatives venues and Coinbase/Kraken/OKX spot remain working. SoSoValue,
+BitMEX and optional Bybit still return HTTP 403 even with the existing optional
+SoSoValue secret. The provider-side cause of the 403 is not exposed by these logs.
+
+Follow-up polish timestamps completion separately from provider observations, so
+bounded retries do not make a late successful response appear future-dated relative
+to collection start. Mobile badges wrap to keep UNAVAILABLE readable on narrow screens.
+No source, scoring weight, anchor, or feature was replaced.
+
+Remaining limitations: external provider access, unknown origin of twinpro's
+15-minute dispatches, unobserved real 24-hour alert/recovery cycle, and native
+account email preferences. GitHub Pages deployment was observed for this data commit;
+this report does not assume a push alone proves publication. The known account/HTTP
+clock discrepancy did not occur on the hosted collector. Full data coverage is not
+restored and is not claimed.
