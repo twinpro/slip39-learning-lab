@@ -1,6 +1,6 @@
 // Native GitHub issue alerts: one per prolonged outage, then one recovery closure.
 import fs from 'node:fs/promises';
-import { outageState } from './btc-alert-lib.mjs';
+import { outageState, reconcileOutageIssues } from './btc-alert-lib.mjs';
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 if (!repo || !token) throw new Error('GitHub repository/token missing');
@@ -15,16 +15,7 @@ async function read(file) { try { return JSON.parse(await fs.readFile(file, 'utf
 const snapshot = await read('data/btc-market.json');
 const health = await read('data/btc-market-health.json');
 const state = outageState(snapshot, health);
-const title = 'BTC dashboard: prolonged data outage';
-const issues = (await api('issues?state=all&per_page=100')).filter(i => i.title === title && !i.pull_request);
-if (state.alert && !issues.some(i => i.state === 'open' || i.body?.includes(`<!-- btc-outage:${state.since} -->`))) {
-  await api('issues', 'POST', { title, body: `Market data has been continuously unhealthy since ${state.since}.\n\nCurrent snapshot: ${snapshot?.generated_at || 'missing'}.\nSource quality: ${health?.health?.overall?.quality || 'unknown'}.\n\nInspect [collector logs](https://github.com/${repo}/actions/workflows/btc-market-data.yml). No values or scores have been fabricated. This issue stays open without repeat comments until recovery.\n\n<!-- btc-outage:${state.since} -->` });
-} else if (state.healthy) {
-  for (const issue of issues.filter(i => i.state === 'open' && i.body?.includes('<!-- btc-outage:'))) {
-    await api(`issues/${issue.number}`, 'PATCH', { state: 'closed', state_reason: 'completed' });
-    await api(`issues/${issue.number}/comments`, 'POST', { body: `Recovered: verified usable market data published at ${snapshot.generated_at}.` });
-  }
-}
+await reconcileOutageIssues(api, state, snapshot, health, repo);
 // Watchdog only recovers a missed collector; provider degradation does not trigger extra jobs.
 if (state.stale) {
   const lists = await Promise.all(['btc-market-data.yml', 'btc-market-recovery.yml'].map(w => api(`actions/workflows/${w}/runs?per_page=30`)));

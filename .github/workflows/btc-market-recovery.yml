@@ -36,7 +36,7 @@ jobs:
         run: node scripts/test-btc-market-recovery.mjs
       - name: Run pipeline fault tests
         if: steps.cadence.outputs.due == 'true'
-        run: node --test tests/btc-pipeline.test.mjs
+        run: node --test tests/btc-pipeline.test.mjs tests/btc-alert.test.mjs
       - name: Collect, validate and stage verified data
         env:
           SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}

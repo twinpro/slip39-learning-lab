@@ -1,0 +1,44 @@
+name: Inspect ETF source access (research only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/etf-source-review]
+    paths:
+      - .github/workflows/btc-etf-source-probe.yml
+      - scripts/probe-btc-etf-sources.mjs
+      - scripts/btc-alert-lib.mjs
+      - tests/btc-alert.test.mjs
+      - scripts/btc-etf-diagnostic-lib.mjs
+      - tests/btc-etf-diagnostic.test.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/codex/etf-source-review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Check alert lifecycle locally
+        run: node --test tests/btc-alert.test.mjs tests/btc-etf-diagnostic.test.mjs
+      - name: Record public source access without credentials
+        run: node scripts/probe-btc-etf-sources.mjs "${{ runner.temp }}/etf-source-access.json"
+      - name: Verify tracked checkout remains untouched
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git ls-files --others --exclude-standard)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: etf-source-access-${{ github.run_id }}
+          path: ${{ runner.temp }}/etf-source-access.json
+          retention-days: 14
