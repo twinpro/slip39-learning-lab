@@ -1,4 +1,6 @@
-# ETF source investigation — review before any push
+# ETF source investigation — original pre-push review
+
+Follow-up: the user subsequently approved diagnostic-branch testing only. See [actual hosted-runner results](BTC-ETF-RUNNER-RESULTS-2026-10-16.md). The original review below records the state before that approval.
 
 Date: 2026-10-16. Repository baseline: `a9b3b2dc2b34d5c8e874b9c4f10c1e471dcc644b`.
 
