@@ -1,8 +1,18 @@
 import fs from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { getJson, observationTime } from "./btc-http.mjs";
+import { preserveVerifiedReadings } from "./btc-publication-lib.mjs";
 import { num, parseBitmexInstrument, guardVenueUnits, computeSourceHealth, CORE_VENUES, FUNDING_SANITY_PERCENT_8H } from "./btc-lib.mjs";
 import { SOSOVALUE_ETF_BODY, SOSOVALUE_ETF_ENDPOINT, buildEtfSnapshot, parseSosoEtfRows, reusablePreviousEtf } from "./btc-etf-lib.mjs";
 
-const OUT = new URL("../data/btc-market.json", import.meta.url);
+// Direct CLI calls use the same guarded publisher as Actions.
+if (!process.env.BTC_MARKET_OUTPUT) {
+  const run = spawnSync(process.execPath, [fileURLToPath(new URL('./publish-btc-market.mjs', import.meta.url))], { stdio: 'inherit' });
+  process.exit(run.status ?? 1);
+}
+const OUT = process.env.BTC_MARKET_OUTPUT || new URL("../data/btc-market.json", import.meta.url);
+const PREVIOUS = process.env.BTC_MARKET_PREVIOUS || OUT;
 const NOW = new Date();
 const ISO = NOW.toISOString();
 
@@ -28,32 +38,8 @@ const out = {
 
 let previousSnapshot = null;
 try {
-  previousSnapshot = JSON.parse(await fs.readFile(OUT, "utf8"));
+  previousSnapshot = JSON.parse(await fs.readFile(PREVIOUS, "utf8"));
 } catch {}
-
-async function fetchAny(url, opts = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20_000);
-  try {
-    const r = await fetch(url, {
-      ...opts,
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; btc-real-vs-paper/12)",
-        "Accept": "*/*",
-        ...(opts.headers || {})
-      }
-    });
-    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-    return r;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function getJson(url, opts) {
-  return await (await fetchAny(url, opts)).json();
-}
 
 // ETF: SoSoValue official API v2. This endpoint is currently free/keyless; if a
 // legacy SOSOVALUE_API_KEY secret exists, keep sending it without requiring it.
@@ -85,10 +71,14 @@ try {
   ]);
   if (oi.code !== "0" || fund.code !== "0" || ticker.code !== "0") throw new Error("OKX non-zero API code");
   const o = oi.data?.[0] || {}, f = fund.data?.[0] || {}, t = ticker.data?.[0] || {};
+  const observedAt = observationTime(o.ts, ISO);
+  observationTime(t.ts, ISO);
+  observationTime(f.ts, ISO);
   const oiUsd = num(o.oiUsd) ?? (num(o.oiCcy) != null && num(t.last) != null ? num(o.oiCcy) * num(t.last) : null);
   out.derivatives.venues.okx = {
     status: "ok",
     contract: "BTC-USDT-SWAP",
+    observed_at: observedAt,
     oi_usd: oiUsd,
     oi_btc: num(o.oiCcy),
     funding_rate_percent: num(f.fundingRate) != null ? num(f.fundingRate) * 100 : null,
@@ -104,10 +94,13 @@ try {
 // Deribit BTC perpetual. open_interest is already USD notional; funding_8h is comparable.
 try {
   const j = await getJson("https://www.deribit.com/api/v2/public/ticker?instrument_name=BTC-PERPETUAL");
+  if (j.error) throw new Error("Deribit API error: " + j.error.code);
   const d = j.result || {};
+  const observedAt = observationTime(d.timestamp, ISO);
   out.derivatives.venues.deribit = {
     status: "ok",
     contract: "BTC-PERPETUAL",
+    observed_at: observedAt,
     oi_usd: num(d.open_interest),
     funding_rate_percent: num(d.funding_8h) != null ? num(d.funding_8h) * 100 : null,
     funding_interval_hours: 8,
@@ -121,8 +114,9 @@ try {
 
 // BitMEX XBTUSD is inverse: 1 contract = 1 USD notional.
 try {
-  const j = await getJson("https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&columns=state,openInterest,fundingRate,markPrice");
+  const j = await getJson("https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&columns=symbol,state,openInterest,fundingRate,markPrice,timestamp");
   const venue = parseBitmexInstrument(j);
+  if (venue.status === "ok") venue.observed_at = observationTime(j.find(x => x.symbol === "XBTUSD").timestamp, ISO);
   out.derivatives.venues.bitmex = venue;
   out.sources.bitmex = venue.status === "ok" ? "ok" : venue.note;
 } catch (e) {
@@ -168,6 +162,7 @@ try {
           || rows.find(x => String(x?.symbol || "").toUpperCase() === "PI_BTCUSD");
   if (!pi) throw new Error("Kraken PI_XBTUSD ticker not found");
 
+  const observedAt = observationTime(j.serverTime, ISO);
   const oiUsd = num(pi.openInterest);
   if (!(oiUsd > 0)) throw new Error("Kraken PI_XBTUSD openInterest missing");
 
@@ -184,16 +179,19 @@ try {
     if (latest) {
       // PI_XBTUSD funding is hourly. Normalize to an 8-hour equivalent.
       relativeFundingPercent8h = num(latest.relativeFundingRate) * 100 * 8;
-      relativeFundingTimestamp = latest.timestamp || null;
+      relativeFundingTimestamp = observationTime(latest.timestamp, ISO, 180);
     } else {
       fundingAnalyticsError = "no relativeFundingRate rows";
     }
   } catch (e) {
+    relativeFundingPercent8h = null;
+    relativeFundingTimestamp = null;
     fundingAnalyticsError = String(e.message || e);
   }
 
   out.derivatives.venues.kraken = {
     status: "ok",
+    observed_at: observedAt,
     symbol: String(pi.symbol || "PI_XBTUSD").toUpperCase(),
     contract: "PI_XBTUSD (inverse; 1 contract = 1 USD; openInterest is USD notional)",
     oi_usd: oiUsd,
@@ -221,6 +219,7 @@ try {
 // It is never part of the fixed core aggregate.
 try {
   const t = await getJson("https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT");
+  observationTime(t.time, ISO);
   if (t.retCode !== 0) throw new Error("Bybit retCode " + t.retCode);
   const d = t.result?.list?.[0] || {};
   out.derivatives.venues.bybit = {
@@ -240,10 +239,24 @@ try {
 // Defense-in-depth dimensional checks run before aggregation. If a contract-unit
 // invariant fails, the venue is rejected from this run and verify-snapshot.mjs prevents
 // the bad snapshot from being published.
+for (const v of Object.values(out.derivatives.venues)) {
+  if (v.status === "ok") {
+    v.observed_at ||= ISO;
+    v.timestamp_basis = v.observed_at === ISO ? "response_received" : "provider";
+    if (num(v.funding_rate_percent) != null && Math.abs(v.funding_rate_percent) > FUNDING_SANITY_PERCENT_8H) {
+      v.funding_error = "Funding exceeded sanity bound; excluded";
+      v.funding_rate_percent = null;
+    }
+  }
+}
 const unitRejected = guardVenueUnits(out.derivatives.venues);
+// Reject the bad source without vetoing independent sources.
+for (const name of unitRejected) {
+  out.derivatives.venues[name] = { status: "error", error: out.derivatives.venues[name].rejected_reason };
+}
 const coreUnitRejected = unitRejected.filter(name => CORE_VENUES.includes(name));
 const optionalUnitRejected = unitRejected.filter(name => !CORE_VENUES.includes(name));
-if (coreUnitRejected.length) out.sources.unit_guard_rejected = coreUnitRejected.join(", ");
+if (coreUnitRejected.length) out.sources.source_validation_rejected = coreUnitRejected.join(", ");
 if (optionalUnitRejected.length) out.sources.optional_unit_guard_rejected = optionalUnitRejected.join(", ");
 
 // Fixed comparable core set. OI can be displayed as partial working coverage, but
@@ -295,18 +308,22 @@ try {
     getJson("https://api.kraken.com/0/public/Ticker?pair=USDTUSD").catch(() => null)
   ]);
 
+  observationTime(cb?.time, ISO);
+  observationTime(ok?.data?.[0]?.ts, ISO);
+  if (ok.code !== "0" || kr.error?.length) throw new Error("Spot API error");
   const cbp = num(cb?.price);
   const krKey = kr?.result ? Object.keys(kr.result)[0] : null;
   const krp = krKey ? num(kr.result[krKey]?.c?.[0]) : null;
   const okp = num(ok?.data?.[0]?.last);
 
-  const cbUsdtUsd = num(cbUsdt?.price);
+  let cbUsdtUsd = num(cbUsdt?.price);
+  try { observationTime(cbUsdt?.time, ISO); } catch { cbUsdtUsd = null; }
   const krUsdtKey = krUsdt?.result ? Object.keys(krUsdt.result)[0] : null;
   const krUsdtUsd = krUsdtKey ? num(krUsdt.result[krUsdtKey]?.c?.[0]) : null;
   const pegQuotes = [cbUsdtUsd, krUsdtUsd].filter(v => v != null && v > 0.97 && v < 1.03);
   const usdtUsd = pegQuotes.length ? pegQuotes.reduce((a, b) => a + b, 0) / pegQuotes.length : null;
 
-  if (!cbp || !krp || !okp) throw new Error("missing public BTC spot price");
+  if (![cbp, krp, okp].every(p => p > 0 && p < 10000000)) throw new Error("missing public BTC spot price");
   if (!usdtUsd) throw new Error("no valid Coinbase/Kraken USDT-USD normalization quote");
 
   const usdAvg = (cbp + krp) / 2;
@@ -316,6 +333,8 @@ try {
 
   out.spot = {
     status: "ok",
+    observed_at: ISO,
+    timestamp_basis: "validated provider timestamps; Kraken response received",
     source: "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
     coinbase_usd: cbp,
     kraken_usd: krp,
@@ -340,6 +359,7 @@ try {
   out.sources.usdt_usd = "error";
 }
 
+preserveVerifiedReadings(out, previousSnapshot);
 out.health = computeSourceHealth(out);
 
 await fs.mkdir(new URL("../data/", import.meta.url), { recursive: true });

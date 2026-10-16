@@ -72,7 +72,7 @@ export function assessEtfFreshness(latestTimestamp, nowTimestamp) {
 
   const dayMs = 86_400_000;
   const ageDays = (nowTimestamp - latestTimestamp) / dayMs;
-  if (ageDays < -1) return etfFreshnessResult("invalid", "future", null, null, 0, ageDays, 0, 0);
+  if (ageDays < 0) return etfFreshnessResult("invalid", "future", null, null, 0, ageDays, 0, 0);
 
   const latest = new Date(latestTimestamp);
   const latestDay = Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth(), latest.getUTCDate());
@@ -348,7 +348,7 @@ export function computeSourceHealth(d) {
 }
 
 export function classifyFreshness(ageMinutes) {
-  if (!Number.isFinite(ageMinutes) || ageMinutes > SNAPSHOT_MAX_MINUTES) return "stale";
+  if (!Number.isFinite(ageMinutes) || ageMinutes < -1 || ageMinutes > SNAPSHOT_MAX_MINUTES) return "stale";
   if (ageMinutes > SNAPSHOT_WARN_MINUTES) return "delayed";
   return "fresh";
 }
@@ -402,6 +402,10 @@ export function guardVenueUnits(venues) {
       continue;
     }
 
+    if (!(mark > 0 && mark < 10000000)) {
+      v.status = 'rejected'; v.unit_check = 'rejected'; v.rejected_reason = 'mark_price missing or impossible';
+      rejected.push(name); continue;
+    }
     if (oi > VENUE_OI_MAX_USD) {
       v.status = "rejected";
       v.unit_check = "rejected";
@@ -463,6 +467,12 @@ export function validateSnapshot(d) {
   if (!d || typeof d !== "object") return { ok: false, errors: ["snapshot is not an object"], warnings };
   if (d.schema !== 12) fail(`schema must be 12, got ${d.schema}`);
   if (!Number.isFinite(Date.parse(d.generated_at))) fail("generated_at is missing or invalid");
+  for (const [name, value] of Object.entries({spot: d.spot, ...d.derivatives?.venues})) {
+    if (value?.status === 'ok' && value.observed_at) {
+      const age = (Date.parse(d.generated_at) - Date.parse(value.observed_at)) / 60000;
+      if (!Number.isFinite(age) || age < -1 || age > 60) fail(`${name}: invalid, future or stale observed_at`);
+    }
+  }
 
   const unitRejected = String(d.sources?.unit_guard_rejected || "").trim();
   const coreRejected = unitRejected
@@ -482,6 +492,11 @@ export function validateSnapshot(d) {
     const rows = Array.isArray(etf.last_5_trading_sessions) ? etf.last_5_trading_sessions : [];
     if (rows.length !== 5) fail(`ETF status ok but last_5_trading_sessions has ${rows.length} rows`);
     const flows = rows.map(r => num(r?.flow_usd));
+    const dates = rows.map(r => Date.parse(`${r?.date}T00:00:00Z`));
+    if (dates.some((v, i) => !Number.isFinite(v) || v > Date.parse(d.generated_at) || (i > 0 && v <= dates[i-1]))) fail('ETF session dates must be unique, ordered and not future');
+    if (dates.length === 5 && dates[4] - dates[0] > MAX_ETF_5_SESSION_SPAN_DAYS * 86400000) fail('ETF session span exceeds guard');
+    if (rows.length && rows.at(-1)?.date !== etf.latest_date) fail('ETF latest_date must match final session');
+    if (flows.some(v => v != null && Math.abs(v) > 25000000000)) fail('ETF daily flow exceeds sanity cap');
     if (flows.some(v => v == null)) fail("ETF five-session rows contain a non-numeric flow");
     if (flows.every(v => v != null)) {
       const sum = flows.reduce((a, b) => a + b, 0);
@@ -505,6 +520,8 @@ export function validateSnapshot(d) {
   for (const [name, v] of Object.entries(venues)) {
     if (v?.status !== "ok") continue;
     const check = CORE_VENUES.includes(name) ? fail : warn;
+    if (!(num(v.mark_price) > 0 && num(v.mark_price) < 10000000)) check(`${name}: mark_price missing or impossible`);
+    if (num(v.oi_usd) > VENUE_OI_MAX_USD) check(`${name}: oi_usd exceeds safety ceiling`);
     if (!(num(v.oi_usd) > 0)) check(`${name}: status ok but oi_usd is not positive`);
     const f = num(v.funding_rate_percent);
     if (f != null && Math.abs(f) > FUNDING_SANITY_PERCENT_8H) check(`${name}: funding ${f}% exceeds ±${FUNDING_SANITY_PERCENT_8H}% 8h sanity bound`);
@@ -528,6 +545,14 @@ export function validateSnapshot(d) {
   const expected = ag.core_expected_venues || [];
   if (JSON.stringify(expected) !== JSON.stringify(CORE_VENUES)) fail(`core_expected_venues must be ${CORE_VENUES.join(", ")}`);
 
+  const actualWorking = CORE_VENUES.filter(name => venues[name]?.status === 'ok' && num(venues[name]?.oi_usd) > 0);
+  if (ag.oi_usd != null && !approxEqual(num(ag.oi_usd), actualWorking.reduce((sum,name) => sum + num(venues[name].oi_usd), 0), 1e-10, .01)) fail('aggregate oi_usd differs from working venues');
+  if (ag.funding_rate_percent != null) {
+    const funded = actualWorking.filter(name => num(venues[name].funding_rate_percent) != null);
+    const weight = funded.reduce((sum,name) => sum + num(venues[name].oi_usd), 0);
+    const weighted = weight ? funded.reduce((sum,name) => sum + num(venues[name].oi_usd) * num(venues[name].funding_rate_percent), 0) / weight : null;
+    if (!approxEqual(num(ag.funding_rate_percent), weighted)) fail('aggregate funding differs from working venues');
+  }
   if (ag.core_comparable_status === "ok") {
     const working = ag.core_working_venues || [];
     const missing = ag.core_missing_venues || [];
@@ -540,6 +565,10 @@ export function validateSnapshot(d) {
   const spot = d.spot || {};
   if (spot.status === "ok") {
     const peg = num(spot.usdt_usd);
+    if (![spot.coinbase_usd, spot.kraken_usd, spot.okx_usdt].every(v => num(v) > 0 && num(v) < 10000000)) fail('spot BTC prices missing or impossible');
+    if (!approxEqual(num(spot.us_spot_average_usd), (num(spot.coinbase_usd) + num(spot.kraken_usd)) / 2)) fail('spot USD average mismatch');
+    if (!approxEqual(num(spot.okx_usd_equivalent), num(spot.okx_usdt) * peg)) fail('spot USD conversion mismatch');
+    if (num(spot.us_spot_premium_percent) == null) fail('spot premium missing');
     if (!(peg > 0.97 && peg < 1.03)) fail(`spot status ok but usdt_usd ${spot.usdt_usd} is outside 0.97..1.03`);
     if (spot.premium_status !== "usdt_normalized") fail("spot status ok but premium_status is not usdt_normalized");
     const usdAvg = num(spot.us_spot_average_usd);

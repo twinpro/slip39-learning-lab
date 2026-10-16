@@ -3,11 +3,12 @@ name: Watch BTC real-vs-paper freshness
 on:
   workflow_dispatch:
   schedule:
-    - cron: "43 * * * *"
+    - cron: '43 * * * *'
 
 permissions:
   actions: write
   contents: read
+  issues: write
 
 concurrency:
   group: btc-market-watchdog
@@ -19,30 +20,12 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v5
-
+        with:
+          ref: main
       - uses: actions/setup-node@v5
         with:
-          node-version: "24"
-
-      - name: Check snapshot age
-        id: freshness
-        run: |
-          node <<'NODE' >> "$GITHUB_OUTPUT"
-          const fs = require("node:fs");
-          const snapshot = JSON.parse(fs.readFileSync("data/btc-market.json", "utf8"));
-          const generatedAt = Date.parse(snapshot.generated_at);
-          if (!Number.isFinite(generatedAt)) {
-            throw new Error("data/btc-market.json generated_at is missing or invalid");
-          }
-          const ageMinutes = Math.floor((Date.now() - generatedAt) / 60000);
-          const stale = ageMinutes >= 120;
-          console.log(`generated_at=${snapshot.generated_at}`);
-          console.log(`age_minutes=${ageMinutes}`);
-          console.log(`stale=${stale}`);
-          NODE
-
-      - name: Dispatch updater when stale
-        if: steps.freshness.outputs.stale == 'true'
+          node-version: '24'
+      - name: Deduplicate recovery and prolonged outage alerts
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run btc-market-data.yml --ref main
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/watch-btc-market.mjs

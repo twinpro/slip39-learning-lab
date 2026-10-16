@@ -3,107 +3,23 @@ name: Update BTC real-vs-paper data FREE
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ['main']
     paths:
-      - ".github/workflows/btc-market-data.yml"
-      - "scripts/btc-lib.mjs"
-      - "scripts/btc-etf-lib.mjs"
-      - "scripts/btc-history-lib.mjs"
-      - "scripts/update-btc-market.mjs"
-      - "scripts/update-btc-history.mjs"
-      - "scripts/capture-btc-market-before.mjs"
-      - "scripts/btc-market-recovery-lib.mjs"
-      - "scripts/check-btc-market-recovery.mjs"
-      - "scripts/verify-btc-market-freshness.mjs"
-      - "scripts/assert-etf-health.mjs"
-      - "scripts/verify-snapshot.mjs"
-      - "scripts/verify-history.mjs"
-      - "scripts/test-collector.mjs"
-      - "scripts/test-history.mjs"
-      - "scripts/test-btc-market-recovery.mjs"
+      - '.github/workflows/btc-market-*.yml'
+      - 'scripts/btc-*.mjs'
+      - 'scripts/*btc-market*.mjs'
+      - 'scripts/check-btc-collection-due.mjs'
+      - 'scripts/test-collector.mjs'
+      - 'scripts/test-history.mjs'
+      - 'tests/btc-pipeline*.mjs'
+      - 'scripts/verify-snapshot.mjs'
   schedule:
-    - cron: "7,37 * * * *"
+    - cron: '7,37 * * * *'
 
 permissions:
   contents: write
 
-concurrency:
-  group: btc-market-updater
-  cancel-in-progress: false
-  queue: max
-
 jobs:
   update:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-
-      - name: Capture pre-run market timestamp
-        run: node scripts/capture-btc-market-before.mjs
-
-      - name: Run collector safety tests
-        run: node scripts/test-collector.mjs
-
-      - name: Run history safety tests
-        run: node scripts/test-history.mjs
-
-      - name: Run recovery gate tests
-        run: node scripts/test-btc-market-recovery.mjs
-
-      - name: Collect free public BTC market data
-        run: node scripts/update-btc-market.mjs
-
-      - name: Verify fresh collection advanced timestamp
-        run: node scripts/verify-btc-market-freshness.mjs after-collect
-
-      - name: Assert ETF health
-        run: node scripts/assert-etf-health.mjs
-
-      - name: Print compact source health
-        run: node scripts/report-health.mjs
-
-      - name: Verify generated snapshot before publish
-        id: snapshot_verify
-        continue-on-error: true
-        run: node scripts/verify-snapshot.mjs
-
-      - name: Write source-health status for this attempt
-        run: node scripts/write-health-status.mjs
-
-      - name: Warn when snapshot verification is degraded
-        if: steps.snapshot_verify.outcome != 'success'
-        run: echo "::warning::Snapshot verification failed; publishing degraded attempt with source-health sidecar."
-
-      - name: Update hourly verified history
-        if: steps.snapshot_verify.outcome == 'success'
-        run: node scripts/update-btc-history.mjs
-
-      - name: Verify history before publish
-        if: steps.snapshot_verify.outcome == 'success'
-        run: node scripts/verify-history.mjs
-
-      - name: Commit updated market JSON
-        run: |
-          git config user.name "btc-data-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add data/btc-market.json data/btc-market-history.jsonl data/btc-market-health.json
-          if git diff --cached --quiet; then
-            echo "No data change"
-          else
-            git commit -m "Update BTC market data"
-            for attempt in 1 2 3; do
-              if git push; then
-                exit 0
-              fi
-              echo "::warning::git push failed on attempt ${attempt}; rebasing and retrying"
-              git pull --rebase --autostash origin main
-            done
-            git push
-          fi
-
-      - name: Verify changed data was committed and pushed
-        run: node scripts/verify-btc-market-freshness.mjs after-commit
+    uses: ./.github/workflows/btc-market-recovery.yml
+    secrets: inherit

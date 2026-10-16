@@ -615,7 +615,7 @@ html{scroll-padding-bottom:120px}
 </div>
 
 <footer>
-  Bitcoin Real vs Paper · Live Demand Dashboard. ETF + derivatives + spot snapshot refresh = GitHub Actions is scheduled four times per hour; free-runner timing can drift or skip runs. This page re-reads the snapshot every 60 seconds.
+  Bitcoin Real vs Paper · Live Demand Dashboard. ETF + derivatives + spot snapshot refresh = GitHub Actions is scheduled every 30 minutes; free-runner timing can drift or skip runs. This page re-reads the snapshot every 60 seconds.
   Coinbase BTC-USD price streams live in the browser. Kraken public spot/futures data is collected server-side in the snapshot when reachable.
   Exchange BTC supply remains unknown and unscored. Not investment advice.
 </footer>
@@ -681,7 +681,7 @@ function scoreColor(score){return score==null?'var(--dimmer)':score>=65?'var(--g
 function statusWord(score){return score==null?'Unknown':score>=65?'Green':score>=40?'Yellow':'Red'}
 function etfFreshnessLabel(etf){
   if(etf?.source_status==='preserved_after_refresh_failure')return 'source warning · last known good';
-  if(etf?.freshness_status==='fresh')return 'live / fresh';
+  if(etf?.freshness_status==='fresh')return 'verified report';
   if(etf?.freshness_status==='reporting_lag')return 'normal reporting lag';
   if(etf?.freshness_status==='stale')return 'stale';
   if(etf?.status&&etf.status!=='ok')return 'source error';
@@ -838,8 +838,10 @@ function renderSnapshot(){
   const etf=d.etf||{}, spot=d.spot||{}, ag=d.derivatives?.aggregate||{}, venues=ag.venues||[];
   const sidecar=S.healthStatus;
   const sidecarCurrent=sidecar?.schema===1&&Date.parse(sidecar.attempted_at)>=Date.parse(d.generated_at)&&sidecar.health?.schema===1;
-  const health=sidecarCurrent?sidecar.health:(d.health?.schema===1?d.health:legacyHealth(d)), hs=health.sections||{};
+  const health=sidecarCurrent&&sidecar.snapshot_valid===true?sidecar.health:(d.health?.schema===1?d.health:legacyHealth(d)), hs=health.sections||{};
   const publicationBlocked=hs.publication?.quality==='conflict';
+  const sourceState=(section, quality)=>section?.last_verified?'STALE':section?.status==='error'||section?.status==='unavailable'?'UNAVAILABLE':quality||'UNKNOWN';
+  const retainedNote=(section, field)=>section?.last_verified?`Last verified: ${field(section.last_verified.value)} - ${formatEtDateTime(section.last_verified.observed_at)} - STALE; not scored`:'';
   const etf5=!publicationBlocked&&usableQuality(hs.etf?.quality)?etf.flow_5d_usd:null;
   const prem=!publicationBlocked&&usableQuality(hs.spot?.quality)?(spot.us_spot_premium_percent ?? spot.coinbase_premium_percent):null;
   const fund=!publicationBlocked&&usableQuality(hs.funding?.quality)?ag.funding_rate_percent:null;
@@ -852,31 +854,32 @@ function renderSnapshot(){
   $('asof').textContent=formatEtDateTime(d.generated_at);
 
   $('v-etf').textContent=usd(etf5); $('v-etf').classList.toggle('stale',etf5==null);
-  $('b-etf').innerHTML=etf5==null?'No ETF data':`${esc(etfFreshnessLabel(etf))} · latest <b>${etf.latest_date||'—'}</b> · expected <b>${etf.expected_latest_session||'—'}</b> · ${etf.sessions_behind??'—'} sessions behind · ${etf.row_count||'—'} rows`;
-  setChip('s-etf',snapshotTooOld?'r':etfScore==null?qualityChip(hs.etf?.quality):scoreClass(etfScore),snapshotTooOld?'stale':etfScore==null?(hs.etf?.quality||'no data'):Math.round(etfScore)+'/100');
+  $('b-etf').innerHTML=etf5==null?esc(retainedNote(etf,v=>usd(v.flow_5d_usd))||'ETF source unavailable'):`${esc(etfFreshnessLabel(etf))} · latest <b>${etf.latest_date||'—'}</b> · expected <b>${etf.expected_latest_session||'—'}</b> · ${etf.sessions_behind??'—'} sessions behind · ${etf.row_count||'—'} rows`;
+  setChip('s-etf',snapshotTooOld?'r':etfScore==null?qualityChip(hs.etf?.quality):scoreClass(etfScore),snapshotTooOld?'stale':etfScore==null?sourceState(etf,hs.etf?.quality):Math.round(etfScore)+'/100');
   $('t-etf').textContent=etf.latest_date||'—';
 
   $('v-prem').textContent=prem==null?'—':(prem>=0?'+':'')+prem.toFixed(3)+'%'; $('v-prem').classList.toggle('stale',prem==null);
   $('b-prem').innerHTML=`Coinbase <b>${spot.coinbase_usd?('$'+Number(spot.coinbase_usd).toLocaleString()):'—'}</b> · Kraken <b>${spot.kraken_usd?('$'+Number(spot.kraken_usd).toLocaleString()):'—'}</b> · OKX <b>${spot.okx_usdt?('$'+Number(spot.okx_usdt).toLocaleString()):'—'}</b>`;
-  setChip('s-prem',snapshotTooOld?'r':spotScore==null?qualityChip(hs.spot?.quality):scoreClass(spotScore),snapshotTooOld?'stale':spotScore==null?(hs.spot?.quality||'no data'):Math.round(spotScore)+'/100');
-  $('t-prem').textContent=formatEtTime(d.generated_at);
+  setChip('s-prem',snapshotTooOld?'r':spotScore==null?qualityChip(hs.spot?.quality):scoreClass(spotScore),snapshotTooOld?'stale':spotScore==null?sourceState(spot,hs.spot?.quality):Math.round(spotScore)+'/100');
+  $('t-prem').textContent=retainedNote(spot,v=>(v.us_spot_premium_percent??'-')+'%')||formatEtTime(spot.observed_at||d.generated_at);
 
   const displayOi=!publicationBlocked&&usableQuality(hs.derivatives_oi?.quality)?(ag.core_comparable_oi_usd ?? ag.oi_usd):null;
   $('v-oi').textContent=usd(displayOi); $('v-oi').classList.toggle('stale',!displayOi);
   $('b-oi').innerHTML=venues.length?venues.map(v=>`<b>${v}</b>`).join(' · ')+(ag.core_comparable_status==='ok'?' · <b>fixed core complete</b>':' · core set incomplete'):'No working futures venues';
   setChip('s-oi',snapshotTooOld?'r':qualityChip(hs.derivatives_oi?.quality),snapshotTooOld?'stale':hs.derivatives_oi?.quality||'no data');
+  for(const [name,v] of Object.entries(d.derivatives?.venues||{})){if(v.last_verified)$('b-oi').innerHTML+=' <span>'+esc(name+': '+retainedNote(v,x=>usd(x.oi_usd)+' OI'))+'</span>';}
   $('oisrc').textContent=venues.join(' · ')||'working venues';
   $('t-oi').textContent=formatEtTime(d.generated_at);
 
   $('v-fund').textContent=fund==null?'—':(fund>=0?'+':'')+fund.toFixed(4)+'%'; $('v-fund').classList.toggle('stale',fund==null);
   $('b-fund').textContent=ag.funding_venues?.length?`weighted across ${ag.funding_venues.length} comparable funding venues: ${ag.funding_venues.join(', ')}`:'No comparable funding data';
-  setChip('s-fund',snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),snapshotTooOld?'stale':levHealth==null?(hs.funding?.quality||'no data'):levHealth>=65?'normal':levHealth>=40?'elevated':'crowded');
+  setChip('s-fund',snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),snapshotTooOld?'stale':levHealth==null?sourceState(d.derivatives,hs.funding?.quality):levHealth>=65?'normal':levHealth>=40?'elevated':'crowded');
   $('t-fund').textContent=formatEtTime(d.generated_at);
 
   $('v-lev').textContent=levHealth==null?'—':Math.round(levHealth)+'/100'; $('v-lev').classList.toggle('stale',levHealth==null);
   $('b-lev').textContent=fund==null?'No leverage health score':`weighted funding ${fund.toFixed(4)}% · ${venues.length} venues`;
-  setChip('s-lev',snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),snapshotTooOld?'stale':levHealth==null?(hs.funding?.quality||'no data'):levHealth>=65?'healthy':levHealth>=40?'mixed':'crowded');
-  $('t-lev').textContent=formatEtTime(d.generated_at);
+  setChip('s-lev',snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),snapshotTooOld?'stale':levHealth==null?sourceState(d.derivatives,hs.funding?.quality):levHealth>=65?'healthy':levHealth>=40?'mixed':'crowded');
+  $('t-lev').textContent=retainedNote(d.derivatives,v=>(v.aggregate?.funding_rate_percent??'-')+'% funding')||formatEtTime(d.generated_at);
 
   setChip('s-sq','n','incomplete');
   $('v-sq').textContent='INCOMPLETE';
@@ -921,14 +924,14 @@ function renderSnapshot(){
     demand, verdictWord:$('verdictWord').textContent, verdictSub:$('verdictSub').textContent,
     etfScore, spotScore, levHealth,
     etfBadgeClass:snapshotTooOld?'r':etfScore==null?qualityChip(hs.etf?.quality):scoreClass(etfScore),
-    etfBadge:snapshotTooOld?'stale':etfScore==null?(hs.etf?.quality||'no data'):statusWord(etfScore),
+    etfBadge:snapshotTooOld?'stale':etfScore==null?sourceState(etf,hs.etf?.quality):statusWord(etfScore),
     spotBadgeClass:snapshotTooOld?'r':spotScore==null?qualityChip(hs.spot?.quality):scoreClass(spotScore),
-    spotBadge:snapshotTooOld?'stale':spotScore==null?(hs.spot?.quality||'no data'):statusWord(spotScore),
+    spotBadge:snapshotTooOld?'stale':spotScore==null?sourceState(spot,hs.spot?.quality):statusWord(spotScore),
     levBadgeClass:snapshotTooOld?'r':levHealth==null?qualityChip(hs.funding?.quality):scoreClass(levHealth),
-    levBadge:snapshotTooOld?'stale':levHealth==null?(hs.funding?.quality||'no data'):statusWord(levHealth),
-    etfNote:etf5==null?unavailableHealthNote(hs.etf,'ETF'):`5-session net ${usd(etf5)} · latest ${etf.latest_date||'—'}${staleSuffix}`,
-    spotNote:prem==null?unavailableHealthNote(hs.spot,'spot'):`Coinbase + Kraken vs USDT-normalized OKX ${prem>=0?'+':''}${prem.toFixed(3)}%${staleSuffix}`,
-    levNote:fund==null?unavailableHealthNote(hs.funding,'funding'):`funding ${fund.toFixed(4)}% · ${ag.funding_venue_count||0} comparable funding venues${staleSuffix}`,
+    levBadge:snapshotTooOld?'stale':levHealth==null?sourceState(d.derivatives,hs.funding?.quality):statusWord(levHealth),
+    etfNote:etf5==null?(retainedNote(etf,v=>usd(v.flow_5d_usd))||unavailableHealthNote(hs.etf,'ETF')):`5-session net ${usd(etf5)} · latest ${etf.latest_date||'—'}${staleSuffix}`,
+    spotNote:prem==null?(retainedNote(spot,v=>(v.us_spot_premium_percent??'-')+'%')||unavailableHealthNote(hs.spot,'spot')):`Coinbase + Kraken vs USDT-normalized OKX ${prem>=0?'+':''}${prem.toFixed(3)}%${staleSuffix}`,
+    levNote:fund==null?(retainedNote(d.derivatives,v=>(v.aggregate?.funding_rate_percent??'-')+'% funding')||unavailableHealthNote(hs.funding,'funding')):`funding ${fund.toFixed(4)}% · ${ag.funding_venue_count||0} comparable funding venues${staleSuffix}`,
     etfMissing:snapshotTooOld?'Snapshot stale; ETF score disabled.':etf5==null?'ETF data is incomplete and is not scored as zero.':'ETF data loaded.',
     spotMissing:snapshotTooOld?'Snapshot stale; U.S. spot score disabled.':prem==null?'U.S. spot data is incomplete and is not scored as zero.':'Spot data loaded.',
     levMissing:snapshotTooOld?'Snapshot stale; leverage score disabled.':levHealth==null?'Leverage data is incomplete and is not scored as zero.':'Leverage data loaded.',

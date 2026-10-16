@@ -1,5 +1,6 @@
 import {
   num,
+  validateSnapshot,
   fiveSessionSpanDays,
   assessEtfFreshness,
   MAX_ETF_5_SESSION_SPAN_DAYS,
@@ -41,7 +42,7 @@ export function parseSosoEtfRows(j) {
     if (!x || typeof x !== "object" || Array.isArray(x)) throw new Error(`schema_error: ETF row ${index} is not an object`);
     const rawDate = x.date ?? x.timestamp ?? x.time;
     const timestamp = rowTimestamp(rawDate);
-    if (!Number.isFinite(timestamp)) throw new Error(`schema_error: ETF row ${index} has invalid date`);
+    if (!Number.isFinite(timestamp) || (typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) && isoDate(timestamp) !== rawDate)) throw new Error(`schema_error: ETF row ${index} has invalid date`);
     const rawFlow = x.totalNetInflow ?? x.dailyNetInflow ?? x.netInflow ?? x.flow_usd;
     const flow = num(rawFlow);
     if (flow == null) throw new Error(`schema_error: ETF row ${index} has missing/non-finite flow`);
@@ -57,6 +58,7 @@ export function buildEtfSnapshot(rows, { source, fetchedAt, nowMs }) {
 
   if (clean.length < 5) throw new Error(`insufficient_data: only ${clean.length} usable ETF rows`);
 
+  if (new Set(clean.map(x => isoDate(x.timestamp))).size !== clean.length) throw new Error("schema_error: duplicate ETF sessions");
   const latest = clean.at(-1);
   const freshness = assessEtfFreshness(latest.timestamp, nowMs);
   if (freshness.status === "invalid") throw new Error(`invalid_freshness: ${freshness.reason}`);
@@ -100,7 +102,7 @@ export function buildEtfSnapshot(rows, { source, fetchedAt, nowMs }) {
 }
 
 export function reusablePreviousEtf(snapshot, nowMs, fetchedAt) {
-  if (!snapshot?.etf || snapshot.etf.status !== "ok") return null;
+  if (!snapshot?.etf || snapshot.etf.status !== "ok" || !validateSnapshot(snapshot).ok) return null;
   const latestTimestamp = Date.parse(`${snapshot.etf.latest_date}T00:00:00Z`);
   const freshness = assessEtfFreshness(latestTimestamp, nowMs);
   if (!freshness.ok) return null;

@@ -13,7 +13,7 @@ export function shouldRecoverMarketSnapshot({ snapshot, nowMs = Date.now(), last
   const minutesSinceLastAttempt = Number.isFinite(lastAttemptMs)
     ? Math.floor((nowMs - lastAttemptMs) / 60000)
     : Infinity;
-  const stale = ageMinutes >= RECOVERY_STALE_MINUTES;
+  const stale = ageMinutes < -1 || ageMinutes >= RECOVERY_STALE_MINUTES;
   const throttled = minutesSinceLastAttempt < RECOVERY_MIN_TRIGGER_INTERVAL_MINUTES;
   return {
     shouldRecover: stale && !throttled,

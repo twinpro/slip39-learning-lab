@@ -15,7 +15,7 @@ function timestampMs(value) {
 }
 
 export function classifyDashboardFreshness(ageMinutes) {
-  if (!Number.isFinite(ageMinutes) || ageMinutes > BTC_STALE_MINUTES) return "stale";
+  if (!Number.isFinite(ageMinutes) || ageMinutes < -1 || ageMinutes > BTC_STALE_MINUTES) return "stale";
   return ageMinutes > BTC_FRESH_MINUTES ? "delayed" : "fresh";
 }
 

@@ -4,7 +4,8 @@ import { shouldRecoverMarketSnapshot } from "./btc-market-recovery-lib.mjs";
 const snapshotPath = process.env.BTC_MARKET_SNAPSHOT || new URL("../data/btc-market.json", import.meta.url);
 const sidecarPath = process.env.BTC_MARKET_HEALTH || new URL("../data/btc-market-health.json", import.meta.url);
 const outputPath = process.env.GITHUB_OUTPUT || "";
-const snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf8"));
+let snapshot = null;
+try { snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf8")); } catch {}
 let sidecar = {};
 
 try {

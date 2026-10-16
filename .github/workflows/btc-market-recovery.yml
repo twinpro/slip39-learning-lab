@@ -2,109 +2,49 @@ name: Recover BTC real-vs-paper data
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - "Update BTC macro weather data"
-      - "Update Bitcoin daily history"
-      - "Update Bitcoin monthly returns"
-    types: [completed]
+  workflow_call:
 
 permissions:
   contents: write
 
 concurrency:
-  group: btc-market-recovery
+  group: btc-market-writer
   cancel-in-progress: false
 
 jobs:
   recover:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-
+        with:
+          ref: main
       - uses: actions/setup-node@v5
         with:
-          node-version: "24"
-
-      - name: Check whether market snapshot needs recovery
-        id: recovery
-        run: node scripts/check-btc-market-recovery.mjs
-
-      - name: Stop when snapshot is still fresh enough
-        if: steps.recovery.outputs.should_recover != 'true'
-        run: echo "BTC market recovery not needed"
-
-      - name: Capture pre-run market timestamp
-        if: steps.recovery.outputs.should_recover == 'true'
-        run: |
-          node scripts/capture-btc-market-before.mjs
-
+          node-version: '24'
+      - name: Check collection cadence
+        id: cadence
+        run: node scripts/check-btc-collection-due.mjs
       - name: Run collector safety tests
-        if: steps.recovery.outputs.should_recover == 'true'
+        if: steps.cadence.outputs.due == 'true'
         run: node scripts/test-collector.mjs
-
       - name: Run history safety tests
-        if: steps.recovery.outputs.should_recover == 'true'
+        if: steps.cadence.outputs.due == 'true'
         run: node scripts/test-history.mjs
-
       - name: Run recovery gate tests
-        if: steps.recovery.outputs.should_recover == 'true'
+        if: steps.cadence.outputs.due == 'true'
         run: node scripts/test-btc-market-recovery.mjs
-
-      - name: Collect free public BTC market data
-        if: steps.recovery.outputs.should_recover == 'true'
+      - name: Run pipeline fault tests
+        if: steps.cadence.outputs.due == 'true'
+        run: node --test tests/btc-pipeline.test.mjs
+      - name: Collect, validate and stage verified data
         env:
           SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
-        run: node scripts/update-btc-market.mjs
-
-      - name: Verify fresh collection advanced timestamp
-        if: steps.recovery.outputs.should_recover == 'true'
-        run: node scripts/verify-btc-market-freshness.mjs after-collect
-
-      - name: Verify generated snapshot before publish
-        if: steps.recovery.outputs.should_recover == 'true'
-        id: snapshot_verify
-        continue-on-error: true
-        run: node scripts/verify-snapshot.mjs
-
-      - name: Write source-health status for this attempt
-        if: steps.recovery.outputs.should_recover == 'true'
-        run: node scripts/write-health-status.mjs
-
-      - name: Warn when snapshot verification is degraded
-        if: steps.recovery.outputs.should_recover == 'true' && steps.snapshot_verify.outcome != 'success'
-        run: echo "::warning::Snapshot verification failed; publishing degraded recovery attempt with source-health sidecar."
-
-      - name: Update hourly verified history
-        if: steps.recovery.outputs.should_recover == 'true' && steps.snapshot_verify.outcome == 'success'
-        run: node scripts/update-btc-history.mjs
-
-      - name: Verify history before publish
-        if: steps.recovery.outputs.should_recover == 'true' && steps.snapshot_verify.outcome == 'success'
-        run: node scripts/verify-history.mjs
-
-      - name: Commit recovered market JSON
-        if: steps.recovery.outputs.should_recover == 'true'
-        run: |
-          git config user.name "btc-data-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add data/btc-market.json data/btc-market-history.jsonl data/btc-market-health.json
-          if git diff --cached --quiet; then
-            echo "No recovered data change"
-          else
-            git commit -m "Recover BTC market data"
-            for attempt in 1 2 3; do
-              if git push; then
-                exit 0
-              fi
-              echo "::warning::git push failed on attempt ${attempt}; rebasing and retrying"
-              git pull --rebase --autostash origin main
-            done
-            git push
-          fi
-
-      - name: Verify recovered data was committed and pushed
-        if: steps.recovery.outputs.should_recover == 'true'
-        run: node scripts/verify-btc-market-freshness.mjs after-commit
+        if: steps.cadence.outputs.due == 'true'
+        run: node scripts/publish-btc-market.mjs
+      - name: Print compact source health
+        if: steps.cadence.outputs.due == 'true'
+        run: node scripts/report-health.mjs
+      - name: Commit and verify remote publication
+        if: steps.cadence.outputs.due == 'true'
+        run: node scripts/commit-btc-market.mjs

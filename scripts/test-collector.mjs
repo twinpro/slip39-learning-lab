@@ -157,7 +157,9 @@ function sosoPayload(rows) {
   const previous = goodSnapshot();
   previous.generated_at = "2026-09-09T01:00:00Z";
   previous.etf.latest_date = "2026-09-08";
+  previous.etf.last_5_trading_sessions.forEach((r,i) => r.date = `2026-09-${String(4+i).padStart(2,"0")}`);
   previous.etf.freshness_status = "fresh";
+  previous.health = computeSourceHealth(previous);
   const preserved = reusablePreviousEtf(previous, Date.parse("2026-09-09T15:00:00Z"), "2026-09-09T15:00:00Z");
   check("fresh previous ETF snapshot can be preserved after HTTP 500 or 429", preserved?.source_status === "preserved_after_refresh_failure", JSON.stringify(preserved));
 }
@@ -260,6 +262,7 @@ function goodSnapshot() {
   const d = goodSnapshot();
   d.generated_at = "2026-08-25T00:24:00Z";
   d.etf.latest_date = "2026-08-21";
+  d.etf.last_5_trading_sessions.forEach((r,i) => r.date = `2026-08-${17+i}`);
   d.etf.latest_age_days = 4.02;
   d.health = computeSourceHealth(d);
   const v = validateSnapshot(d);
@@ -269,6 +272,7 @@ function goodSnapshot() {
   const d = goodSnapshot();
   d.generated_at = "2026-08-26T00:00:00Z";
   d.etf.latest_date = "2026-08-21";
+  d.etf.last_5_trading_sessions.forEach((r,i) => r.date = `2026-08-${17+i}`);
   d.etf.latest_age_days = 5;
   d.health = computeSourceHealth(d);
   const v = validateSnapshot(d);
@@ -278,6 +282,7 @@ function goodSnapshot() {
   const d = goodSnapshot();
   d.generated_at = "2026-08-27T00:30:00Z";
   d.etf.latest_date = "2026-08-21";
+  d.etf.last_5_trading_sessions.forEach((r,i) => r.date = `2026-08-${17+i}`);
   d.etf.latest_age_days = 6;
   d.health = computeSourceHealth(d);
   const v = validateSnapshot(d);
