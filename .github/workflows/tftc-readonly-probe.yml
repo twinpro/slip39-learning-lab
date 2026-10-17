@@ -1,0 +1,102 @@
+name: TFTC read-only access research
+
+on:
+  push:
+    branches: [codex/etf-source-review]
+    paths: [.github/workflows/tftc-readonly-probe.yml]
+
+# No checkout, secrets, artifact upload, deployments, issue access or write token.
+permissions: {}
+
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/codex/etf-source-review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: One public GET; print access and schema diagnostics only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import datetime, hashlib, json, math, urllib.request, urllib.error
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          url = 'https://www.tftc.io/bitcoin-etf-flows/data.json'
+          report = {'url': url, 'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+          try:
+              opener = urllib.request.build_opener(NoRedirect)
+              try:
+                  response = opener.open(url, timeout=20)
+              except urllib.error.HTTPError as error:
+                  response = error
+              with response:
+                  body = response.read(2000001)
+                  report.update(status=response.status, headers={k: response.headers.get(k) for k in ['Date', 'Content-Type', 'Cache-Control', 'Age', 'ETag', 'Last-Modified', 'Retry-After', 'RateLimit-Limit', 'RateLimit-Remaining', 'X-Vercel-Cache', 'Location']}, bytes=len(body), sha256=hashlib.sha256(body).hexdigest())
+              if len(body) > 2000000:
+                  raise ValueError('response exceeds 2 MB diagnostic cap')
+              if report['status'] != 200:
+                  raise ValueError('access denied or unexpected HTTP status; no retry')
+              if 'application/json' not in (report['headers']['Content-Type'] or '').lower():
+                  raise ValueError('unexpected content type')
+              data = json.loads(body)
+              rows = data.get('days')
+              if data.get('units') != 'USD' or not isinstance(rows, list) or not rows:
+                  raise ValueError('missing USD units or daily rows')
+              dates = []
+              invalid = []
+              for i, row in enumerate(rows):
+                  value = row.get('netFlowUsd')
+                  date = row.get('date')
+                  try:
+                      valid_date = isinstance(date, str) and datetime.date.fromisoformat(date).isoformat() == date
+                  except (ValueError, TypeError):
+                      valid_date = False
+                  if not valid_date or isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                      invalid.append(i)
+                  dates.append(date)
+              duplicate_count = len(dates) - len(set(dates))
+              report['schema'] = {'top_keys': sorted(data), 'row_keys': sorted(set().union(*(row.keys() for row in rows))), 'units': data.get('units'), 'updatedThrough': data.get('updatedThrough'), 'row_count': len(rows), 'first_date': dates[0], 'last_date': dates[-1], 'duplicate_dates': duplicate_count, 'invalid_rows': invalid, 'zero_aggregate_rows': sum(row.get('netFlowUsd') == 0 for row in rows), 'null_fund_rows': sum(row.get('perEtfUsd') is None for row in rows), 'license': data.get('license')}
+              if invalid or duplicate_count or dates != sorted(dates) or dates[-1] != data.get('updatedThrough'):
+                  raise ValueError('date, ordering or flow validation failed')
+              # Diagnostic roster only: the documented October 2026 US spot funds.
+              # Do not apply today's roster to historical rows or infer finality.
+              expected_funds = set('BTC ARKB BITB BRRR BTCO BTCW EZBC FBTC GBTC HODL IBIT MSBT'.split())
+              latest = rows[-1]
+              funds = latest.get('perEtfUsd')
+              funds = funds if isinstance(funds, dict) else {}
+              numeric = lambda value: not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
+              missing_funds = sorted(expected_funds - set(funds))
+              invalid_funds = sorted(key for key, value in funds.items() if not numeric(value))
+              unexpected_funds = sorted(set(funds) - expected_funds)
+              sum_delta = sum(funds.values()) - latest['netFlowUsd'] if funds and not invalid_funds else None
+              calendar_2026 = set('2026-01-01 2026-01-19 2026-02-16 2026-04-03 2026-05-25 2026-06-19 2026-07-03 2026-09-07 2026-11-26 2026-12-25'.split())
+              latest_date = datetime.date.fromisoformat(latest['date'])
+              is_known_session = latest_date.weekday() < 5 and latest['date'] not in calendar_2026 if latest_date.year == 2026 else None
+              from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+              try:
+                  now_et = datetime.datetime.now(ZoneInfo('America/New_York'))
+                  due = now_et.date() if now_et.hour >= 20 else now_et.date() - datetime.timedelta(days=1)
+                  while due.weekday() >= 5 or due.isoformat() in calendar_2026:
+                      due -= datetime.timedelta(days=1)
+              except ZoneInfoNotFoundError:
+                  now_et, due = None, None
+              report['latest_session'] = {
+                  'date': latest['date'], 'is_2026_trading_session': is_known_session,
+                  'expected_report_session_at_20_et_cutoff': due.isoformat() if due and due.year == 2026 else None,
+                  'clock_et': now_et.isoformat() if now_et else None, 'fund_count': len(funds),
+                  'missing_funds': missing_funds, 'invalid_funds': invalid_funds, 'unexpected_funds': unexpected_funds,
+                  'fund_sum_minus_aggregate_usd': sum_delta,
+                  'structurally_complete': bool(is_known_session and not missing_funds and not invalid_funds and not unexpected_funds and sum_delta is not None and abs(sum_delta) < 0.01),
+                  'finality': 'potentially_provisional',
+                  'reason': 'Numeric coverage and a matching date do not establish final reporting; no verified publication/finality/revision contract.'
+              }
+              report['result'] = 'access_and_basic_schema_pass_only'
+          except Exception as error:
+              report['result'] = 'failed'
+              report['error'] = str(error)
+          report['finished_utc'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+          print(json.dumps(report, indent=2))
+          if report['result'] == 'failed':
+              raise SystemExit(1)
+          PY
