@@ -1,7 +1,7 @@
 {
   "schema": 12,
   "release": "V12.3",
-  "generated_at": "2026-10-17T22:18:44.769Z",
+  "generated_at": "2026-10-17T22:48:42.907Z",
   "cost": "$0",
   "api_keys_required": false,
   "api_keys": [],
@@ -14,7 +14,7 @@
     "hyperliquid": "ok",
     "kraken_futures": "ok",
     "kraken_funding": "ok",
-    "bybit": "error (optional; not relied upon)",
+    "bybit": "ok (optional; not core)",
     "kraken_spot": "ok",
     "spot": "ok",
     "usdt_usd": "ok: coinbase+kraken"
@@ -28,26 +28,26 @@
       "okx": {
         "status": "ok",
         "contract": "BTC-USDT-SWAP",
-        "observed_at": "2026-10-17T22:18:43.253Z",
-        "oi_usd": 2486625561.7032065,
-        "oi_btc": 30615.51200000008,
-        "funding_rate_percent": 0.006376921101069999,
+        "observed_at": "2026-10-17T22:48:41.089Z",
+        "oi_usd": 2489875882.9098864,
+        "oi_btc": 30586.20190000008,
+        "funding_rate_percent": 0.00561704835452,
         "funding_interval_hours": 8,
-        "mark_price": 81200.1,
+        "mark_price": 81404.3,
         "timestamp_basis": "provider",
-        "implied_btc": 30623.4298,
+        "implied_btc": 30586.5401,
         "unit_check": "ok"
       },
       "deribit": {
         "status": "ok",
         "contract": "BTC-PERPETUAL",
-        "observed_at": "2026-10-17T22:18:43.461Z",
-        "oi_usd": 842690940,
-        "funding_rate_percent": 0.00363,
+        "observed_at": "2026-10-17T22:48:41.374Z",
+        "oi_usd": 844318740,
+        "funding_rate_percent": 0.003697,
         "funding_interval_hours": 8,
-        "mark_price": 81152.08,
+        "mark_price": 81363.75,
         "timestamp_basis": "provider",
-        "implied_btc": 10384.0954,
+        "implied_btc": 10377.0873,
         "unit_check": "ok"
       },
       "bitmex": {
@@ -57,25 +57,25 @@
       "hyperliquid": {
         "status": "ok",
         "contract": "BTC perpetual",
-        "oi_usd": 3366575326.98,
-        "oi_btc": 41458.245,
-        "funding_rate_percent": 0.00590112,
+        "oi_usd": 3372575004.39228,
+        "oi_btc": 41427.54492,
+        "funding_rate_percent": 0.00568,
         "funding_interval_hours": 8,
         "funding_source_interval_hours": 1,
-        "mark_price": 81204,
-        "observed_at": "2026-10-17T22:18:44.523Z",
+        "mark_price": 81409,
+        "observed_at": "2026-10-17T22:48:42.706Z",
         "timestamp_basis": "response_received",
-        "implied_btc": 41458.245,
+        "implied_btc": 41427.5449,
         "unit_check": "ok"
       },
       "kraken": {
         "status": "ok",
-        "observed_at": "2026-10-17T22:18:44.132Z",
+        "observed_at": "2026-10-17T22:48:42.076Z",
         "symbol": "PI_XBTUSD",
         "contract": "PI_XBTUSD (inverse; 1 contract = 1 USD; openInterest is USD notional)",
-        "oi_usd": 2204602,
-        "open_interest_raw": 2204602,
-        "mark_price": 81137.76660915457,
+        "oi_usd": 2208032,
+        "open_interest_raw": 2208032,
+        "mark_price": 81392.7001751374,
         "funding_rate_absolute_raw": 8.22924437e-10,
         "funding_rate_percent": 0.05335108,
         "funding_interval_hours": 8,
@@ -84,13 +84,20 @@
         "funding_note": "Comparable relative Kraken funding is sourced from the public historical funding endpoint and normalized to an 8-hour equivalent.",
         "funding_analytics_error": null,
         "timestamp_basis": "provider",
-        "implied_btc": 27.1711,
+        "implied_btc": 27.1281,
         "unit_check": "ok"
       },
       "bybit": {
-        "status": "error",
+        "status": "ok",
         "core": false,
-        "error": "HTTP 403 Forbidden"
+        "observed_at": "2026-10-17T22:48:42.586Z",
+        "oi_usd": 4883434056.82,
+        "oi_btc": 59987.255,
+        "funding_rate_percent": 0.004588,
+        "mark_price": 81407.86,
+        "timestamp_basis": "provider",
+        "implied_btc": 59987.255,
+        "unit_check": "ok"
       }
     },
     "aggregate": {
@@ -102,8 +109,8 @@
         "hyperliquid",
         "kraken"
       ],
-      "oi_usd": 6698096430.683207,
-      "funding_rate_percent": 0.0058076449661289475,
+      "oi_usd": 6708977659.302166,
+      "funding_rate_percent": 0.005422767577593172,
       "funding_venue_count": 4,
       "funding_venues": [
         "okx",
@@ -134,19 +141,19 @@
   },
   "spot": {
     "status": "ok",
-    "observed_at": "2026-10-17T22:18:44.769Z",
+    "observed_at": "2026-10-17T22:48:42.907Z",
     "timestamp_basis": "validated provider timestamps; Kraken response received",
     "source": "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
-    "coinbase_usd": 81131.4,
-    "kraken_usd": 81134.9,
-    "us_spot_average_usd": 81133.15,
-    "okx_usdt": 81235.1,
-    "coinbase_usdt_usd": 0.99872,
-    "kraken_usdt_usd": 0.99868,
-    "usdt_usd": 0.9987,
-    "okx_usd_equivalent": 81129.49437000001,
-    "us_spot_premium_percent_raw": -0.1255,
-    "us_spot_premium_percent": 0.0045,
+    "coinbase_usd": 81345.11,
+    "kraken_usd": 81343.3,
+    "us_spot_average_usd": 81344.205,
+    "okx_usdt": 81444.7,
+    "coinbase_usdt_usd": 0.99871,
+    "kraken_usdt_usd": 0.99872,
+    "usdt_usd": 0.998715,
+    "okx_usd_equivalent": 81340.0435605,
+    "us_spot_premium_percent_raw": -0.1234,
+    "us_spot_premium_percent": 0.0051,
     "premium_status": "usdt_normalized",
     "note": "OKX BTC-USDT is converted to USD using live Coinbase/Kraken USDT-USD before comparison."
   },
@@ -157,7 +164,7 @@
   },
   "health": {
     "schema": 1,
-    "assessed_at": "2026-10-17T22:18:44.769Z",
+    "assessed_at": "2026-10-17T22:48:42.907Z",
     "overall": {
       "quality": "unknown",
       "reason": "At least one required scored component is not fully verified."
@@ -191,9 +198,9 @@
         "excluded_from_overall": true
       },
       "bybit": {
-        "quality": "unknown",
+        "quality": "verified",
         "coverage": "optional",
-        "reason": "Bybit is unavailable and has no effect on dashboard health.",
+        "reason": "Bybit is available but excluded from the fixed core.",
         "optional": true
       }
     }
