@@ -157,7 +157,8 @@ function sosoPayload(rows) {
   const previous = goodSnapshot();
   previous.generated_at = "2026-09-09T01:00:00Z";
   previous.etf.latest_date = "2026-09-08";
-  previous.etf.last_5_trading_sessions.forEach((r,i) => r.date = `2026-09-${String(4+i).padStart(2,"0")}`);
+  // Five actual equity sessions; September 5-7 are weekend/Labor Day.
+  previous.etf.last_5_trading_sessions.forEach((r,i) => r.date = ['2026-09-01','2026-09-02','2026-09-03','2026-09-04','2026-09-08'][i]);
   previous.etf.freshness_status = "fresh";
   previous.health = computeSourceHealth(previous);
   const preserved = reusablePreviousEtf(previous, Date.parse("2026-09-09T15:00:00Z"), "2026-09-09T15:00:00Z");
@@ -211,8 +212,8 @@ function goodSnapshot() {
     generated_at:"2026-08-22T18:00:00Z",
     sources:{},
     etf:{
-      status:"ok", latest_date:"2026-08-22", latest_age_days:0, flow_5d_usd:150,
-      last_5_trading_sessions:[1,2,3,4,5].map((x,i)=>({date:`2026-08-${18+i}`,flow_usd:x*10}))
+      status:"ok", source:"SoSoValue official API v2", latest_date:"2026-08-21", latest_age_days:1.75, flow_5d_usd:150,
+      last_5_trading_sessions:[1,2,3,4,5].map((x,i)=>({date:`2026-08-${17+i}`,flow_usd:x*10}))
     },
     derivatives:{ venues:venueRows, aggregate:{
       status:"ok", core_expected_venues:[...CORE_VENUES], core_working_venues:[...CORE_VENUES],
@@ -240,11 +241,11 @@ function goodSnapshot() {
   const d = goodSnapshot();
   d.etf.flow_5d_usd = 0;
   d.etf.last_5_trading_sessions = [
-    { date:"2026-08-18", flow_usd:100 },
-    { date:"2026-08-19", flow_usd:-100 },
-    { date:"2026-08-20", flow_usd:0 },
-    { date:"2026-08-21", flow_usd:25 },
-    { date:"2026-08-22", flow_usd:-25 }
+    { date:"2026-08-17", flow_usd:100 },
+    { date:"2026-08-18", flow_usd:-100 },
+    { date:"2026-08-19", flow_usd:0 },
+    { date:"2026-08-20", flow_usd:25 },
+    { date:"2026-08-21", flow_usd:-25 }
   ];
   d.health = computeSourceHealth(d);
   const v = validateSnapshot(d);

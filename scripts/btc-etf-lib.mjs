@@ -1,6 +1,7 @@
 import {
   num,
-  validateSnapshot,
+  historicalEtfReading,
+  completeEtfWindow,
   fiveSessionSpanDays,
   assessEtfFreshness,
   MAX_ETF_5_SESSION_SPAN_DAYS,
@@ -80,6 +81,9 @@ export function buildEtfSnapshot(rows, { source, fetchedAt, nowMs }) {
   }
 
   const last5 = clean.slice(-5);
+  if (!completeEtfWindow({last_5_trading_sessions: last5.map(row => ({date: isoDate(row.timestamp)}))})) {
+    throw new Error('insufficient_data: ETF scoring requires five consecutive trading sessions');
+  }
   return {
     status: "ok",
     source,
@@ -102,7 +106,8 @@ export function buildEtfSnapshot(rows, { source, fetchedAt, nowMs }) {
 }
 
 export function reusablePreviousEtf(snapshot, nowMs, fetchedAt) {
-  if (!snapshot?.etf || snapshot.etf.status !== "ok" || !validateSnapshot(snapshot).ok) return null;
+  if (snapshot?.schema !== 12 || snapshot?.etf?.status !== 'ok' || !historicalEtfReading(snapshot, nowMs) ||
+    !completeEtfWindow(snapshot.etf) || fiveSessionSpanDays(snapshot.etf.last_5_trading_sessions.map(row => ({timestamp: Date.parse(`${row.date}T00:00:00Z`)}))) > MAX_ETF_5_SESSION_SPAN_DAYS) return null;
   const latestTimestamp = Date.parse(`${snapshot.etf.latest_date}T00:00:00Z`);
   const freshness = assessEtfFreshness(latestTimestamp, nowMs);
   if (!freshness.ok) return null;

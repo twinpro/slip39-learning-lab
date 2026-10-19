@@ -1,7 +1,13 @@
-import { validateSnapshot, computeSourceHealth, buildHealthStatus, guardVenueUnits } from './btc-lib.mjs';
+import { validateSnapshot, validateHistoricalSnapshot, historicalEtfReading, computeSourceHealth, buildHealthStatus, guardVenueUnits } from './btc-lib.mjs';
 
 export function preserveVerifiedReadings(next, previous) {
-  if (!previous || !validateSnapshot(previous).ok || Date.parse(previous.generated_at) > Date.parse(next.generated_at)) return;
+  // Preserve ETF observations independently of age, derived freshness metadata,
+  // and outages in unrelated sections. Retained values never set status to ok.
+  if (next.etf && next.etf.status !== 'ok') {
+    const saved = historicalEtfReading(previous, Date.parse(next.generated_at));
+    if (saved) next.etf.last_verified = saved;
+  }
+  if (!previous || !validateHistoricalSnapshot(previous).ok || Date.parse(previous.generated_at) > Date.parse(next.generated_at)) return;
   for (const [name, current] of Object.entries(next.derivatives?.venues || {})) {
     const old = previous.derivatives?.venues?.[name];
     if (current.status === 'ok' || !old) continue;
@@ -14,7 +20,7 @@ export function preserveVerifiedReadings(next, previous) {
       if (Date.parse(saved.observed_at) <= Date.parse(next.generated_at) && saved.value?.status === 'ok' && guardVenueUnits(checked).length === 0) current.last_verified = saved;
     }
   }
-  for (const name of ['etf', 'spot', 'derivatives']) {
+  for (const name of ['spot', 'derivatives']) {
     const current = next[name];
     const old = previous[name];
     const healthKeys = name === 'derivatives' ? ['derivatives_oi', 'funding'] : [name];

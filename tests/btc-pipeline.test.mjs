@@ -1,4 +1,7 @@
 import test from 'node:test';
+// Keep calendar regressions in the existing pipeline test command used by Actions.
+import './btc-etf-freshness.test.mjs';
+import './btc-etf-compatibility.test.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';

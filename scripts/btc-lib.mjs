@@ -78,8 +78,7 @@ export function assessEtfFreshness(latestTimestamp, nowTimestamp) {
   const latestDay = Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth(), latest.getUTCDate());
   const nowEt = easternDateParts(nowTimestamp);
   const nowEtDay = Date.UTC(nowEt.year, nowEt.month - 1, nowEt.day);
-  const latestCompletedSession = latestCompletedEtfSession(nowEtDay, nowEt.hour);
-  const latestExpectedReportDay = nowEt.hour >= ETF_REPORT_READY_HOUR_ET ? latestCompletedSession : previousEtfTradingSession(latestCompletedSession);
+  const latestExpectedReportDay = latestExpectedEtfReportSession(nowEtDay, nowEt.hour);
   const weekdaysElapsed = countUtcWeekdaysExclusive(latestDay, nowEtDay);
   const sessionsBehind = countEtfReportSessionsExclusive(latestDay, latestExpectedReportDay);
   const latestDataDate = new Date(latestDay).toISOString().slice(0, 10);
@@ -130,9 +129,14 @@ function previousCalendarDay(dayTimestamp) {
   return dayTimestamp - 86_400_000;
 }
 
-function latestCompletedEtfSession(nowEtDay, nowEtHour) {
-  const todayCompleted = nowEtHour >= ETF_MARKET_CLOSE_HOUR_ET && isUsEtfTradingDay(nowEtDay);
-  return todayCompleted ? nowEtDay : previousEtfTradingSession(nowEtDay);
+function latestExpectedEtfReportSession(nowEtDay, nowEtHour) {
+  // The cutoff belongs to each trading date, not to the date of this check.
+  // Every earlier session has already passed its 20:00 America/New_York cutoff.
+  // This also holds on weekends, holidays and mornings before market close;
+  // never step back a second session just because today's cutoff is still ahead.
+  // Early-close sessions retain the existing 20:00 reporting allowance.
+  const todayDue = isUsEtfTradingDay(nowEtDay) && nowEtHour >= ETF_REPORT_READY_HOUR_ET;
+  return todayDue ? nowEtDay : previousEtfTradingSession(nowEtDay);
 }
 
 function previousEtfTradingSession(dayTimestamp) {
@@ -166,8 +170,14 @@ function isUsEtfTradingDay(dayTimestamp) {
   return !usMarketHolidayKeys(date.getUTCFullYear()).has(date.toISOString().slice(0, 10));
 }
 
+// Extraordinary full-day equity closures in the U.S. spot-BTC ETF era (2024+).
+// Maintain from exchange notices; a provider delay is not a calendar closure.
+// https://www.nasdaqtrader.com/TraderNews.aspx?id=ETA2024-87
+const EXTRAORDINARY_US_MARKET_CLOSURES = ['2025-01-09'];
+
 function usMarketHolidayKeys(year) {
   return new Set([
+    ...EXTRAORDINARY_US_MARKET_CLOSURES.filter(date => date.startsWith(`${year}-`)),
     observedFixedHoliday(year, 0, 1),
     nthWeekdayOfMonth(year, 0, 1, 3),
     nthWeekdayOfMonth(year, 1, 1, 3),
@@ -458,7 +468,17 @@ export function guardVenueUnits(venues) {
   return rejected;
 }
 
+// Historical validity is independent of today's reporting policy. Neither this
+// function nor a retained reading grants eligibility for current publication.
+export function validateHistoricalSnapshot(d) {
+  return validateSnapshotRecord(d, false);
+}
+
 export function validateSnapshot(d) {
+  return validateSnapshotRecord(d, true);
+}
+
+function validateSnapshotRecord(d, requireCurrentEtf) {
   const errors = [];
   const warnings = [];
   const fail = m => errors.push(m);
@@ -488,7 +508,12 @@ export function validateSnapshot(d) {
   if (optionalRejected.length) warn(`unit guard rejected optional venue(s): ${optionalRejected.join(", ")}`);
 
   const etf = d.etf || {};
+  if (etf.last_verified && !historicalEtfReading({ schema: 12, generated_at: d.generated_at,
+    etf: { status: 'unavailable', last_verified: etf.last_verified } }, Date.parse(d.generated_at))) {
+    fail('ETF last_verified failed historical integrity/provenance validation');
+  }
   if (etf.status === "ok") {
+    for (const error of validateEtfReading(etf, d.generated_at).errors) fail(error);
     const rows = Array.isArray(etf.last_5_trading_sessions) ? etf.last_5_trading_sessions : [];
     if (rows.length !== 5) fail(`ETF status ok but last_5_trading_sessions has ${rows.length} rows`);
     const flows = rows.map(r => num(r?.flow_usd));
@@ -502,14 +527,17 @@ export function validateSnapshot(d) {
       const sum = flows.reduce((a, b) => a + b, 0);
       if (!approxEqual(sum, num(etf.flow_5d_usd), 1e-10, 0.01)) fail("ETF flow_5d_usd does not equal the five session rows");
     }
-    const age = num(etf.latest_age_days);
-    if (age == null || age < -1 || age > MAX_ETF_ABSOLUTE_AGE_DAYS) fail(`ETF latest_age_days out of guard range: ${etf.latest_age_days}`);
-    const latestTimestamp = Date.parse(`${etf.latest_date}T00:00:00Z`);
-    const freshness = assessEtfFreshness(latestTimestamp, Date.parse(d.generated_at));
-    if (!freshness.ok) fail(`ETF latest_date failed ${freshness.reason} freshness guard`);
-    if (etf.freshness_status && etf.freshness_status !== freshness.status) fail(`ETF freshness_status must be ${freshness.status}, got ${etf.freshness_status}`);
-    if (etf.expected_latest_session && etf.expected_latest_session !== freshness.expectedLatestSession) fail(`ETF expected_latest_session must be ${freshness.expectedLatestSession}, got ${etf.expected_latest_session}`);
-    if (num(etf.sessions_behind) != null && num(etf.sessions_behind) !== freshness.sessionsBehind) fail(`ETF sessions_behind must be ${freshness.sessionsBehind}, got ${etf.sessions_behind}`);
+    if (requireCurrentEtf) {
+      if (!completeEtfWindow(etf)) fail('ETF current scoring requires five consecutive trading sessions');
+      const age = num(etf.latest_age_days);
+      if (age == null || age < -1 || age > MAX_ETF_ABSOLUTE_AGE_DAYS) fail(`ETF latest_age_days out of guard range: ${etf.latest_age_days}`);
+      const latestTimestamp = Date.parse(`${etf.latest_date}T00:00:00Z`);
+      const freshness = assessEtfFreshness(latestTimestamp, Date.parse(d.generated_at));
+      if (!freshness.ok) fail(`ETF latest_date failed ${freshness.reason} freshness guard`);
+      if (etf.freshness_status && etf.freshness_status !== freshness.status) fail(`ETF freshness_status must be ${freshness.status}, got ${etf.freshness_status}`);
+      if (etf.expected_latest_session && etf.expected_latest_session !== freshness.expectedLatestSession) fail(`ETF expected_latest_session must be ${freshness.expectedLatestSession}, got ${etf.expected_latest_session}`);
+      if (num(etf.sessions_behind) != null && num(etf.sessions_behind) !== freshness.sessionsBehind) fail(`ETF sessions_behind must be ${freshness.sessionsBehind}, got ${etf.sessions_behind}`);
+    }
     if (etf.source_status && !["ok", "preserved_after_refresh_failure"].includes(etf.source_status)) fail(`ETF source_status is invalid: ${etf.source_status}`);
     if (etf.endpoint && typeof etf.endpoint !== "string") fail("ETF endpoint must be a string");
   } else {
@@ -606,4 +634,71 @@ export function validateSnapshot(d) {
   if (dead) fail("ETF, derivatives aggregate, and spot are all unavailable; refuse dead snapshot");
 
   return { ok: errors.length === 0, errors, warnings };
+}
+
+// Validate observations, not cached age/expected-session/health classifications.
+// Legacy v9/v10 use last_5_trading_days; preserve that original field verbatim.
+export function validateEtfReading(etf, recordedAt, { legacy = false } = {}) {
+  const errors = [];
+  const fail = message => errors.push(message);
+  const recorded = Date.parse(recordedAt);
+  const rows = etf?.last_5_trading_sessions ?? (legacy ? etf?.last_5_trading_days : undefined);
+  const validDate = date => typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+    Number.isFinite(Date.parse(`${date}T00:00:00Z`)) && new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) === date;
+  if (etf?.status !== 'ok' || !Number.isFinite(recorded)) fail('ETF reading status or recorded timestamp invalid');
+  if (!Array.isArray(rows) || rows.length !== 5) fail('ETF reading requires five observations');
+  const finiteFlow = value => num(value) != null && Math.abs(num(value)) <= 25000000000;
+  const sameObservations = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length &&
+    a.every((row, i) => row?.date === b[i]?.date && num(row?.flow_usd) === num(b[i]?.flow_usd));
+  if (Array.isArray(rows)) {
+    if (rows.some((row, i) => !validDate(row?.date) || Date.parse(`${row.date}T00:00:00Z`) > recorded ||
+      (i > 0 && row.date <= rows[i - 1]?.date) || !finiteFlow(row?.flow_usd))) fail('ETF reading dates/flows are invalid, duplicate, unordered, future or outside sanity cap');
+    if (rows.at(-1)?.date !== etf.latest_date) fail('ETF reading latest date disagrees with observations');
+    if (num(etf.flow_5d_usd) == null || !approxEqual(rows.reduce((sum, row) => sum + num(row?.flow_usd), 0), num(etf.flow_5d_usd), 1e-10, .01)) fail('ETF reading aggregate disagrees with observations');
+    if (etf.last_5_trading_days && !sameObservations(etf.last_5_trading_days, rows)) fail('ETF reading aliases disagree');
+  }
+  if (etf?.fetched_at != null && (!Number.isFinite(Date.parse(etf.fetched_at)) || Date.parse(etf.fetched_at) > recorded)) fail('ETF fetched_at invalid or after recorded timestamp');
+  if (etf?.source_status && !['ok', 'preserved_after_refresh_failure'].includes(etf.source_status)) fail('ETF reading source_status invalid');
+  if (etf?.endpoint != null && typeof etf.endpoint !== 'string') fail('ETF reading endpoint invalid');
+  if (etf?.history != null) {
+    if (!Array.isArray(etf.history) || etf.history.length < 5 || etf.history.some((row, i) =>
+      !Number.isFinite(row?.timestamp) || row.timestamp % 86400000 !== 0 || row.timestamp > recorded ||
+      (i > 0 && row.timestamp <= etf.history[i - 1].timestamp) || !finiteFlow(row.flow_usd))) fail('ETF historical observations invalid');
+    else if (!sameObservations(etf.history.slice(-5).map(row => ({date: new Date(row.timestamp).toISOString().slice(0, 10), flow_usd: row.flow_usd})), rows)) fail('ETF history tail disagrees with five-session observations');
+  }
+  return { ok: errors.length === 0, errors };
+}
+
+export function completeEtfWindow(etf) {
+  const rows = etf?.last_5_trading_sessions;
+  if (!Array.isArray(rows) || rows.length !== 5) return false;
+  return rows.every((row, i) => {
+    const date = Date.parse(`${row?.date}T00:00:00Z`);
+    return Number.isFinite(date) && isUsEtfTradingDay(date) &&
+      (i === 0 || previousEtfTradingSession(date) === Date.parse(`${rows[i - 1].date}T00:00:00Z`));
+  });
+}
+
+export function historicalEtfReading(snapshot, nowMs) {
+  if (![9, 10, 12].includes(snapshot?.schema) || !Number.isFinite(nowMs)) return null;
+  const generated = Date.parse(snapshot.generated_at);
+  if (!Number.isFinite(generated) || generated > nowMs) return null;
+  const saved = snapshot.etf?.status === 'ok' ? {
+    observed_at: snapshot.etf.observed_at || snapshot.etf.fetched_at || snapshot.generated_at,
+    validated_at: snapshot.generated_at,
+    value: snapshot.etf,
+    provenance: { snapshot_schema: snapshot.schema, generated_at: snapshot.generated_at,
+      sources: snapshot.sources || {}, etf_health: snapshot.health?.sections?.etf || null }
+  } : snapshot.etf?.last_verified;
+  if (!saved || !saved.value || saved.value.last_verified) return null;
+  const schema = saved.provenance?.snapshot_schema ?? snapshot.schema;
+  if (![9, 10, 12].includes(schema)) return null;
+  const observed = Date.parse(saved.observed_at), validated = Date.parse(saved.validated_at || saved.observed_at);
+  if (!Number.isFinite(observed) || !Number.isFinite(validated) || observed > validated || validated > generated) return null;
+  if (saved.provenance && saved.provenance.generated_at !== saved.validated_at) return null;
+  const source = saved.value.source;
+  if (typeof source !== 'string' || !source.trim()) return null;
+  if (saved.value.fetched_at && saved.observed_at !== (saved.value.observed_at || saved.value.fetched_at)) return null;
+  if (!validateEtfReading(saved.value, saved.validated_at || saved.observed_at, {legacy: schema < 12}).ok) return null;
+  return structuredClone(saved);
 }
