@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "attempted_at": "2026-10-30T02:49:06.767Z",
+  "attempted_at": "2026-10-30T03:19:06.631Z",
   "snapshot_valid": true,
-  "last_successful_at": "2026-10-30T02:49:06.767Z",
+  "last_successful_at": "2026-10-30T03:19:06.631Z",
   "health": {
     "schema": 1,
-    "assessed_at": "2026-10-30T02:49:06.767Z",
+    "assessed_at": "2026-10-30T03:19:06.631Z",
     "overall": {
       "quality": "unknown",
       "reason": "At least one required scored component is not fully verified."
@@ -18,18 +18,18 @@
         "verification_depth": 0
       },
       "spot": {
-        "quality": "unknown",
-        "coverage": "0/3 BTC legs · 0/2 peg quotes",
-        "reason": "The normalized U.S. spot proxy cannot be calculated from all required BTC price legs."
+        "quality": "verified",
+        "coverage": "3/3 BTC legs · 2/2 peg quotes",
+        "reason": "All BTC price legs and both USDT/USD normalization quotes passed checks."
       },
       "derivatives_oi": {
         "quality": "partial",
-        "coverage": "3/5 core venues",
-        "reason": "Missing bitmex, kraken; current partial OI may display, but history comparison is disabled."
+        "coverage": "4/5 core venues",
+        "reason": "Missing bitmex; current partial OI may display, but history comparison is disabled."
       },
       "funding": {
         "quality": "partial",
-        "coverage": "3/5 comparable venues",
+        "coverage": "4/5 comparable venues",
         "reason": "Live leverage health may display, but fixed-core funding history is not comparable."
       },
       "exchange_supply": {
