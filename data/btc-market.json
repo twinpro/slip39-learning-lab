@@ -1,7 +1,7 @@
 {
   "schema": 12,
   "release": "V12.3",
-  "generated_at": "2026-11-07T08:19:02.300Z",
+  "generated_at": "2026-11-07T08:49:08.766Z",
   "cost": "$0",
   "api_keys_required": false,
   "api_keys": [],
@@ -11,7 +11,7 @@
     "okx": "ok",
     "deribit": "ok",
     "bitmex": "error",
-    "hyperliquid": "error",
+    "hyperliquid": "ok",
     "kraken_futures": "error",
     "kraken_funding": "unavailable",
     "bybit": "error (optional; not relied upon)",
@@ -28,26 +28,26 @@
       "okx": {
         "status": "ok",
         "contract": "BTC-USDT-SWAP",
-        "observed_at": "2026-11-07T08:19:00.394Z",
-        "oi_usd": 2633508157.377172,
-        "oi_btc": 34608.208400000156,
-        "funding_rate_percent": -0.00044578540627,
+        "observed_at": "2026-11-07T08:49:07.485Z",
+        "oi_usd": 2636017035.138282,
+        "oi_btc": 34625.07090000015,
+        "funding_rate_percent": -0.00049103431967,
         "funding_interval_hours": 8,
-        "mark_price": 76094.8,
+        "mark_price": 76126.1,
         "timestamp_basis": "provider",
-        "implied_btc": 34608.2539,
+        "implied_btc": 34626.9812,
         "unit_check": "ok"
       },
       "deribit": {
         "status": "ok",
         "contract": "BTC-PERPETUAL",
-        "observed_at": "2026-11-07T08:19:00.575Z",
-        "oi_usd": 684544660,
-        "funding_rate_percent": 0.000564,
+        "observed_at": "2026-11-07T08:49:07.661Z",
+        "oi_usd": 684662560,
+        "funding_rate_percent": 0.000434,
         "funding_interval_hours": 8,
-        "mark_price": 76053.26,
+        "mark_price": 76074.03,
         "timestamp_basis": "provider",
-        "implied_btc": 9000.8589,
+        "implied_btc": 8999.9512,
         "unit_check": "ok"
       },
       "bitmex": {
@@ -55,25 +55,18 @@
         "error": "HTTP 403 Forbidden"
       },
       "hyperliquid": {
-        "status": "error",
-        "error": "HTTP 502 Bad Gateway",
-        "last_verified": {
-          "observed_at": "2026-11-07T07:49:06.831Z",
-          "value": {
-            "status": "ok",
-            "contract": "BTC perpetual",
-            "oi_usd": 3200166546.14384,
-            "oi_btc": 42095.4352,
-            "funding_rate_percent": 0.01,
-            "funding_interval_hours": 8,
-            "funding_source_interval_hours": 1,
-            "mark_price": 76021.7,
-            "observed_at": "2026-11-07T07:49:06.831Z",
-            "timestamp_basis": "response_received",
-            "implied_btc": 42095.4352,
-            "unit_check": "ok"
-          }
-        }
+        "status": "ok",
+        "contract": "BTC perpetual",
+        "oi_usd": 3205734426.98722,
+        "oi_btc": 42099.28726,
+        "funding_rate_percent": 0.01,
+        "funding_interval_hours": 8,
+        "funding_source_interval_hours": 1,
+        "mark_price": 76147,
+        "observed_at": "2026-11-07T08:49:08.572Z",
+        "timestamp_basis": "response_received",
+        "implied_btc": 42099.2873,
+        "unit_check": "ok"
       },
       "kraken": {
         "status": "error",
@@ -124,17 +117,19 @@
     },
     "aggregate": {
       "status": "ok",
-      "venue_count": 2,
+      "venue_count": 3,
       "venues": [
         "okx",
-        "deribit"
+        "deribit",
+        "hyperliquid"
       ],
-      "oi_usd": 3318052817.377172,
-      "funding_rate_percent": -0.00023745743632693338,
-      "funding_venue_count": 2,
+      "oi_usd": 6526414022.125502,
+      "funding_rate_percent": 0.004759139227779022,
+      "funding_venue_count": 3,
       "funding_venues": [
         "okx",
-        "deribit"
+        "deribit",
+        "hyperliquid"
       ],
       "core_expected_venues": [
         "okx",
@@ -145,11 +140,11 @@
       ],
       "core_working_venues": [
         "okx",
-        "deribit"
+        "deribit",
+        "hyperliquid"
       ],
       "core_missing_venues": [
         "bitmex",
-        "hyperliquid",
         "kraken"
       ],
       "core_comparable_status": "incomplete",
@@ -159,19 +154,19 @@
   },
   "spot": {
     "status": "ok",
-    "observed_at": "2026-11-07T08:19:02.300Z",
+    "observed_at": "2026-11-07T08:49:08.766Z",
     "timestamp_basis": "validated provider timestamps; Kraken response received",
     "source": "Coinbase BTC-USD + Kraken XBT/USD vs USDT-normalized OKX BTC-USDT",
-    "coinbase_usd": 76033.82,
-    "kraken_usd": 76035.7,
-    "us_spot_average_usd": 76034.76000000001,
-    "okx_usdt": 76136.7,
-    "coinbase_usdt_usd": 0.9987,
-    "kraken_usdt_usd": 0.9987,
-    "usdt_usd": 0.9987,
-    "okx_usd_equivalent": 76037.72229,
-    "us_spot_premium_percent_raw": -0.1339,
-    "us_spot_premium_percent": -0.0039,
+    "coinbase_usd": 76065.06,
+    "kraken_usd": 76070.7,
+    "us_spot_average_usd": 76067.88,
+    "okx_usdt": 76168.5,
+    "coinbase_usdt_usd": 0.99873,
+    "kraken_usdt_usd": 0.99873,
+    "usdt_usd": 0.99873,
+    "okx_usd_equivalent": 76071.766005,
+    "us_spot_premium_percent_raw": -0.1321,
+    "us_spot_premium_percent": -0.0051,
     "premium_status": "usdt_normalized",
     "note": "OKX BTC-USDT is converted to USD using live Coinbase/Kraken USDT-USD before comparison."
   },
@@ -182,7 +177,7 @@
   },
   "health": {
     "schema": 1,
-    "assessed_at": "2026-11-07T08:19:02.300Z",
+    "assessed_at": "2026-11-07T08:49:08.766Z",
     "overall": {
       "quality": "unknown",
       "reason": "At least one required scored component is not fully verified."
@@ -201,12 +196,12 @@
       },
       "derivatives_oi": {
         "quality": "partial",
-        "coverage": "2/5 core venues",
-        "reason": "Missing bitmex, hyperliquid, kraken; current partial OI may display, but history comparison is disabled."
+        "coverage": "3/5 core venues",
+        "reason": "Missing bitmex, kraken; current partial OI may display, but history comparison is disabled."
       },
       "funding": {
         "quality": "partial",
-        "coverage": "2/5 comparable venues",
+        "coverage": "3/5 comparable venues",
         "reason": "Live leverage health may display, but fixed-core funding history is not comparable."
       },
       "exchange_supply": {
